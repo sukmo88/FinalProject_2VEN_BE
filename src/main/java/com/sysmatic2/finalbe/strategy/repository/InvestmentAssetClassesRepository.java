@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface InvestmentAssetClassesRepository extends JpaRepository<InvestmentAssetClassesEntity, Integer> {
     //Order 존재하는지 확인
@@ -12,5 +14,5 @@ public interface InvestmentAssetClassesRepository extends JpaRepository<Investme
 
     //order 최대값 구하기
     @Query("SELECT MAX(i.order) FROM InvestmentAssetClassesEntity i")
-    Integer getMaxOrder();
+    Optional<Integer> getMaxOrder();
 }
