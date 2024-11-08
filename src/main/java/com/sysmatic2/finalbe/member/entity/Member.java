@@ -67,7 +67,7 @@ public class Member {
     private LocalDateTime deletedAt;  // 회원탈퇴일시
 
     @Column(name = "withdrawal_reason")
-    private String withdrawalReason = "default";  // 탈퇴사유
+    private String withdrawalReason;  // 탈퇴사유
 
     @Column(name = "password_changed_at")
     private LocalDateTime passwordChangedAt;  // 비밀번호 변경일
