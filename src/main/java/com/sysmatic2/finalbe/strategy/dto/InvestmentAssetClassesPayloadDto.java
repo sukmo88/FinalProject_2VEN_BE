@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.dto;
 
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 @Getter
@@ -9,8 +10,16 @@ import lombok.*;
 @AllArgsConstructor
 public class InvestmentAssetClassesPayloadDto {
     //등록용 DTO
-    private Integer order;
+    @Positive
+    @Max(value=1000)
+    private Integer order; //null 가능
+
+    @Size(max=40)
+    @NotEmpty
     private String investmentAssetClassesName;
+
     private String investmentAssetClassesIcon;
-    private Character isActive;
+
+    @Pattern(regexp = "Y|N")
+    private String isActive;
 }

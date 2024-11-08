@@ -33,8 +33,12 @@ public class InvestmentAssetClassesEntity {
     @Column(name = "investment_asset_classes_icon")
     private String investmentAssetClassesIcon; //투자자산 분류 아이콘
 
+    //사용X
+    @Column(name = "introduce", length = 3000, nullable = true)
+    private String introduce; //투자자산분류 설명
+
     @Column(name = "is_Active", length = 1, nullable = false)
-    private Character isActive; //사용 유무
+    private String isActive; //사용 유무
 
     //시스템 컬럼
     @CreatedBy
