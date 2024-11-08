@@ -24,10 +24,10 @@ public class InvestAssetClassesRepositoryTest {
     void setUp() {
         iacRepo.deleteAll();
 
-        for(Integer i = 1; i <= 10; i++){
+        for(Integer i = 1; i <= 25; i++){
             InvestmentAssetClassesEntity iac = new InvestmentAssetClassesEntity();
 //            iac.setInvestmentAssetClassesId(i); //auto-increment 될텐데
-            iac.setOrder(11 - i);
+            iac.setOrder(26 - i);
             iac.setInvestmentAssetClassesName("Name" + i);
             iac.setInvestmentAssetClassesIcon("Demo-File" + i);
             if(i % 2 == 0){

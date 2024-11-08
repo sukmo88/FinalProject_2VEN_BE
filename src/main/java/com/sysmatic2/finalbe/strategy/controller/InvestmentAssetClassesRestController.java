@@ -21,20 +21,35 @@ public class InvestmentAssetClassesRestController {
     private final InvestmentAssetClassesService iacService;
 
 //    1. 투자자산분류 목록
+//    @GetMapping(value="/inv-asset-classes", produces="application/json")
+//    @ApiResponse(responseCode="200", description = "List of Investment Asset Classes")
+//    @ApiResponse(responseCode="400", description = "Wrong Request URL")
+//    @ApiResponse(responseCode="401", description = "Unauthorized")
+//    @ApiResponse(responseCode="405", description = "Wrong Request Method")
+//    @ApiResponse(responseCode="500", description = "Other Errors")
+//    public ResponseEntity<Map> getAllInvestmentAssetClasses() throws Exception{
+//        //TODO) pagination(10)
+//        List<InvestmentAssetClassesDto> dtoList = iacService.getList();
+//        Map<String, Object> responseMap = new LinkedHashMap<>();
+//        responseMap.put("data", dtoList);
+//
+//        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+//    }
+
     @GetMapping(value="/inv-asset-classes", produces="application/json")
     @ApiResponse(responseCode="200", description = "List of Investment Asset Classes")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
     @ApiResponse(responseCode="401", description = "Unauthorized")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Map> getAllInvestmentAssetClasses() throws Exception{
-        //TODO) pagination(10)
-        List<InvestmentAssetClassesDto> dtoList = iacService.getList();
-        Map<String, Object> responseMap = new LinkedHashMap<>();
+    public ResponseEntity<Map> getAllInvestmentAssetClasses(@RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) throws Exception{
+        List<InvestmentAssetClassesDto> dtoList = iacService.getList(page, pageSize);
+        Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", dtoList);
 
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
+
 
     //1-1. 투자자산분류 상세
     @GetMapping(value="/inv-asset-classes/{id}", produces="application/json")

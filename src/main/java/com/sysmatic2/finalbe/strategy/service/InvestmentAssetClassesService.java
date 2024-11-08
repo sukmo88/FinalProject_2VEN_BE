@@ -26,17 +26,32 @@ public class InvestmentAssetClassesService {
     private final InvestmentAssetClassesRepository iacRepository;
 
     //1. 투자자산 분류 전체 목록을 가져오는 메서드
-    public List<InvestmentAssetClassesDto> getList() throws Exception{
+//    public List<InvestmentAssetClassesDto> getList() throws Exception{
+//        //TODO) 관리자 판별
+//        List<InvestmentAssetClassesDto> dtoList = new ArrayList<>();
+//
+//        for(InvestmentAssetClassesEntity iacEntity : iacRepository.findAll(Sort.by(Sort.Direction.ASC, "order"))){
+//            dtoList.add(new InvestmentAssetClassesDto(iacEntity.getInvestmentAssetClassesId(),
+//                    iacEntity.getOrder(), iacEntity.getInvestmentAssetClassesName(),
+//                    iacEntity.getInvestmentAssetClassesIcon(), iacEntity.getIsActive()));
+//        }
+//        return dtoList;
+//    }
+
+    public List<InvestmentAssetClassesDto> getList(int page, int size) throws Exception{
         //TODO) 관리자 판별
+        Pageable pageable = PageRequest.of(page, size, Sort.by("order").ascending());
+
         List<InvestmentAssetClassesDto> dtoList = new ArrayList<>();
 
-        for(InvestmentAssetClassesEntity iacEntity : iacRepository.findAll(Sort.by(Sort.Direction.ASC, "order"))){
+        for(InvestmentAssetClassesEntity iacEntity : iacRepository.findAll(pageable)){
             dtoList.add(new InvestmentAssetClassesDto(iacEntity.getInvestmentAssetClassesId(),
                     iacEntity.getOrder(), iacEntity.getInvestmentAssetClassesName(),
                     iacEntity.getInvestmentAssetClassesIcon(), iacEntity.getIsActive()));
         }
         return dtoList;
     }
+
 
     //1-1. 투자자산 분류 상세 조회 메서드
     public InvestmentAssetClassesDto getById(Integer id) throws Exception{
