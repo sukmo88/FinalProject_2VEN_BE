@@ -5,6 +5,11 @@ import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -23,10 +28,9 @@ public class InvestmentAssetClassesService {
     //1. 투자자산 분류 전체 목록을 가져오는 메서드
     public List<InvestmentAssetClassesDto> getList() throws Exception{
         //TODO) 관리자 판별
-        //엔티티의 값들을 DTO에 저장하고 DTO를 보낸다.
         List<InvestmentAssetClassesDto> dtoList = new ArrayList<>();
 
-        for(InvestmentAssetClassesEntity iacEntity : iacRepository.findAll()){
+        for(InvestmentAssetClassesEntity iacEntity : iacRepository.findAll(Sort.by(Sort.Direction.ASC, "order"))){
             dtoList.add(new InvestmentAssetClassesDto(iacEntity.getInvestmentAssetClassesId(),
                     iacEntity.getOrder(), iacEntity.getInvestmentAssetClassesName(),
                     iacEntity.getInvestmentAssetClassesIcon(), iacEntity.getIsActive()));
@@ -61,18 +65,27 @@ public class InvestmentAssetClassesService {
     //2. 투자자산 분류 생성
     //페이로드 DTO를 받아서 엔티티에 넣는다. 만들고 나면 반환용 DTO를 반환한다.
     //TODO) 관리자 판별
-    //TODO) 같은 순서 입력한 경우 에러발생 시키기
-    public InvestmentAssetClassesDto register(InvestmentAssetClassesPayloadDto iacPayloadDto){
+    public InvestmentAssetClassesDto register(InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception{
         //엔티티 객체 생성
         InvestmentAssetClassesEntity iacEntity = new InvestmentAssetClassesEntity();
 
         //받아온 payloadDTO값을 엔티티 객체에 넣는다.
-        iacEntity.setOrder(iacPayloadDto.getOrder());
+        if(iacRepository.existsByOrder(iacPayloadDto.getOrder())){
+            throw new DataIntegrityViolationException("Order already exists");
+        }
+
+        //order 빈 값이면 order 최대값에서 +1 한 값으로 설정
+        if(iacPayloadDto.getOrder() == null){
+            iacEntity.setOrder(iacRepository.getMaxOrder()+1);
+        } else {
+            iacEntity.setOrder(iacPayloadDto.getOrder());
+        }
+
         iacEntity.setInvestmentAssetClassesName(iacPayloadDto.getInvestmentAssetClassesName());
         iacEntity.setInvestmentAssetClassesIcon(iacPayloadDto.getInvestmentAssetClassesIcon());
         iacEntity.setIsActive(iacPayloadDto.getIsActive());
 
-        //최초 작성자, 최초 작성일시, 최종 수정자, 최종 수정일시 넣기
+        //최초 작성자, 최초 작성일시, 최종 수정자, 최종 수정일시 넣기 - 시스템컬럼
         //TODO) User 객체 받아오기 - spring security
         iacEntity.setCreatedBy(100L);
         iacEntity.setCreatedAt(LocalDateTime.now());
@@ -102,7 +115,7 @@ public class InvestmentAssetClassesService {
         InvestmentAssetClassesEntity iacEntity;
 
         if(optionalIac.isPresent()){
-            //있으면 엔티티 객체에 저장
+            //있으면 엔티티 객체에 저장 - 추후 프론트에 넘길지
             iacEntity = optionalIac.get();
         } else {
             //없으면 에러
@@ -112,8 +125,31 @@ public class InvestmentAssetClassesService {
         iacRepository.deleteById(id);
     }
 
+    //3-1. 투자자산 분류 삭제(soft delete)
+    //해당 id값의 투자자산 분류 사용유무 N으로 변경
+    public void softDelete(Integer id) throws Exception{
+        //TODO) 관리자 판별
+        //id로 존재 확인
+        Optional<InvestmentAssetClassesEntity> optionalIac = iacRepository.findById(id);
+        InvestmentAssetClassesEntity iacEntity;
+
+        if(optionalIac.isPresent()){
+            iacEntity = optionalIac.get();
+        } else {
+            throw new NoSuchElementException();
+        }
+
+        //IsActive N으로 변경, 시스템 컬럼 수정
+        iacEntity.setIsActive("N");
+        iacEntity.setModifiedBy(100L);
+        iacEntity.setModifiedAt(LocalDateTime.now());
+
+        //변경 엔티티 저장
+        iacRepository.save(iacEntity);
+    }
+
     //4. 투자자산 분류 수정
-    public  void update(Integer id, InvestmentAssetClassesPayloadDto iasPayloadDto) throws Exception{
+    public  void update(Integer id, InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception{
         //TODO) 관리자 판별
         //수정한 내용을 덮어씌우는 느낌.
         Optional<InvestmentAssetClassesEntity> optionalIac = iacRepository.findById(id);
@@ -127,17 +163,26 @@ public class InvestmentAssetClassesService {
         }
 
         //엔티티에 페이로드 내용 저장
-        iacEntity.setOrder(iasPayloadDto.getOrder());
-        iacEntity.setInvestmentAssetClassesName(iasPayloadDto.getInvestmentAssetClassesName());
-        iacEntity.setInvestmentAssetClassesIcon(iasPayloadDto.getInvestmentAssetClassesIcon());
-        iacEntity.setIsActive(iasPayloadDto.getIsActive());
+        //받아온 payloadDTO값을 엔티티 객체에 넣는다.
+
+        //자신의 order값이 아니고 존재하는 order값이면 에러 발생
+        if((iacPayloadDto.getOrder() != iacEntity.getOrder()) && (iacRepository.existsByOrder(iacPayloadDto.getOrder()))){
+            throw new DataIntegrityViolationException("Order already exists");
+        }
+
+        //order 빈 값이면 값 변경 X
+        if(iacPayloadDto.getOrder() != null){
+            iacEntity.setOrder(iacPayloadDto.getOrder());
+        }
+
+        iacEntity.setInvestmentAssetClassesName(iacPayloadDto.getInvestmentAssetClassesName());
+        iacEntity.setInvestmentAssetClassesIcon(iacPayloadDto.getInvestmentAssetClassesIcon());
+        iacEntity.setIsActive(iacPayloadDto.getIsActive());
+
+        iacEntity.setModifiedBy(100L);
+        iacEntity.setModifiedAt(LocalDateTime.now());
 
         //save()
-        iacEntity = iacRepository.save(iacEntity);
-//        InvestmentAssetClassesDto iacDto = new InvestmentAssetClassesDto(iacEntity.getInvestmentAssetClassesId(),
-//                iacEntity.getOrder(), iacEntity.getInvestmentAssetClassesName(),
-//                iacEntity.getInvestmentAssetClassesIcon(), iacEntity.getIsActive());
-//
-//        return iacDto;
+        iacRepository.save(iacEntity);
     }
 }

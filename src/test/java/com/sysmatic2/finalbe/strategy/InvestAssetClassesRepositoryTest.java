@@ -22,16 +22,18 @@ public class InvestAssetClassesRepositoryTest {
     @BeforeEach
 //    @Test
     void setUp() {
+        iacRepo.deleteAll();
+
         for(Integer i = 1; i <= 10; i++){
             InvestmentAssetClassesEntity iac = new InvestmentAssetClassesEntity();
 //            iac.setInvestmentAssetClassesId(i); //auto-increment 될텐데
-            iac.setOrder(i);
+            iac.setOrder(11 - i);
             iac.setInvestmentAssetClassesName("Name" + i);
             iac.setInvestmentAssetClassesIcon("Demo-File" + i);
             if(i % 2 == 0){
-                iac.setIsActive('N');
+                iac.setIsActive("N");
             }else{
-                iac.setIsActive('Y');
+                iac.setIsActive("Y");
             }
 
             Long longId = Long.valueOf(i);
@@ -127,7 +129,5 @@ public class InvestAssetClassesRepositoryTest {
         assertTrue(listSize2 == listSize1);
 
     }
-
-
 
 }
