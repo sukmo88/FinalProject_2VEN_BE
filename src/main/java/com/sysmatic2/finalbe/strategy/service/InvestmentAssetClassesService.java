@@ -91,7 +91,7 @@ public class InvestmentAssetClassesService {
 
         //order 빈 값이면 order 최대값에서 +1 한 값으로 설정
         if(iacPayloadDto.getOrder() == null){
-            iacEntity.setOrder(iacRepository.getMaxOrder()+1);
+            iacEntity.setOrder(iacRepository.getMaxOrder().orElse(0)+1); //orElse 자체가 Optional을 벗겨줌
         } else {
             iacEntity.setOrder(iacPayloadDto.getOrder());
         }
