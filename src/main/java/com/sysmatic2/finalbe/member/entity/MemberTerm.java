@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.member.entity;
 
+import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class MemberTerm {
+public class MemberTerm extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "member_term_id")

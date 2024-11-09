@@ -2,7 +2,7 @@ package com.sysmatic2.finalbe.admin.entity;
 
 import com.sysmatic2.finalbe.StandardCode;
 import com.sysmatic2.finalbe.member.entity.Member;
-import com.sysmatic2.finalbe.strategy.entity.Strategy;
+import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class StrategyApprovalHistory {
+public class StrategyApprovalHistory extends Auditable {
     @Id
     @Column(name = "strategy_approval_history_id")
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -25,9 +25,10 @@ public class StrategyApprovalHistory {
     @JoinColumn(name = "member_id")
     private Member member; // 전략을 승인 또는 반랴한 관리자 id
 
-    @ManyToOne
-    @JoinColumn(name = "strategy_id", nullable = false)
-    private Strategy strategy;
+    // Strategy 엔티티 클래스 없어서 임시 주석처리
+//    @ManyToOne
+//    @JoinColumn(name = "strategy_id", nullable = false)
+//    private Strategy strategy;
 
     @ManyToOne
     @JoinColumn(name = "request_reason_code", nullable = false)
