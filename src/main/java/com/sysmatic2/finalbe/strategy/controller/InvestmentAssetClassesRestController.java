@@ -21,21 +21,20 @@ import java.util.*;
 public class InvestmentAssetClassesRestController {
     private final InvestmentAssetClassesService iacService;
 
-//    1. 투자자산분류 목록 - pagination
+    //1. 투자자산분류 목록 - pagination
     @GetMapping(value="/inv-asset-classes", produces="application/json")
     @ApiResponse(responseCode="200", description = "List of Investment Asset Classes")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
     @ApiResponse(responseCode="401", description = "Unauthorized")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Page> getAllInvestmentAssetClasses(@RequestParam(value = "page", defaultValue = "1") int page,
-                                                            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) throws Exception{
+    public ResponseEntity<Map> getAllInvestmentAssetClasses(@RequestParam(value = "page", defaultValue = "1") int page,
+                                                             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) throws Exception{
         //TODO)관리자 판별
-        Page<InvestmentAssetClassesDto> pageList = iacService.getList(page, pageSize);
+        Map pageList = iacService.getList(page, pageSize);
 
         return ResponseEntity.status(HttpStatus.OK).body(pageList);
     }
-
 
     //1-1. 투자자산분류 상세
     @GetMapping(value="/inv-asset-classes/{id}", produces="application/json")
@@ -49,7 +48,7 @@ public class InvestmentAssetClassesRestController {
         //TODO)관리자 판별
         InvestmentAssetClassesDto iasDto = iacService.getById(id);
         Map<String, Object> responseMap = new HashMap<>();
-        responseMap.put("content", iasDto);
+        responseMap.put("data", iasDto);
 
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
