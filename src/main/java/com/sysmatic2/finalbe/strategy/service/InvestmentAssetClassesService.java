@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
+import com.sysmatic2.finalbe.util.CreatePageResponse;
 import com.sysmatic2.finalbe.util.InvestmentAssetClassesMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -21,19 +23,20 @@ import java.util.Optional;
 public class InvestmentAssetClassesService {
     private final InvestmentAssetClassesRepository iacRepository;
     private final InvestmentAssetClassesMapper iacMapper;
+    private final CreatePageResponse createPageResponse;
 
     //1. 투자자산 분류 전체목록 메서드 페이지네이션, 소팅 적용
     @Transactional(readOnly = true)
-    public Page<InvestmentAssetClassesDto> getList(int page, int size) throws Exception{
+    public Map<String, Object> getList(int page, int size) throws Exception{
         //현재 페이지, 페이지 사이즈, 정렬 정보 담은 pageable 객체 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by("order").ascending());
 
-        //페이지 리스트 담을 페이지 객체 생성
-        Page<InvestmentAssetClassesEntity> dtoPageEntityList;
+        //페이지 객체 리스트에 DB 데이터 엔티티들을 가져와서 넣는다.
+        Page<InvestmentAssetClassesEntity> pageEntityList = iacRepository.findAll(pageable);
+        //페이지 객체 리스트의 타입 변경
+        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(iacMapper::toDto);
 
-        dtoPageEntityList = iacRepository.findAll(pageable);
-
-        return dtoPageEntityList.map(iacMapper::toDto);
+        return createPageResponse.createPageResponse(pageDtoList);
     }
 
     //1-1. 투자자산 분류 상세 조회 메서드
