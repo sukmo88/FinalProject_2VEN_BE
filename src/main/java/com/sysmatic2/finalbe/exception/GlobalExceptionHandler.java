@@ -6,11 +6,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.server.MethodNotAllowedException;
 
+import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -57,12 +60,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMap);
     }
 
-    //401 - Spring Security 자동 예외 발생
+    //401 - 미인증(Spring Security 자동 예외 발생)
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map> handleAuthenticationException(AuthenticationException e) {
         Map<String, String> errorMap = new HashMap<>();
-        errorMap.put("error", "UNAUTHORIZED");
+        errorMap.put("error", "UNAUTHENTICATED");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorMap);
+    }
+
+    //403 - 비인가(Spring Security 자동 예외 발생)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map> handleAccessDeniedException(AccessDeniedException e) {
+        Map<String, String> errorMap = new HashMap<>();
+        errorMap.put("error", "UNAUTHORIZED");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorMap);
     }
 
     //404
