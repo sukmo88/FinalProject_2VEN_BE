@@ -4,16 +4,14 @@ import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
+import com.sysmatic2.finalbe.util.InvestmentAssetClassesMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -22,39 +20,25 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class InvestmentAssetClassesService {
     private final InvestmentAssetClassesRepository iacRepository;
+    private final InvestmentAssetClassesMapper iacMapper;
 
-    //1. 투자자산 분류 전체 목록을 가져오는 메서드
-//    public List<InvestmentAssetClassesDto> getList() throws Exception{
-//        //TODO) 관리자 판별
-//        List<InvestmentAssetClassesDto> dtoList = new ArrayList<>();
-//
-//        for(InvestmentAssetClassesEntity iacEntity : iacRepository.findAll(Sort.by(Sort.Direction.ASC, "order"))){
-//            dtoList.add(new InvestmentAssetClassesDto(iacEntity.getInvestmentAssetClassesId(),
-//                    iacEntity.getOrder(), iacEntity.getInvestmentAssetClassesName(),
-//                    iacEntity.getInvestmentAssetClassesIcon(), iacEntity.getIsActive()));
-//        }
-//        return dtoList;
-//    }
-
-    //1-1. 투자자산 분류 전체목록 메서드 페이지네이션, 소팅 적용
-    public List<InvestmentAssetClassesDto> getList(int page, int size) throws Exception{
-        //TODO) 관리자 판별
+    //1. 투자자산 분류 전체목록 메서드 페이지네이션, 소팅 적용
+    @Transactional(readOnly = true)
+    public Page<InvestmentAssetClassesDto> getList(int page, int size) throws Exception{
+        //현재 페이지, 페이지 사이즈, 정렬 정보 담은 pageable 객체 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by("order").ascending());
 
-        List<InvestmentAssetClassesDto> dtoList = new ArrayList<>();
+        //페이지 리스트 담을 페이지 객체 생성
+        Page<InvestmentAssetClassesEntity> dtoPageEntityList;
 
-        for(InvestmentAssetClassesEntity iacEntity : iacRepository.findAll(pageable)){
-            dtoList.add(new InvestmentAssetClassesDto(iacEntity.getInvestmentAssetClassesId(),
-                    iacEntity.getOrder(), iacEntity.getInvestmentAssetClassesName(),
-                    iacEntity.getInvestmentAssetClassesIcon(), iacEntity.getIsActive()));
-        }
-        return dtoList;
+        dtoPageEntityList = iacRepository.findAll(pageable);
+
+        return dtoPageEntityList.map(iacMapper::toDto);
     }
 
-
-    //1-2. 투자자산 분류 상세 조회 메서드
+    //1-1. 투자자산 분류 상세 조회 메서드
+    @Transactional(readOnly = true)
     public InvestmentAssetClassesDto getById(Integer id) throws Exception{
-        //TODO) 관리자 판별
         //id 값으로 optional 객체 얻기
         Optional<InvestmentAssetClassesEntity> iacOptional = iacRepository.findById(id);
         //저장할 엔티티 객체 생성
@@ -69,16 +53,12 @@ public class InvestmentAssetClassesService {
         }
 
         //엔티티 객체를 DTO에 담아서 보낸다.
-        InvestmentAssetClassesDto iasDto = new InvestmentAssetClassesDto(iacEntity.getInvestmentAssetClassesId(),
-                iacEntity.getOrder(), iacEntity.getInvestmentAssetClassesName(), iacEntity.getInvestmentAssetClassesIcon(),
-                iacEntity.getIsActive());
-
-        return iasDto;
+        return iacMapper.toDto(iacEntity);
     }
 
     //2. 투자자산 분류 생성
     //페이로드 DTO를 받아서 엔티티에 넣는다. 만들고 나면 반환용 DTO를 반환한다.
-    //TODO) 관리자 판별
+    @Transactional
     public void register(InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception{
         //엔티티 객체 생성
         InvestmentAssetClassesEntity iacEntity = new InvestmentAssetClassesEntity();
@@ -132,8 +112,8 @@ public class InvestmentAssetClassesService {
 
     //3-1. 투자자산 분류 삭제(soft delete)
     //해당 id값의 투자자산 분류 사용유무 N으로 변경
+    @Transactional
     public void softDelete(Integer id) throws Exception{
-        //TODO) 관리자 판별
         //id로 존재 확인
         Optional<InvestmentAssetClassesEntity> optionalIac = iacRepository.findById(id);
         InvestmentAssetClassesEntity iacEntity;
@@ -154,8 +134,8 @@ public class InvestmentAssetClassesService {
     }
 
     //4. 투자자산 분류 수정
+    @Transactional
     public  void update(Integer id, InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception{
-        //TODO) 관리자 판별
         //수정한 내용을 덮어씌우는 느낌.
         Optional<InvestmentAssetClassesEntity> optionalIac = iacRepository.findById(id);
         InvestmentAssetClassesEntity iacEntity;
@@ -173,12 +153,10 @@ public class InvestmentAssetClassesService {
         if((iacPayloadDto.getOrder() != iacEntity.getOrder()) && (iacRepository.existsByOrder(iacPayloadDto.getOrder()))){
             throw new DataIntegrityViolationException("Order already exists");
         }
-
         //order 빈 값이면 값 변경 X
         if(iacPayloadDto.getOrder() != null){
             iacEntity.setOrder(iacPayloadDto.getOrder());
         }
-
         iacEntity.setInvestmentAssetClassesName(iacPayloadDto.getInvestmentAssetClassesName());
         iacEntity.setInvestmentAssetClassesIcon(iacPayloadDto.getInvestmentAssetClassesIcon());
         iacEntity.setIsActive(iacPayloadDto.getIsActive());
