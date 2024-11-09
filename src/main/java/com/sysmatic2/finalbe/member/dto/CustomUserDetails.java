@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -19,7 +20,17 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
+
+        authorities.add(new GrantedAuthority() {
+            @Override
+            public String getAuthority() {
+                // role 비교하는 로직 작성 필요!!
+                return member.getMemberGradeCode();
+            }
+        });
+
+        return authorities;
     }
 
     @Override
