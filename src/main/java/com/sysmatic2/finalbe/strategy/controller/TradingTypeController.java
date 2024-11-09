@@ -1,21 +1,17 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
-import com.sysmatic2.finalbe.config.AuditorAwareImpl;
 import com.sysmatic2.finalbe.strategy.dto.TradingTypeRequestDto;
 import com.sysmatic2.finalbe.strategy.dto.TradingTypeResponseDto;
-import com.sysmatic2.finalbe.strategy.entity.TradingType;
 import com.sysmatic2.finalbe.strategy.service.TradingTypeService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController

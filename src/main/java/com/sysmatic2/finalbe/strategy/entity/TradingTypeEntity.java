@@ -10,7 +10,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class TradingType extends Auditable{
+public class TradingTypeEntity extends Auditable{
 
     @Id
     @Column(name="trading_type_id")
