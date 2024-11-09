@@ -1,7 +1,6 @@
-package com.sysmatic2.finalbe.strategy;
+package com.sysmatic2.finalbe.strategy.repository;
 
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
-import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +26,7 @@ public class InvestAssetClassesRepositoryTest {
         for(Integer i = 1; i <= 25; i++){
             InvestmentAssetClassesEntity iac = new InvestmentAssetClassesEntity();
 //            iac.setInvestmentAssetClassesId(i); //auto-increment 될텐데
-            iac.setOrder(26 - i);
+            iac.setOrder(i);
             iac.setInvestmentAssetClassesName("Name" + i);
             iac.setInvestmentAssetClassesIcon("Demo-File" + i);
             if(i % 2 == 0){
