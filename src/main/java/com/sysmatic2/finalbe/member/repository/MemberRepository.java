@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.member;
+package com.sysmatic2.finalbe.member.repository;
 
 import com.sysmatic2.finalbe.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
