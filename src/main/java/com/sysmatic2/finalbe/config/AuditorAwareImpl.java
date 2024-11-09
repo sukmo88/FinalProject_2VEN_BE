@@ -23,7 +23,6 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
 //        return Optional.of(authentication.getName());
 
         // 실제 구현에서 인증된 사용자 ID를 반환하도록 설정 (예: 1L은 임시 사용자 ID)
-        System.out.println("AuditorAwareImpl 호출");
         return Optional.of(1L);
     }
 }
