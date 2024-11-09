@@ -1,6 +1,6 @@
 package com.sysmatic2.finalbe.member.service;
 
-import com.sysmatic2.finalbe.member.MemberRepository;
+import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.entity.Member;
 import lombok.RequiredArgsConstructor;
