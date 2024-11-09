@@ -32,6 +32,6 @@ public class Auditable {
     private Long modifiedBy; // 최종수정자 ID
 
     @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt; // 최종수정일시
+    @Column(name = "modified_at")
+    private LocalDateTime modifiedAt; // 최종수정일시
 }
