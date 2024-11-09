@@ -1,0 +1,31 @@
+package com.sysmatic2.finalbe.member.service;
+
+import com.sysmatic2.finalbe.member.MemberRepository;
+import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
+import com.sysmatic2.finalbe.member.entity.Member;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final MemberRepository memberRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // 데이터베이스에서 사용자 정보 조회
+        Member member = memberRepository.findByEmail(username);
+
+        // 조회된 사용자 정보가 없을 경우 예외 발생
+        if (member == null) {
+            throw new UsernameNotFoundException("User not found");
+        }
+
+        // 사용자 정보 있으면 UserDetails 반환
+        return new CustomUserDetails(member);
+    }
+}
