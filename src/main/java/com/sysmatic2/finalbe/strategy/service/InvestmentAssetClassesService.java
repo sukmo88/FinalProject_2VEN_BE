@@ -17,13 +17,14 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
+import static com.sysmatic2.finalbe.util.InvestmentAssetClassesMapper.toDto;
+
 //관리자 페이지 - 투자자산 분류 관리
 @Service
 @RequiredArgsConstructor
 public class InvestmentAssetClassesService {
     private final InvestmentAssetClassesRepository iacRepository;
-    private final InvestmentAssetClassesMapper iacMapper;
-    private final CreatePageResponse createPageResponse;
 
     //1. 투자자산 분류 전체목록 메서드 페이지네이션, 소팅 적용
     @Transactional(readOnly = true)
@@ -34,9 +35,9 @@ public class InvestmentAssetClassesService {
         //페이지 객체 리스트에 DB 데이터 엔티티들을 가져와서 넣는다.
         Page<InvestmentAssetClassesEntity> pageEntityList = iacRepository.findAll(pageable);
         //페이지 객체 리스트의 타입 변경
-        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(iacMapper::toDto);
+        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(InvestmentAssetClassesMapper::toDto);
 
-        return createPageResponse.createPageResponse(pageDtoList);
+        return createPageResponse(pageDtoList);
     }
 
     //1-1. 투자자산 분류 상세 조회 메서드
@@ -56,7 +57,7 @@ public class InvestmentAssetClassesService {
         }
 
         //엔티티 객체를 DTO에 담아서 보낸다.
-        return iacMapper.toDto(iacEntity);
+        return toDto(iacEntity);
     }
 
     //2. 투자자산 분류 생성

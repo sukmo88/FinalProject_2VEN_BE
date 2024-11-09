@@ -6,9 +6,8 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.Map;
 
-@Component
 public class CreatePageResponse {
-    public <T> Map<String, Object> createPageResponse(Page<T> page) {
+    public static <T> Map<String, Object> createPageResponse(Page<T> page) {
         return Map.of(
                 "totalElements", page.getTotalElements(),   // 전체 원소 개수
                 "isFirstPage", page.isFirst(),              // 첫 번째 페이지 여부
