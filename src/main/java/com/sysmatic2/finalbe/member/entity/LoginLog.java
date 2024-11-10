@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.member.entity;
 
+import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class LoginLog {
+public class LoginLog extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name="login_log_id")
@@ -36,21 +37,5 @@ public class LoginLog {
 
     @Column(name="is_success", nullable = false)
     private char isSuccess;
-
-    @CreatedBy
-    @Column(name="created_by", nullable = false, updatable = false)
-    private long createdBy; // 최초작성자 ID
-
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt; // 최초등록일시
-
-    @LastModifiedBy
-    @Column(name = "modified_by", nullable = false)
-    private long modifiedBy; // 최종수정자 ID
-
-    @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt; // 최종수정일시
 
 }
