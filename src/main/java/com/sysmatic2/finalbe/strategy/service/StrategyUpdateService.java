@@ -26,12 +26,4 @@ public class StrategyUpdateService {
         strategyRepository.saveAll(strategies);
     }
 
-    // 상태가 "STRATEGY_STATUS_INACTIVE"로 변경될 때 종료일 업데이트
-    @Transactional
-    public void updateExitDateIfInactive(StrategyEntity strategy) {
-        if ("STRATEGY_STATUS_INACTIVE".equals(strategy.getStrategyStatusCode().getCode()) && strategy.getExitDate() == null) {
-            strategy.setExitDate(LocalDateTime.now());
-            strategyRepository.save(strategy);
-        }
-    }
 }
