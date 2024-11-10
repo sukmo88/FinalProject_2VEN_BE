@@ -1,23 +1,19 @@
 package com.sysmatic2.finalbe.cs.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
+import lombok.*;
+
+@Entity
+@Table(name = "faq")
+@Getter
+@Setter
+@ToString
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "faq")
 public class FAQ {
 
   @Id
@@ -34,16 +30,17 @@ public class FAQ {
   @Column(name = "answer", columnDefinition = "TEXT")
   private String answer;
 
-  @Column(name = "posted_at")
+  @Column(name = "posted_at", nullable = false)
   private LocalDateTime postedAt;
 
   @Column(name = "updated_at")
-  private LocalDateTime updatedAt;
+  private LocalDateTime updatedAt = LocalDateTime.now();
 
-  @Column(name = "is_active")
-  private Boolean isActive;
+  @Column(name = "is_active", nullable = false)
+  private Boolean isActive = Boolean.TRUE;
 
   @ManyToOne
   @JoinColumn(name = "faq_category_id", nullable = false)
   private FAQCategory faqCategory;
+
 }
