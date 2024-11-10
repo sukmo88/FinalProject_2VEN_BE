@@ -91,8 +91,6 @@ public class StrategyEntity extends Auditable {
     @Column(name="updated_at")
     private LocalDateTime updatedAt; // 수정일시
 
-    @PrePersist
-    @PreUpdate
     public void updateOperationPeriod() {
         // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.
         // 운용 기간은 작성 일자(writedAt)로부터 현재 날짜까지의 일 수로 계산됩니다.
@@ -102,12 +100,12 @@ public class StrategyEntity extends Auditable {
         }
     }
 
-    public void updateExitDateIfInactive() {
-        // 전략 상태가 "STRATEGY_STATUS_INACTIVE"로 변경된 경우, 종료일(exitDate)을 현재 일시로 설정합니다.
-        // 단, 종료일이 이미 설정되어 있지 않은 경우에만 설정됩니다.
-        // 이 메서드는 전략 상태가 비활성화 상태로 변경될 때 외부에서 호출하여 종료일을 기록하는 데 사용됩니다.
-        if ("STRATEGY_STATUS_INACTIVE".equals(this.strategyStatusCode.getCode()) && this.exitDate == null) {
+    public void setStrategyStatusCode(StandardCodeEntity newStatus) {
+        // 상태가 INACTIVE로 변경된 경우에만 종료일 설정
+        if (this.strategyStatusCode != null && "STRATEGY_STATUS_INACTIVE".equals(newStatus.getCode()) &&
+                !"STRATEGY_STATUS_INACTIVE".equals(this.strategyStatusCode.getCode())) {
             this.exitDate = LocalDateTime.now();
         }
+        this.strategyStatusCode = newStatus; // 상태 업데이트
     }
 }

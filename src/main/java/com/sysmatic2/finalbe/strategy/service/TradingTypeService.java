@@ -6,6 +6,7 @@ import com.sysmatic2.finalbe.strategy.dto.TradingTypeRequestDto;
 import com.sysmatic2.finalbe.strategy.dto.TradingTypeResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.strategy.repository.TradingTypeRepository;
+import com.sysmatic2.finalbe.util.CreatePageResponse;
 import com.sysmatic2.finalbe.util.TradingTypeMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,8 +16,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 import static com.sysmatic2.finalbe.util.TradingTypeMapper.toDto;
 import static com.sysmatic2.finalbe.util.TradingTypeMapper.toEntity;
+import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 
 // 관리자 페이지 - 매매유형 관리
 @Service
@@ -26,7 +30,7 @@ public class TradingTypeService {
 
     @Transactional(readOnly = true)
     // 1. 매매유형 전체 목록을 가져오는 메서드
-    public Page<TradingTypeResponseDto> findAllTradingTypes(int page, int pageSize, String isActive) {
+    public Map<String, Object> findAllTradingTypes(int page, int pageSize, String isActive) {
         // TODO 현재 사용자 ID를 가져와 관리자인지 식별
 
         // 페이징 관련 객체 설정
@@ -39,9 +43,11 @@ public class TradingTypeService {
         } else {
             tradingTypeList = tradingTypeRepository.findByIsActive(isActive, pageable); // 활성 상태에 따른 조회
         }
+        // 페이지 객체 리스트 타입 변경
+        Page<TradingTypeResponseDto> pageDtoList = tradingTypeList.map(TradingTypeMapper::toDto);
 
-        // 조회한 엔티티 리스트를 DTO로 변환하여 반환
-        return tradingTypeList.map(TradingTypeMapper::toDto);
+        // map으로 필요한 정보 추출하여 반환
+        return createPageResponse(pageDtoList);
     }
 
     @Transactional(readOnly = true)

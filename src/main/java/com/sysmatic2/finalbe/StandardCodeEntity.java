@@ -14,7 +14,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class StandardCode extends Auditable {
+public class StandardCodeEntity extends Auditable {
     @Id
     private String code; // 코드
 
