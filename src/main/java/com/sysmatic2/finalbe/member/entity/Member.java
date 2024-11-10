@@ -1,15 +1,11 @@
 package com.sysmatic2.finalbe.member.entity;
+import com.sysmatic2.finalbe.StandardCode;
+import com.sysmatic2.finalbe.strategy.entity.Auditable;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,18 +13,20 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class Member {
+public class Member extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "member_id")
     private Long memberId;  // 회원 ID
 
-    @Column(name = "member_grade_code", nullable = false)
-    private String memberGradeCode;  // 회원등급코드
+    @ManyToOne
+    @JoinColumn(name = "member_grade_code", nullable = false)
+    private StandardCode memberGradeCode;  // 회원등급코드
 
-    @Column(name = "member_status_code", nullable = false)
-    private String memberStatusCode;  // 회원상태코드
+    @ManyToOne
+    @JoinColumn(name = "member_status_code", nullable = false)
+    private StandardCode memberStatusCode;  // 회원상태코드
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;  // 이메일
@@ -78,19 +76,4 @@ public class Member {
     @Column(name = "notes")
     private String notes;  // 비고 (탈퇴사유 등 참고사항)
 
-    @CreatedBy
-    @Column(name="created_by", nullable = false, updatable = false)
-    private long createdBy; // 최초작성자 ID
-
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt; // 최초등록일시
-
-    @LastModifiedBy
-    @Column(name = "modified_by", nullable = false)
-    private long modifiedBy; // 최종수정자 ID
-
-    @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt; // 최종수정일시
 }
