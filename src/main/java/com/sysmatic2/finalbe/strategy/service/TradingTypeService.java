@@ -15,12 +15,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.sysmatic2.finalbe.util.TradingTypeMapper.toDto;
+import static com.sysmatic2.finalbe.util.TradingTypeMapper.toEntity;
+
 // 관리자 페이지 - 매매유형 관리
 @Service
 @RequiredArgsConstructor
 public class TradingTypeService {
     private final TradingTypeRepository tradingTypeRepository;
-    private final TradingTypeMapper tradingTypeMapper;
 
     @Transactional(readOnly = true)
     // 1. 매매유형 전체 목록을 가져오는 메서드
@@ -39,7 +41,7 @@ public class TradingTypeService {
         }
 
         // 조회한 엔티티 리스트를 DTO로 변환하여 반환
-        return tradingTypeList.map(tradingTypeMapper::toDto);
+        return tradingTypeList.map(TradingTypeMapper::toDto);
     }
 
     @Transactional(readOnly = true)
@@ -51,7 +53,7 @@ public class TradingTypeService {
                 .orElseThrow(() -> new TradingTypeNotFoundException(id));
 
         // 조회된 엔티티를 DTO로 변환하여 반환
-        return tradingTypeMapper.toDto(tradingTypeEntity);
+        return toDto(tradingTypeEntity);
     }
 
     // 2. 매매유형을 등록하는 메서드
@@ -73,7 +75,7 @@ public class TradingTypeService {
 
 
         // 요청 DTO를 엔티티로 변환하여 매매유형 등록
-        TradingTypeEntity tradingTypeEntity = tradingTypeMapper.toEntity(tradingTypeRequestDto);
+        TradingTypeEntity tradingTypeEntity = toEntity(tradingTypeRequestDto);
         tradingTypeRepository.save(tradingTypeEntity);
     }
 
