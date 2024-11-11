@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.cs.controller;
 
 import com.sysmatic2.finalbe.cs.dto.AdminFAQDto;
+import com.sysmatic2.finalbe.cs.dto.FAQResponse;
 import com.sysmatic2.finalbe.cs.dto.UserFAQDto;
 import com.sysmatic2.finalbe.cs.entity.FAQ;
 import com.sysmatic2.finalbe.cs.service.FAQService;
@@ -25,9 +26,11 @@ public class FAQController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllFAQs(@RequestParam(value = "role", required = false) String role){
+    public ResponseEntity<?> getAllFAQs(
+            @RequestParam(value = "role", required = false) String role,
+            Pageable pageable) {
         try {
-            List<?> faqs = faqService.getAllFAQs(role);
+            Page<FAQResponse> faqs = faqService.getAllFAQs(role, pageable);
             return ResponseEntity.ok(faqs);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

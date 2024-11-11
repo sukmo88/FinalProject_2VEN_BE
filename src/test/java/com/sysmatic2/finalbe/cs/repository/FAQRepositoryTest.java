@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.cs.repository;
 
 import com.sysmatic2.finalbe.cs.entity.FAQ;
 import com.sysmatic2.finalbe.cs.entity.FAQCategory;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
@@ -102,6 +104,41 @@ class FAQRepositoryTest {
         assertEquals("faq_question1", findAll.get(0).getQuestion());
         assertEquals("faq_answer1", findAll.get(0).getAnswer());
     }
+
+    @Test
+    @DisplayName("Find all FAQs with pagination")
+    void findAllWithPagination() {
+        // given
+        FAQCategory faqCategory = new FAQCategory();
+        faqCategory.setName("category");
+        faqCategory.setDescription("This is sample category");
+        faqCategoryRepository.save(faqCategory);
+
+        for (int i = 1; i <= 20; i++) {
+            FAQ faq = new FAQ();
+            faq.setQuestion("faq_question" + i);
+            faq.setAnswer("faq_answer" + i);
+            faq.setPostedAt(LocalDateTime.now());
+            faq.setWriterId(1L);
+            faq.setFaqCategory(faqCategory);
+            faqRepository.save(faq);
+        }
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        // when
+        Page<FAQ> result = faqRepository.findAll(pageable);
+
+        // then
+        assertThat(result.getTotalElements()).isEqualTo(20);
+        assertThat(result.getTotalPages()).isEqualTo(2);
+        assertThat(result.getContent().size()).isEqualTo(10);
+        assertThat(result.getContent().get(0).getQuestion()).isEqualTo("faq_question1");
+    }
+
+
+
+
 
     @Test
     public void whenUpdateById_thenSuccess(){
