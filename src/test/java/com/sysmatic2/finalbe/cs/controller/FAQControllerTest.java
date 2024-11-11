@@ -50,23 +50,29 @@ class FAQControllerTest {
         AdminFAQDto adminFAQ2 = new AdminFAQDto(2L, "Admin Question 2?", "Admin Answer 2", 2L, LocalDateTime.now(), null, true, category);
 
         List<FAQResponse> faqs = List.of(adminFAQ1, adminFAQ2);
+        Page<FAQResponse> faqPage = new PageImpl<>(faqs, PageRequest.of(0, 10), faqs.size());
 
-        // when `faqService.getAllFAQs("ADMIN")`가 호출되면 `faqs` 반환
-        given(faqService.getAllFAQs(any(String.class))).willReturn(faqs);
+        // faqService.getAllFAQs("ADMIN", any(Pageable.class)) 호출 시 faqPage 반환 설정
+        given(faqService.getAllFAQs(eq("ADMIN"), any(Pageable.class))).willReturn(faqPage);
 
         // when & then
         mockMvc.perform(get("/api/faqs")
                         .param("role", "ADMIN")
+                        .param("page", "0")
+                        .param("size", "10")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.size()").value(faqs.size()))
-                .andExpect(jsonPath("$[0].question").value("Admin Question 1?"))
-                .andExpect(jsonPath("$[0].answer").value("Admin Answer 1"))
-                .andExpect(jsonPath("$[0].faqCategory.name").value("general"))
-                .andExpect(jsonPath("$[1].question").value("Admin Question 2?"))
-                .andExpect(jsonPath("$[1].answer").value("Admin Answer 2"))
-                .andExpect(jsonPath("$[1].faqCategory.name").value("general"));
+                .andExpect(jsonPath("$.content.size()").value(faqs.size()))
+                .andExpect(jsonPath("$.content[0].question").value("Admin Question 1?"))
+                .andExpect(jsonPath("$.content[0].answer").value("Admin Answer 1"))
+                .andExpect(jsonPath("$.content[0].faqCategory.name").value("general"))
+                .andExpect(jsonPath("$.content[1].question").value("Admin Question 2?"))
+                .andExpect(jsonPath("$.content[1].answer").value("Admin Answer 2"))
+                .andExpect(jsonPath("$.content[1].faqCategory.name").value("general"))
+                .andExpect(jsonPath("$.pageable.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageable.pageSize").value(10))
+                .andExpect(jsonPath("$.totalElements").value(faqs.size()));
     }
 
 
