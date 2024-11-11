@@ -1,5 +1,5 @@
 package com.sysmatic2.finalbe.member.entity;
-import com.sysmatic2.finalbe.StandardCode;
+import com.sysmatic2.finalbe.StandardCodeEntity;
 import com.sysmatic2.finalbe.strategy.entity.Auditable;
 
 import jakarta.persistence.*;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class Member extends Auditable {
+public class MemberEntity extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -22,11 +22,11 @@ public class Member extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "member_grade_code", nullable = false)
-    private StandardCode memberGradeCode;  // 회원등급코드
+    private StandardCodeEntity memberGradeCode;  // 회원등급코드
 
     @ManyToOne
     @JoinColumn(name = "member_status_code", nullable = false)
-    private StandardCode memberStatusCode;  // 회원상태코드
+    private StandardCodeEntity memberStatusCode;  // 회원상태코드
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;  // 이메일
@@ -34,7 +34,7 @@ public class Member extends Auditable {
     @Column(name = "password", nullable = false)
     private String password;  // 암호화된 비밀번호
 
-    @Column(name = "nickname", nullable = false)
+    @Column(name = "nickname", nullable = false, unique = true)
     private String nickname;  // 닉네임
 
     @Column(name = "phone_number", nullable = false)
