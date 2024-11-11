@@ -1,6 +1,6 @@
 package com.sysmatic2.finalbe.member.entity;
 
-import com.sysmatic2.finalbe.StandardCode;
+import com.sysmatic2.finalbe.StandardCodeEntity;
 import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class VerificationCode extends Auditable {
+public class VerificationCodeEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "verification_code_id")
@@ -40,5 +40,5 @@ public class VerificationCode extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "verification_reason_code", nullable = false)
-    private StandardCode verificationReasonCode;
+    private StandardCodeEntity verificationReasonCode;
 }
