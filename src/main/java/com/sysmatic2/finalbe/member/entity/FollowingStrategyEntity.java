@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.member.entity;
 
 import com.sysmatic2.finalbe.strategy.entity.Auditable;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,16 +14,15 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class FollowingStrategy extends Auditable {
+public class FollowingStrategyEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "following_strategy_id")
     private Long followingStrategyId;
 
-    // Strategy 엔티티 클래스 없어서 임시 주석 처리
-//    @ManyToOne
-//    @JoinColumn(name = "strategy_id", nullable = false)
-//    private Strategy strategy;
+    @ManyToOne
+    @JoinColumn(name = "strategy_id", nullable = false)
+    private StrategyEntity strategy;
 
     @ManyToOne
     @JoinColumn(name = "member_id", nullable = false)
@@ -30,7 +30,7 @@ public class FollowingStrategy extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "following_strategy_folder_id", nullable = false)
-    private FollowingStrategyFolder followingStrategyFolder;
+    private FollowingStrategyFolderEntity followingStrategyFolder;
 
     @Column(name = "followed_at", nullable = false)
     private LocalDateTime followedAt;

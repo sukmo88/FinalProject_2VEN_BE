@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ import java.util.*;
 public class InvestmentAssetClassesRestController {
     private final InvestmentAssetClassesService iacService;
 
-//    1. 투자자산분류 목록
+    //1. 투자자산분류 목록 - pagination
     @GetMapping(value="/inv-asset-classes", produces="application/json")
     @ApiResponse(responseCode="200", description = "List of Investment Asset Classes")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
@@ -28,14 +29,12 @@ public class InvestmentAssetClassesRestController {
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> getAllInvestmentAssetClasses(@RequestParam(value = "page", defaultValue = "1") int page,
-                                                            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) throws Exception{
-        List<InvestmentAssetClassesDto> dtoList = iacService.getList(page, pageSize);
-        Map<String, Object> responseMap = new HashMap<>();
-        responseMap.put("data", dtoList);
+                                                             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) throws Exception{
+        //TODO)관리자 판별
+        Map pageList = iacService.getList(page, pageSize);
 
-        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+        return ResponseEntity.status(HttpStatus.OK).body(pageList);
     }
-
 
     //1-1. 투자자산분류 상세
     @GetMapping(value="/inv-asset-classes/{id}", produces="application/json")
@@ -46,6 +45,7 @@ public class InvestmentAssetClassesRestController {
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> getInvestmentAssetClasses(@PathVariable("id") Integer id) throws Exception {
+        //TODO)관리자 판별
         InvestmentAssetClassesDto iasDto = iacService.getById(id);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", iasDto);
@@ -61,6 +61,7 @@ public class InvestmentAssetClassesRestController {
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> addInvestmentAssetClass(@Valid @RequestBody InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception {
+        //TODO)관리자 판별
         //데이터 저장
         iacService.register(iacPayloadDto);
 
@@ -96,6 +97,7 @@ public class InvestmentAssetClassesRestController {
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") Integer id) throws Exception {
+        //TODO) 관리자 판별
         iacService.softDelete(id);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
@@ -113,7 +115,7 @@ public class InvestmentAssetClassesRestController {
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> updateInvestmentAssetClass(@PathVariable("id") Integer id,
                                                           @Valid @RequestBody InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception {
-
+        //TODO) 관리자 판별
         iacService.update(id, iacPayloadDto);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "UPDATE_SUCCESS");

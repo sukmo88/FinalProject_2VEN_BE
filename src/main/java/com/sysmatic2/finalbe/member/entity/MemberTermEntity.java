@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class MemberTerm extends Auditable {
+public class MemberTermEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "member_term_id")
@@ -21,7 +21,7 @@ public class MemberTerm extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "term_id", nullable = false)
-    private Term term;
+    private TermEntity term;
 
     @ManyToOne
     @JoinColumn(name = "member_id", nullable = false)

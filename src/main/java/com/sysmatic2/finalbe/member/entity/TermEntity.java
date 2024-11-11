@@ -1,6 +1,6 @@
 package com.sysmatic2.finalbe.member.entity;
 
-import com.sysmatic2.finalbe.StandardCode;
+import com.sysmatic2.finalbe.StandardCodeEntity;
 import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -14,11 +14,11 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @ToString
-public class Term extends Auditable {
+public class TermEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "term_id")
-    private Integer itermId;
+    private Integer termId;
 
     @Column(name = "term_title", nullable = false)
     private String termTitle;
@@ -31,7 +31,7 @@ public class Term extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "target_member_grade_code", nullable = false)
-    private StandardCode targetMemberGradeCode;
+    private StandardCodeEntity targetMemberGradeCode;
 
     @Column(name = "version")
     private String version;

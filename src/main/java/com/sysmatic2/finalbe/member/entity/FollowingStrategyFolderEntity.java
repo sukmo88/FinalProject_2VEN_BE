@@ -15,7 +15,7 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
-public class FollowingStrategyFolder extends Auditable {
+public class FollowingStrategyFolderEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "following_strategy_folder_id")
@@ -38,5 +38,5 @@ public class FollowingStrategyFolder extends Auditable {
     private Integer folderOrder;
 
     @OneToMany(mappedBy = "followingStrategyFolder")
-    private List<FollowingStrategy> followingStrategyList = new ArrayList<>();
+    private List<FollowingStrategyEntity> followingStrategyList = new ArrayList<>();
 }
