@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.member.dto;
 
+import com.sysmatic2.finalbe.StandardCodeEntity;
 import com.sysmatic2.finalbe.member.entity.Member;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -25,8 +26,8 @@ public class CustomUserDetails implements UserDetails {
         authorities.add(new GrantedAuthority() {
             @Override
             public String getAuthority() {
-                // role 비교하는 로직 작성 필요!!
-                return member.getMemberGradeCode();
+                String memberGradeCode = member.getMemberGradeCode().getCode();
+                return memberGradeCode.replaceFirst("^MEMBER_", "");
             }
         });
 
