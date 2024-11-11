@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.cs.controlleer;
+package com.sysmatic2.finalbe.cs.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sysmatic2.finalbe.cs.dto.AdminFAQDto;
@@ -21,7 +21,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;

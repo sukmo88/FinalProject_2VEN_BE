@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.cs.controlleer;
+package com.sysmatic2.finalbe.cs.controller;
 
 import com.sysmatic2.finalbe.cs.dto.AdminFAQDto;
 import com.sysmatic2.finalbe.cs.dto.UserFAQDto;
