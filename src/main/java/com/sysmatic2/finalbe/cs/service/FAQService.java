@@ -45,29 +45,57 @@ public class FAQService {
     }
 
 
-    public List<FAQResponse> getAllFAQs(String role){
-        List<FAQ> faqs = faqRepository.findAll();
+//    public List<FAQResponse> getAllFAQs(String role){
+//        List<FAQ> faqs = faqRepository.findAll();
+//
+//        if("ADMIN".equalsIgnoreCase(role)){
+//            return faqs.stream()
+//                    .map(faq -> new AdminFAQDto(
+//                            faq.getId(),
+//                            faq.getQuestion(),
+//                            faq.getAnswer(),
+//                            faq.getWriterId(),
+//                            faq.getPostedAt(),
+//                            faq.getUpdatedAt(),
+//                            faq.getIsActive(),
+//                            faq.getFaqCategory()))
+//                    .collect(Collectors.toList());
+//        } else {
+//            return faqs.stream()
+//                    .map(faq -> new UserFAQDto(
+//                            faq.getId(),
+//                            faq.getQuestion(),
+//                            faq.getAnswer(),
+//                            faq.getFaqCategory()))
+//                    .collect(Collectors.toList());
+//        }
+//    }
 
-        if("ADMIN".equalsIgnoreCase(role)){
-            return faqs.stream()
-                    .map(faq -> new AdminFAQDto(
-                            faq.getId(),
-                            faq.getQuestion(),
-                            faq.getAnswer(),
-                            faq.getWriterId(),
-                            faq.getPostedAt(),
-                            faq.getUpdatedAt(),
-                            faq.getIsActive(),
-                            faq.getFaqCategory()))
-                    .collect(Collectors.toList());
-        } else {
-            return faqs.stream()
-                    .map(faq -> new UserFAQDto(
-                            faq.getId(),
-                            faq.getQuestion(),
-                            faq.getAnswer(),
-                            faq.getFaqCategory()))
-                    .collect(Collectors.toList());
+    // 역할에 따른 FAQ 목록 조회 (페이징 지원)
+    public Page<FAQResponse> getAllFAQs(String role, Pageable pageable) {
+        Page<FAQ> faqPage = faqRepository.findAll(pageable);
+
+        // ADMIN 역할인 경우 AdminFAQDto로 매핑하여 반환
+        if ("ADMIN".equalsIgnoreCase(role)) {
+            return faqPage.map(faq -> new AdminFAQDto(
+                    faq.getId(),
+                    faq.getQuestion(),
+                    faq.getAnswer(),
+                    faq.getWriterId(),
+                    faq.getPostedAt(),
+                    faq.getUpdatedAt(),
+                    faq.getIsActive(),
+                    faq.getFaqCategory()
+            ));
+        }
+        // USER 역할인 경우 UserFAQDto로 매핑하여 반환
+        else {
+            return faqPage.map(faq -> new UserFAQDto(
+                    faq.getId(),
+                    faq.getQuestion(),
+                    faq.getAnswer(),
+                    faq.getFaqCategory()
+            ));
         }
     }
 
