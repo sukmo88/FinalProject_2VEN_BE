@@ -25,7 +25,7 @@ public class MemberTermEntity extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    private MemberEntity member;
 
     @Column(name = "is_term_agreed", nullable = false)
     private String isTermAgreed;

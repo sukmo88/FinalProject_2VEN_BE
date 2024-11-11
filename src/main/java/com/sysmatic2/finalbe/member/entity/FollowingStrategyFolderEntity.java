@@ -23,7 +23,7 @@ public class FollowingStrategyFolderEntity extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    private MemberEntity member;
 
     @Column(name = "folder_name", nullable = false)
     private String folderName;

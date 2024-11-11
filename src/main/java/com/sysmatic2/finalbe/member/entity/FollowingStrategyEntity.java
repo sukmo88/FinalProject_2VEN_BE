@@ -26,7 +26,7 @@ public class FollowingStrategyEntity extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    private MemberEntity member;
 
     @ManyToOne
     @JoinColumn(name = "following_strategy_folder_id", nullable = false)

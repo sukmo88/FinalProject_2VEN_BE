@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 public class MemberEntity extends Auditable {
-
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "member_id")
