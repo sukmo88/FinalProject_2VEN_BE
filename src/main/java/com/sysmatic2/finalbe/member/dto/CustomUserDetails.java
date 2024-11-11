@@ -1,19 +1,17 @@
 package com.sysmatic2.finalbe.member.dto;
 
-import com.sysmatic2.finalbe.StandardCodeEntity;
-import com.sysmatic2.finalbe.member.entity.Member;
+import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 @RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
-    private final Member member;
+    private final MemberEntity member;
 
     public Long getMemberId() {
         return member.getMemberId();

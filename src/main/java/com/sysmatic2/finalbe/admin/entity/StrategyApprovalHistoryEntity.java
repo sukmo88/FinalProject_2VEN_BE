@@ -1,7 +1,7 @@
 package com.sysmatic2.finalbe.admin.entity;
 
 import com.sysmatic2.finalbe.StandardCodeEntity;
-import com.sysmatic2.finalbe.member.entity.Member;
+import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
@@ -24,7 +24,7 @@ public class StrategyApprovalHistoryEntity extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "member_id")
-    private Member member; // 전략을 승인 또는 반랴한 관리자 id
+    private MemberEntity member; // 전략을 승인 또는 반랴한 관리자 id
 
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
