@@ -1,9 +1,11 @@
 package com.sysmatic2.finalbe.strategy.service;
 
+import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
 import org.springframework.stereotype.Service;
 
 @Service
 public class StrategyService {
+
     /* 1. 전략 등록
         1) 전략테이블 -  매매유형ID, 투자자산분류ID(여러개) 전략상태공통코드(운용중), 주기공통코드, 전략명, 공개여부(N), 승인여부(N), 작성일지(now), 전략소개, 총전략운용일수(1)
             1-1) 전략 테이블에 save(통계값은 null)
@@ -37,6 +39,9 @@ public class StrategyService {
      */
 
     //4. 전략 목록
+    // 1) 전략 랭킹 목록
+    //5. 전략 상세
+    // 1) 전략 상세
 
 }
 
