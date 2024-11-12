@@ -10,6 +10,7 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 
@@ -18,7 +19,7 @@ import java.util.Objects;
 @ToString
 @Entity
 @Table(name = "investment_asset_classes") //투자자산 분류
-public class InvestmentAssetClassesEntity {
+public class InvestmentAssetClassesEntity extends Auditable{
     @Id
     @Column(name="investment_asset_classes_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,22 +41,9 @@ public class InvestmentAssetClassesEntity {
     @Column(name = "is_Active", length = 1, nullable = false)
     private String isActive; //사용 유무
 
-    //시스템 컬럼
-    @CreatedBy
-    @Column(name = "created_by", nullable = false, updatable = false)
-    private Long createdBy; //최초 작성자 ID
-
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt; //최초 등록 일시
-
-    @LastModifiedBy
-    @Column(name = "modified_by", nullable = false)
-    private Long modifiedBy; //최종 수정자 ID
-
-    @LastModifiedDate
-    @Column(name = "modified_at", nullable = false)
-    private LocalDateTime modifiedAt; //최종 수정 일시
+    //IAC(1) : 관계(N)
+    @OneToMany(mappedBy = "investmentAssetClassesEntity")
+    private List<StrategyIACEntity> strategyIACEntities;
 
     //equals()
     @Override

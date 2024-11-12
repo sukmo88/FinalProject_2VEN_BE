@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Entity
 @Table(name = "strategy")
@@ -90,6 +91,10 @@ public class StrategyEntity extends Auditable {
     @LastModifiedDate
     @Column(name="updated_at")
     private LocalDateTime updatedAt; // 수정일시
+
+    //전략(1) : 관계(N)
+    @OneToMany(mappedBy = "strategyEntity")
+    private List<StrategyIACEntity> strategyIACEntities;
 
     public void updateOperationPeriod() {
         // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.
