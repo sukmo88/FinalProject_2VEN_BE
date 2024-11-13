@@ -79,7 +79,7 @@ public class StrategyService {
     }
 
     /**
-     * 사용자 전략 등록 폼에 필요한 정보를 제공하는 메서드
+     2. 사용자 전략 등록 폼에 필요한 정보를 제공하는 메서드
      * @return StrategyRegistrationDto 전략 등록에 필요한 DTO
      */
     @Transactional
@@ -95,7 +95,6 @@ public class StrategyService {
 
         return strategyRegistrationDto;
     }
-
 }
 
 //이미지 링크는 이미지 링크+{imageId}의 형태라서 imageId만 DB에 저장

@@ -29,7 +29,7 @@ public class StrategyEntity extends Auditable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long strategyId; // 전략 ID
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "trading_type_id")
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
