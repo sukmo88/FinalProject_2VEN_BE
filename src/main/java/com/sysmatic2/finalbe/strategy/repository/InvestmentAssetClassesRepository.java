@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
-import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

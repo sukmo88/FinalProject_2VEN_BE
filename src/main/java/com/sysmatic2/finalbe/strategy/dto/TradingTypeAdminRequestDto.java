@@ -8,7 +8,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class TradingTypeRequestDto {
+public class TradingTypeAdminRequestDto {
 
     @Positive(message = "매매유형 순서는 양수여야 합니다.")
     @Max(value = 100000000, message = "매매유형 순서는 100,000,000 이하만 가능합니다.")
