@@ -1,14 +1,15 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeRequestDto;
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeResponseDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminRequestDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.strategy.service.TradingTypeService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -17,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@Validated
 public class TradingTypeController {
 
     private final TradingTypeService tradingTypeService;
@@ -24,7 +26,10 @@ public class TradingTypeController {
     // 1. 매매유형 목록
     @GetMapping("/trading-types")
     @ApiResponse(responseCode = "200", description = "List of Trading Types")
-    public ResponseEntity<Map<String, Object>> getAllTradingTypes(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int pageSize, @RequestParam(required = false) String isActive) {
+    public ResponseEntity<Map<String, Object>> getAllTradingTypes(
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number must be 0 or greater") int page,
+            @RequestParam(defaultValue = "10") @Positive(message = "Page size must be greater than zero") int pageSize,
+            @RequestParam(required = false) String isActive) {
         // JSON 반환값 Map으로 받아오기
         Map<String, Object> response = tradingTypeService.findAllTradingTypes(page, pageSize, isActive);
 
@@ -37,14 +42,14 @@ public class TradingTypeController {
     @ApiResponse(responseCode = "200", description = "Get Trading Type by ID")
     public ResponseEntity<Map<String, Object>> getTradingTypeById(@PathVariable("id") Integer id) {
         // 매매유형 ID로 조회
-        TradingTypeResponseDto tradingTypeResponseDto = tradingTypeService.findTradingTypeById(id);
+        TradingTypeAdminResponseDto tradingTypeAdminResponseDto = tradingTypeService.findTradingTypeById(id);
 
         // 타임스탬프를 추가
         Instant timestamp = Instant.now();
 
         // 조회한 매매유형 JSON 형태로 반환. 상태값 200
         return ResponseEntity.ok(Map.of(
-                "data", tradingTypeResponseDto,
+                "data", tradingTypeAdminResponseDto,
                 "timestamp", timestamp.toString()
         ));
     }
@@ -52,9 +57,9 @@ public class TradingTypeController {
     // 2. 매매유형 등록
     @PostMapping("/trading_types")
     @ApiResponse(responseCode = "201", description = "Create Trading Type")
-    public ResponseEntity<Map<String, String>> createTradingType(@Valid @RequestBody TradingTypeRequestDto tradingTypeRequestDto) {
+    public ResponseEntity<Map<String, String>> createTradingType(@Valid @RequestBody TradingTypeAdminRequestDto tradingTypeAdminRequestDto) {
         // 매매유형 등록
-        tradingTypeService.createTradingType(tradingTypeRequestDto);
+        tradingTypeService.createTradingType(tradingTypeAdminRequestDto);
 
         // 타임스탬프를 추가
         Instant timestamp = Instant.now();
@@ -101,8 +106,10 @@ public class TradingTypeController {
     @ApiResponse(responseCode = "204", description = "Update Trading Type")
     public ResponseEntity<Map<String, String>> updateTradingType(
             @PathVariable Integer id,
-            @Valid @RequestBody TradingTypeRequestDto tradingTypeRequestDto) {
-        tradingTypeService.updateTradingType(id, tradingTypeRequestDto);
+            @Valid @RequestBody TradingTypeAdminRequestDto tradingTypeAdminRequestDto) {
+        System.out.println("id = " + id);
+        System.out.println("tradingTypeService = " + tradingTypeAdminRequestDto);
+        tradingTypeService.updateTradingType(id, tradingTypeAdminRequestDto);
 
         // 타임스탬프를 추가
         Instant timestamp = Instant.now();

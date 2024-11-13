@@ -2,8 +2,8 @@ package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.exception.DuplicateTradingTypeOrderException;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeRequestDto;
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeResponseDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminRequestDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.strategy.repository.TradingTypeRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +65,7 @@ class TradingTypeServiceTest {
 
         // Then: 반환된 결과가 예상과 일치하는지 검증합니다.
         assertNotNull(result); // 결과가 null이 아닌지 확인
-        assertEquals(2, ((List<TradingTypeResponseDto>)result.get("data")).size()); // 반환된 페이지의 요소 수가 2인지 확인
+        assertEquals(2, ((List<TradingTypeAdminResponseDto>)result.get("data")).size()); // 반환된 페이지의 요소 수가 2인지 확인
 
         // tradingTypeRepository.findAll()이 한 번 호출되었는지 확인
         verify(tradingTypeRepository, times(1)).findAll(any(Pageable.class));
@@ -91,8 +91,8 @@ class TradingTypeServiceTest {
 
         // Then: 반환된 결과가 예상과 일치하는지 검증
         assertNotNull(result); // 결과가 null이 아닌지 확인
-        assertEquals(1, ((List<TradingTypeResponseDto>) result.get("data")).size()); // 반환된 데이터의 크기 검증
-        assertEquals("Active Type", ((List<TradingTypeResponseDto>) result.get("data")).get(0).getTradingTypeName()); // 이름 확인
+        assertEquals(1, ((List<TradingTypeAdminResponseDto>) result.get("data")).size()); // 반환된 데이터의 크기 검증
+        assertEquals("Active Type", ((List<TradingTypeAdminResponseDto>) result.get("data")).get(0).getTradingTypeName()); // 이름 확인
 
         // findByIsActive("Y") 메서드가 한 번 호출되었는지 확인
         verify(tradingTypeRepository, times(1)).findByIsActive(eq("Y"), any(Pageable.class));
@@ -118,8 +118,8 @@ class TradingTypeServiceTest {
 
         // Then: 반환된 결과가 예상과 일치하는지 검증
         assertNotNull(result); // 결과가 null이 아닌지 확인
-        assertEquals(1, ((List<TradingTypeResponseDto>) result.get("data")).size()); // 반환된 데이터의 크기 검증
-        assertEquals("Inactive Type", ((List<TradingTypeResponseDto>) result.get("data")).get(0).getTradingTypeName()); // 이름 확인
+        assertEquals(1, ((List<TradingTypeAdminResponseDto>) result.get("data")).size()); // 반환된 데이터의 크기 검증
+        assertEquals("Inactive Type", ((List<TradingTypeAdminResponseDto>) result.get("data")).get(0).getTradingTypeName()); // 이름 확인
 
         // findByIsActive("N") 메서드가 한 번 호출되었는지 확인
         verify(tradingTypeRepository, times(1)).findByIsActive(eq("N"), any(Pageable.class));
@@ -138,7 +138,7 @@ class TradingTypeServiceTest {
 
         // Then: 반환된 결과가 예상과 일치하는지 검증
         assertNotNull(result); // 결과가 null이 아닌지 확인
-        assertTrue(((List<TradingTypeResponseDto>) result.get("data")).isEmpty()); // 반환된 데이터가 비어 있는지 확인
+        assertTrue(((List<TradingTypeAdminResponseDto>) result.get("data")).isEmpty()); // 반환된 데이터가 비어 있는지 확인
 
         // findAll 메서드가 한 번 호출되었는지 확인
         verify(tradingTypeRepository, times(1)).findAll(any(Pageable.class));
@@ -171,7 +171,7 @@ class TradingTypeServiceTest {
         when(tradingTypeRepository.findById(1)).thenReturn(Optional.of(entity));
 
         // When: 테스트 대상 메서드를 호출하여 특정 ID로 매매유형을 조회
-        TradingTypeResponseDto result = tradingTypeService.findTradingTypeById(1);
+        TradingTypeAdminResponseDto result = tradingTypeService.findTradingTypeById(1);
 
         // Then: 반환된 결과가 예상과 일치하는지 확인
         assertNotNull(result); // 결과가 null이 아닌지 확인
@@ -192,8 +192,8 @@ class TradingTypeServiceTest {
     @Test
     @DisplayName("매매유형을 등록 - 순서가 null일 때 최대 순서 + 1로 설정")
     void createTradingType_shouldSetOrderWhenOrderIsNull() {
-        // Given: 순서가 없는 TradingTypeRequestDto 객체 준비 및 최대 순서 값을 2로 설정
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        // Given: 순서가 없는 TradingTypeAdminRequestDto 객체 준비 및 최대 순서 값을 2로 설정
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeName("New Type");
         when(tradingTypeRepository.findMaxTradingTypeOrder()).thenReturn(Optional.of(2));
 
@@ -208,8 +208,8 @@ class TradingTypeServiceTest {
     @Test
     @DisplayName("매매유형을 등록 - 중복된 순서로 등록 시 예외 발생")
     void createTradingType_shouldThrowExceptionWhenOrderIsDuplicate() {
-        // Given: 중복된 순서 값이 포함된 TradingTypeRequestDto 객체 생성
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        // Given: 중복된 순서 값이 포함된 TradingTypeAdminRequestDto 객체 생성
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeOrder(1);
         TradingTypeEntity tradingTypeEntity = new TradingTypeEntity();
         tradingTypeEntity.setTradingTypeOrder(1);
@@ -222,8 +222,8 @@ class TradingTypeServiceTest {
     @Test
     @DisplayName("매매유형을 등록 - 정상적으로 등록")
     void createTradingType_shouldSaveWhenOrderIsValid() {
-        // Given: 유효한 순서 값이 포함된 TradingTypeRequestDto 객체 준비
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        // Given: 유효한 순서 값이 포함된 TradingTypeAdminRequestDto 객체 준비
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeOrder(1);
         requestDto.setTradingTypeName("Valid Type");
 
@@ -292,7 +292,7 @@ class TradingTypeServiceTest {
         // Given: 기존 매매유형과 업데이트할 요청 DTO를 생성
         TradingTypeEntity entity = new TradingTypeEntity();
         entity.setTradingTypeOrder(1);
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeOrder(2);
         requestDto.setTradingTypeName("Updated Type");
 
@@ -312,7 +312,7 @@ class TradingTypeServiceTest {
     @DisplayName("매매유형을 수정 - 존재하지 않는 ID로 수정 시 예외 발생")
     void updateTradingType_shouldThrowExceptionWhenIdNotFound() {
         // Given: ID가 999인 매매유형이 없도록 설정
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         when(tradingTypeRepository.findById(999)).thenReturn(Optional.empty());
 
         // When & Then: 존재하지 않는 ID로 수정 시 TradingTypeNotFoundException 예외 발생 확인
@@ -325,7 +325,7 @@ class TradingTypeServiceTest {
         // Given: 기존 매매유형과 중복된 순서 값을 가진 요청 DTO를 생성
         TradingTypeEntity entity = new TradingTypeEntity();
         entity.setTradingTypeOrder(1);
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeOrder(2);
 
         when(tradingTypeRepository.findById(1)).thenReturn(Optional.of(entity));
