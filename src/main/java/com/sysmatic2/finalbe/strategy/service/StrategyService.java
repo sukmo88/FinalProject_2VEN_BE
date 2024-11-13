@@ -1,55 +1,77 @@
 package com.sysmatic2.finalbe.strategy.service;
 
-import com.sysmatic2.finalbe.strategy.dto.StrategyCreateRequestDto;
+import com.sysmatic2.finalbe.StandardCodeEntity;
+import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
 import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
+import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import com.sysmatic2.finalbe.strategy.entity.TradingTypeEntity;
+import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
+import com.sysmatic2.finalbe.strategy.repository.StrategyStandardCodeRepository;
+import com.sysmatic2.finalbe.strategy.repository.TradingTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.NoSuchElementException;
+
 @Service
 @RequiredArgsConstructor
 public class StrategyService {
-    private final StrategyRepository strategyRepository;
-    /* 1. 전략 등록
-        1) 전략테이블 - 매매유형ID(자동/반자동/수동), 매매주기공통코드(데이/포지션), 전략명, 공개여부(N), 승인여부(N), 작성일지(now), 전략소개, 총전략운용일수(1)
-            1-1) 전략 테이블에 save(통계값은 null)
-            1-2) 제안서 테이블 저장(추후 구현)
-            1-3) 전략상태공통코드(STRATEGY_STATUS_UNDER_MANAGEMENT)는 서비스에서 기본값 설정
-            1-4) 팔로워수(0)는 엔티티에서 기본값 설정
-        2) 전략 내 투자자산 분류 테이블 - 전략ID(전략테이블 생성된 ID), 투자자산분류ID(전략테이블에서 가져오기), 사용유무(Y), 작성일시, 수정일시
-            2-1) 전략 내 투자자산 분류 테이블 save
-    */
+
+    private final StrategyRepository strategyRepo;
+    private final InvestmentAssetClassesRepository iacRepo;
+    private final TradingTypeRepository ttRepo;
+    private final StrategyStandardCodeRepository standardCodeRepository;
+
+    //1. 전략 생성
     @Transactional
-    public void createStrategy(StrategyCreateRequestDto strategyCreateRequestDto) {
+    public void register(StrategyPayloadDto strategyPayloadDto) throws Exception {
+        //TODO) 트레이더 판별
+
+        //전략 엔티티 생성
+        StrategyEntity strategyEntity = new StrategyEntity();
+
+        //페이로드에서 가져온 매매유형 id로 해당 매매유형 엔티티가져오기
+        TradingTypeEntity ttEntity = ttRepo.findById(strategyPayloadDto.getTradingTypeId())
+                .orElseThrow(() -> new TradingTypeNotFoundException(strategyPayloadDto.getTradingTypeId()));
+        //페이로드에서 가져온 투자자산분류 id로 해당 투자자산 분류 엔티티들 가져오기
+        List<Integer> iacIds = strategyPayloadDto.getInvestmentAssetClassesIdList();
+        List<InvestmentAssetClassesEntity> iacEntities = iacRepo.findAllById(iacIds);
+        //페이로드에서 가져온 공통코드 id로 해당 공통코드 엔티티 가져오기
+        StandardCodeEntity tradingCycleCode = standardCodeRepository.findById(strategyPayloadDto.getTradingCycleCode())
+                .orElseThrow(() -> new NoSuchElementException());
+
+        //payload내용을 엔티티에 담기
+        strategyEntity.setStrategyTitle(strategyPayloadDto.getStrategyTitle());
+        strategyEntity.setTradingTypeEntity(ttEntity);
+        strategyEntity.setTradingCycleCode(tradingCycleCode);
+        strategyEntity.setMinInvestmentAmount(strategyPayloadDto.getMinInvestmentAmount());
+        strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
+        strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
+
+        //전략 상태 공통코드
+        StandardCodeEntity strategyStatusCode = standardCodeRepository.findById("STRATEGY_STATUS_UNDER_MANAGEMENT")
+                .orElseThrow(()-> new NoSuchElementException("STANDARD_CODE_NOT_EXIST"));
+        strategyEntity.setStrategyStatusCode(strategyStatusCode);
+
+        //TODO) 작성자 설정
+        strategyEntity.setWriterId(101L);
+
+
+        //save()
+        strategyRepo.save(strategyEntity);
+
+        //생성한 전략 객체아이디 가져오기
+        //전략 객체가져오기
+        //전략 - 투자자산 분류 관계 테이블 엔티티 생성
+        //관계 테이블 엔티티에 값 넣기
+        //save()
+
 
     }
-
-
-    /* 2. 전략 수정 - 전략 데이터 등록
-       1) 전략테이블 기본정보 수정
-       2) 매매일지 등록/삭제 수정?
-           2-1) 데일리 리뷰 등록/삭제 수정?
-       3) 입출금 관리 등록/삭제 수정?
-       4) 실계좌 인증 등록/삭제
-       5) 제안서 등록/삭제
-     */
-
-    /* 3. 전략 삭제 - soft delete
-       1) 전략 이력테이블 로그 저장 (삭제 상태코드)
-       2) 전략 일간 데이터, 전략 월간 데이터, 전략 누적 데이터 이력 테이블 삭제 로그 등록
-       3) 전략 일간 데이터, 전략 월간 데이터, 전략 누적 데이터 테이블 삭제
-       3) 입출금 내역 이력, 매매일지 이력, 실계좌 정보 이력 테이블 삭제 로그 등록
-       3) 입출금 내역, 매매일지, 실계좌 정보 테이블 삭제
-       4) 주식잔고, 전략 제안서, 전략 리뷰 삭제
-       5) 전략 테이블 데이터 삭제
-       6) 전략내 투자자산 분류 테이블 삭제
-     */
-
-    //4. 전략 목록
-    // 1) 전략 랭킹 목록
-    //5. 전략 상세
-    // 1) 전략 상세
 
 }
 
