@@ -1,8 +1,5 @@
 package com.sysmatic2.finalbe.strategy.dto;
 
-import com.sysmatic2.finalbe.StandardCodeEntity;
-import com.sysmatic2.finalbe.strategy.entity.StrategyProposalEntity;
-import com.sysmatic2.finalbe.strategy.entity.TradingTypeEntity;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -17,7 +14,7 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
-public class StrategyCreateRequestDto {
+public class StrategyFormDto {
     @NotBlank(message = "전략명은 필수 입력 값입니다.")
     private String strategyTitle; // 전략명
 

@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.strategy.dto;
 
-import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -8,7 +7,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class TradingTypeResponseDto {
+public class TradingTypeAdminResponseDto {
     private Integer tradingTypeId; // 매매유형 ID
     private Integer tradingTypeOrder; // 매매유형순서
     private String tradingTypeName; // 매매유형명

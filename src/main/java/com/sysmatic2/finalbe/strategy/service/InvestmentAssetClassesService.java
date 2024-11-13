@@ -4,8 +4,7 @@ import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
-import com.sysmatic2.finalbe.util.CreatePageResponse;
-import com.sysmatic2.finalbe.util.InvestmentAssetClassesMapper;
+import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
@@ -18,7 +17,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.InvestmentAssetClassesMapper.toDto;
+import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
 
 //관리자 페이지 - 투자자산 분류 관리
 @Service
@@ -35,7 +34,7 @@ public class InvestmentAssetClassesService {
         //페이지 객체 리스트에 DB 데이터 엔티티들을 가져와서 넣는다.
         Page<InvestmentAssetClassesEntity> pageEntityList = iacRepository.findAll(pageable);
         //페이지 객체 리스트의 타입 변경
-        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(InvestmentAssetClassesMapper::toDto);
+        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(DtoEntityConversionUtils::toDto);
 
         return createPageResponse(pageDtoList);
     }

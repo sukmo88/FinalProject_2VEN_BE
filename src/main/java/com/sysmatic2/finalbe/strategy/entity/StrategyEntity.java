@@ -33,13 +33,11 @@ public class StrategyEntity extends Auditable {
     @JoinColumn(name = "trading_type_id")
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
-    @ManyToOne
-    @JoinColumn(name = "strategy_status_code", nullable = false)
-    private StandardCodeEntity strategyStatusCode; // 전략상태코드(공통 코드) //TODO)
+    @Column(name = "strategy_status_code", nullable = false)
+    private String strategyStatusCode; // 전략상태코드(공통 코드) //TODO)
 
-    @ManyToOne
-    @JoinColumn(name = "trading_cycle_code", nullable = false)
-    private StandardCodeEntity tradingCycleCode; // 매매주기코드(공통 코드) //TODO)
+    @Column(name = "trading_cycle_code", nullable = false)
+    private String tradingCycleCode; // 매매주기코드(공통 코드) //TODO)
 
     @Column(name = "min_investment_amount", nullable = false)
     private String minInvestmentAmount; //최소운용가능금액
@@ -109,15 +107,15 @@ public class StrategyEntity extends Auditable {
         // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.
         // 운용 기간은 작성 일자(writedAt)로부터 현재 날짜까지의 일 수로 계산됩니다.
         // 전략이 처음 저장되거나 업데이트될 때마다 이 메서드가 호출되어 운용 기간이 갱신됩니다.
-        if ("STRATEGY_STATUS_ACTIVE".equals(this.strategyStatusCode.getCode()) && this.writedAt != null) {
+        if ("STRATEGY_STATUS_ACTIVE".equals(this.strategyStatusCode) && this.writedAt != null) {
             this.strategyOperationDays = (int) ChronoUnit.DAYS.between(this.writedAt, LocalDateTime.now());
         }
     }
 
-    public void setStrategyStatusCode(StandardCodeEntity newStatus) {
+    public void setStrategyStatusCode(String newStatus) {
         // 상태가 INACTIVE로 변경된 경우에만 종료일 설정
-        if (this.strategyStatusCode != null && "STRATEGY_STATUS_INACTIVE".equals(newStatus.getCode()) &&
-                !"STRATEGY_STATUS_INACTIVE".equals(this.strategyStatusCode.getCode())) {
+        if (this.strategyStatusCode != null && "STRATEGY_STATUS_INACTIVE".equals(newStatus) &&
+                !"STRATEGY_STATUS_INACTIVE".equals(this.strategyStatusCode)) {
             this.exitDate = LocalDateTime.now();
         }
         this.strategyStatusCode = newStatus; // 상태 업데이트

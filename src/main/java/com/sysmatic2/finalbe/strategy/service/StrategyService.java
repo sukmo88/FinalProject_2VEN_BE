@@ -2,7 +2,10 @@ package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.StandardCodeEntity;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
+import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesRegistrationDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
+import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeRegistrationDto;
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.entity.TradingTypeEntity;
@@ -16,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +52,7 @@ public class StrategyService {
         //payload내용을 엔티티에 담기
         strategyEntity.setStrategyTitle(strategyPayloadDto.getStrategyTitle());
         strategyEntity.setTradingTypeEntity(ttEntity);
-        strategyEntity.setTradingCycleCode(tradingCycleCode);
+        strategyEntity.setTradingCycleCode(tradingCycleCode.getCode());
         strategyEntity.setMinInvestmentAmount(strategyPayloadDto.getMinInvestmentAmount());
         strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
         strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
@@ -55,7 +60,7 @@ public class StrategyService {
         //전략 상태 공통코드
         StandardCodeEntity strategyStatusCode = standardCodeRepository.findById("STRATEGY_STATUS_UNDER_MANAGEMENT")
                 .orElseThrow(()-> new NoSuchElementException("STANDARD_CODE_NOT_EXIST"));
-        strategyEntity.setStrategyStatusCode(strategyStatusCode);
+        strategyEntity.setStrategyStatusCode(strategyStatusCode.getCode());
 
         //TODO) 작성자 설정
         strategyEntity.setWriterId(101L);
@@ -71,6 +76,24 @@ public class StrategyService {
         //save()
 
 
+    }
+
+    /**
+     * 사용자 전략 등록 폼에 필요한 정보를 제공하는 메서드
+     * @return StrategyRegistrationDto 전략 등록에 필요한 DTO
+     */
+    @Transactional
+    public StrategyRegistrationDto getStrategyRegistrationForm() {
+        // TradingType 및 InvestmentAssetClass 데이터를 각각 DTO 리스트로 변환
+        List<TradingTypeRegistrationDto> tradingTypeDtos = convertToTradingTypeDtos(ttRepo.findByIsActiveOrderByTradingTypeOrderAsc("Y"));
+        List<InvestmentAssetClassesRegistrationDto> investmentAssetClassDtos = convertToInvestmentAssetClassDtos(iacRepo.findByIsActiveOrderByOrderAsc("Y"));
+
+        // DTO 설정 및 반환
+        StrategyRegistrationDto strategyRegistrationDto = new StrategyRegistrationDto();
+        strategyRegistrationDto.setTradingTypeRegistrationDtoList(tradingTypeDtos);
+        strategyRegistrationDto.setInvestmentAssetClassesRegistrationDtoList(investmentAssetClassDtos);
+
+        return strategyRegistrationDto;
     }
 
 }

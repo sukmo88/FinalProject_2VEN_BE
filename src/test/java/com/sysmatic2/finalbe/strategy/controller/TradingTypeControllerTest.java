@@ -3,8 +3,8 @@ package com.sysmatic2.finalbe.strategy.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sysmatic2.finalbe.config.SecurityConfig;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeRequestDto;
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeResponseDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminRequestDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.strategy.service.TradingTypeService;
 import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
@@ -67,7 +67,7 @@ class TradingTypeControllerTest {
     @WithMockUser
     void getTradingTypeById_shouldReturnTradingType() throws Exception {
         // Given: 서비스의 findTradingTypeById 메서드가 호출되었을 때 결과를 반환하도록 설정
-        TradingTypeResponseDto dto = new TradingTypeResponseDto();
+        TradingTypeAdminResponseDto dto = new TradingTypeAdminResponseDto();
         dto.setTradingTypeId(1);
         dto.setTradingTypeName("Sample Type");
         when(tradingTypeService.findTradingTypeById(1)).thenReturn(dto);
@@ -99,7 +99,7 @@ class TradingTypeControllerTest {
     @WithMockUser
     void createTradingType_shouldReturnCreatedStatus() throws Exception {
         // Given: 요청 DTO 생성
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeName("New Type");
         requestDto.setTradingTypeIcon("New Icon");
 
@@ -117,7 +117,7 @@ class TradingTypeControllerTest {
     @WithMockUser
     void createTradingType_shouldReturnBadRequestWhenRequestInvalid() throws Exception {
         // Given: 잘못된 요청 DTO 생성 (필수 필드가 누락된 경우)
-        TradingTypeRequestDto invalidDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto invalidDto = new TradingTypeAdminRequestDto();
         invalidDto.setTradingTypeIcon("Icon Only");  // 이름 필드가 비어 있음
 
         // When & Then: POST 요청을 통해 매매유형 등록, 응답 코드 검증
@@ -157,7 +157,7 @@ class TradingTypeControllerTest {
     @WithMockUser
     void updateTradingType_shouldReturnNoContentStatus() throws Exception {
         // Given: 요청 DTO 생성
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeName("Updated Type");
         requestDto.setTradingTypeIcon("Updated Icon");
 
@@ -175,14 +175,14 @@ class TradingTypeControllerTest {
     @WithMockUser
     void updateTradingType_shouldReturnNotFoundWhenIdDoesNotExist() throws Exception {
         // Given: 요청 DTO 생성
-        TradingTypeRequestDto requestDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto requestDto = new TradingTypeAdminRequestDto();
         requestDto.setTradingTypeName("Updated Type");
         requestDto.setTradingTypeIcon("Updated Icon");
 
         // 존재하지 않는 ID로 호출 시 예외 발생 설정
         int invalidId = 999;
         Mockito.doThrow(new TradingTypeNotFoundException(invalidId))
-                .when(tradingTypeService).updateTradingType(eq(invalidId), any(TradingTypeRequestDto.class));
+                .when(tradingTypeService).updateTradingType(eq(invalidId), any(TradingTypeAdminRequestDto.class));
         // When & Then: PUT 요청을 통해 존재하지 않는 ID로 수정 시 404 상태 검증
         mockMvc.perform(put("/api/admin/trading_types/" + invalidId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -195,7 +195,7 @@ class TradingTypeControllerTest {
     @WithMockUser
     void updateTradingType_shouldReturnBadRequestWhenRequestInvalid() throws Exception {
         // Given: 잘못된 요청 DTO 생성 (필수 필드가 누락된 경우)
-        TradingTypeRequestDto invalidDto = new TradingTypeRequestDto();
+        TradingTypeAdminRequestDto invalidDto = new TradingTypeAdminRequestDto();
         invalidDto.setTradingTypeIcon("Icon Only");  // 이름 필드가 비어 있음
 
         // When & Then: PUT 요청을 통해 매매유형 수정, 응답 코드 검증
