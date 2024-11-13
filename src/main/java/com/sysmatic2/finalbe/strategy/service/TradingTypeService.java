@@ -79,7 +79,6 @@ public class TradingTypeService {
             throw new DuplicateTradingTypeOrderException(order);
         }
 
-
         // 요청 DTO를 엔티티로 변환하여 매매유형 등록
         TradingTypeEntity tradingTypeEntity = toEntity(tradingTypeRequestDto);
         tradingTypeRepository.save(tradingTypeEntity);

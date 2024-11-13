@@ -76,6 +76,12 @@ public class StrategyEntity extends Auditable {
     @Column(name = "exit_date")
     private LocalDateTime exitDate; // 전략종료일시
 
+    @Column(name="current_portfolio_value", nullable = false)
+    private BigDecimal currentPortfolioValue; // 평가금액
+
+    @Column(nullable = false)
+    BigDecimal principal; // 원금
+
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)
     private Long writerId; // 작성자 ID
