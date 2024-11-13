@@ -18,8 +18,8 @@ public class InvestAssetClassesRepositoryTest {
     InvestmentAssetClassesRepository iacRepo;
 
     //Test Data 넣기
-//    @BeforeEach
-    @Test
+    @BeforeEach
+//    @Test
     void setUp() {
         iacRepo.deleteAll();
 

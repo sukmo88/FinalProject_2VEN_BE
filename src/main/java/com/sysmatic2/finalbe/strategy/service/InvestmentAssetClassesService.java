@@ -12,9 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
@@ -58,6 +56,20 @@ public class InvestmentAssetClassesService {
         //엔티티 객체를 DTO에 담아서 보낸다.
         return toDto(iacEntity);
     }
+
+    //1-2. 투자자산 분류 목록(isActive = Y 인것만)
+    @Transactional(readOnly = true)
+    public List<InvestmentAssetClassesDto> getActiveList() throws Exception {
+        List<InvestmentAssetClassesEntity> iacList = iacRepository.findByIsActiveOrderByOrderAsc("Y");
+        List<InvestmentAssetClassesDto> resultList = new ArrayList<>();
+
+        for(InvestmentAssetClassesEntity iacEntity : iacList){
+            resultList.add(toDto(iacEntity));
+        }
+
+        return resultList;
+    }
+
 
     //2. 투자자산 분류 생성
     //페이로드 DTO를 받아서 엔티티에 넣는다. 만들고 나면 반환용 DTO를 반환한다.
