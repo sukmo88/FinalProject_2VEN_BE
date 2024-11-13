@@ -42,7 +42,7 @@ public class StrategyEntity extends Auditable {
     private StandardCodeEntity tradingCycleCode; // 매매주기코드(공통 코드)
 
     @Column(name = "followers_count", nullable = false)
-    private Long followersCount; // 팔로워수
+    private Long followersCount = 0L; // 팔로워수
 
     @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
@@ -76,8 +76,8 @@ public class StrategyEntity extends Auditable {
     @Column(name = "exit_date")
     private LocalDateTime exitDate; // 전략종료일시
 
-    @Column(name="current_portfolio_value", nullable = false)
-    private BigDecimal currentPortfolioValue; // 평가금액
+    @Column(name="balance", nullable = false)
+    private BigDecimal balance; // 잔고
 
     @Column(nullable = false)
     BigDecimal principal; // 원금
