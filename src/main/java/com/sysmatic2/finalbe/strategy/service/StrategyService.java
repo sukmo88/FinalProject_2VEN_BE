@@ -46,21 +46,21 @@ public class StrategyService {
         List<Integer> iacIds = strategyPayloadDto.getInvestmentAssetClassesIdList();
         List<InvestmentAssetClassesEntity> iacEntities = iacRepo.findAllById(iacIds);
         //페이로드에서 가져온 공통코드 id로 해당 공통코드 엔티티 가져오기
-        StandardCodeEntity tradingCycleCode = standardCodeRepository.findById(strategyPayloadDto.getTradingCycleCode())
-                .orElseThrow(() -> new NoSuchElementException());
+//        StandardCodeEntity tradingCycleCode = standardCodeRepository.findById(strategyPayloadDto.getTradingCycleCode())
+//                .orElseThrow(() -> new NoSuchElementException());
 
         //payload내용을 엔티티에 담기
         strategyEntity.setStrategyTitle(strategyPayloadDto.getStrategyTitle());
         strategyEntity.setTradingTypeEntity(ttEntity);
-        strategyEntity.setTradingCycleCode(tradingCycleCode.getCode());
+        strategyEntity.setTradingCycleCode(strategyPayloadDto.getTradingCycleCode());
         strategyEntity.setMinInvestmentAmount(strategyPayloadDto.getMinInvestmentAmount());
         strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
         strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
 
         //전략 상태 공통코드
-        StandardCodeEntity strategyStatusCode = standardCodeRepository.findById("STRATEGY_STATUS_UNDER_MANAGEMENT")
-                .orElseThrow(()-> new NoSuchElementException("STANDARD_CODE_NOT_EXIST"));
-        strategyEntity.setStrategyStatusCode(strategyStatusCode.getCode());
+//        StandardCodeEntity strategyStatusCode = standardCodeRepository.findById("STRATEGY_STATUS_UNDER_MANAGEMENT")
+//                .orElseThrow(()-> new NoSuchElementException("STANDARD_CODE_NOT_EXIST"));
+        strategyEntity.setStrategyStatusCode("STRATEGY_STATUS_UNDER_MANAGEMENT");
 
         //TODO) 작성자 설정
         strategyEntity.setWriterId(101L);
