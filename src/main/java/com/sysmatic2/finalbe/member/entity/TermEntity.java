@@ -29,9 +29,8 @@ public class TermEntity extends Auditable {
     @Column(name = "is_required", nullable = false)
     private String isRequired;
 
-    @ManyToOne
-    @JoinColumn(name = "target_member_grade_code", nullable = false)
-    private StandardCodeEntity targetMemberGradeCode;
+    @Column(name = "target_member_grade_code", nullable = false)
+    private String targetMemberGradeCode;
 
     @Column(name = "version")
     private String version;

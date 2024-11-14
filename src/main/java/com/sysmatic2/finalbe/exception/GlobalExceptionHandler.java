@@ -9,10 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.server.MethodNotAllowedException;
 
 import java.nio.file.AccessDeniedException;
@@ -27,8 +29,10 @@ public class GlobalExceptionHandler {
     // 일반적인 예외
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Internal Server Error",
+                "errorType", ex.getClass().getSimpleName(),
                 "message", "알 수 없는 오류가 발생했습니다.",
                 "timestamp", Instant.now().toEpochMilli()
         ));

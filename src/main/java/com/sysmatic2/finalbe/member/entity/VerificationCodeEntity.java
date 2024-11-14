@@ -38,7 +38,6 @@ public class VerificationCodeEntity extends Auditable {
     @Column(name = "last_attempt_time")
     private LocalDateTime lastAttemptTime;
 
-    @ManyToOne
-    @JoinColumn(name = "verification_reason_code", nullable = false)
-    private StandardCodeEntity verificationReasonCode;
+    @Column(name = "verification_reason_code", nullable = false)
+    private String verificationReasonCode;
 }
