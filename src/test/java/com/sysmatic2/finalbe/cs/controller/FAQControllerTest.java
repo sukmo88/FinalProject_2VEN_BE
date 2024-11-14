@@ -53,43 +53,6 @@ class FAQControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-//    @Test
-//    @DisplayName("Create FAQ - Unauthorized User")
-//    void createFAQ_Unauthorized() throws Exception {
-//        AdminFAQDto faq = new AdminFAQDto();
-//        faq.setQuestion("Sample Question?");
-//        faq.setAnswer("Sample Answer");
-//        faq.setWriterId(1L);
-//        faq.setPostedAt(LocalDateTime.now());
-//
-//        mockMvc.perform(post("/api/faqs")
-//                        .content(objectMapper.writeValueAsString(faq))
-//                        .with(csrf())  // CSRF 토큰 추가
-//                        .contentType(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isUnauthorized())
-//                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
-//                .andExpect(jsonPath("$.message").value("User is not authenticated"));
-//    }
-
-//    @Test
-//    @DisplayName("Create FAQ - Forbidden for Non-Admin User")
-//    @WithMockUser(roles = {"USER"})
-//    void createFAQ_ForbiddenForNonAdmin() throws Exception {
-//        AdminFAQDto faq = new AdminFAQDto();
-//        faq.setQuestion("Sample Question?");
-//        faq.setAnswer("Sample Answer");
-//        faq.setWriterId(1L);
-//        faq.setPostedAt(LocalDateTime.now());
-//
-//        mockMvc.perform(post("/api/faqs")
-//                        .content(objectMapper.writeValueAsString(faq))
-//                        .header(HttpHeaders.AUTHORIZATION, "ROLE_USER")
-//                        .contentType(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isForbidden())
-//                .andExpect(jsonPath("$.error").value("FORBIDDEN"))
-//                .andExpect(jsonPath("$.message").value("Access Denied: User does not have sufficient permissions"));
-//    }
-
     @Test
     @DisplayName("Create FAQ - Bad Request with Missing Fields")
     @WithMockUser(roles = {"ADMIN"})
