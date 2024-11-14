@@ -1,17 +1,18 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
+import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -21,9 +22,7 @@ import java.util.Map;
 public class StrategyController {
     private final StrategyService strategyService;
 
-    // 1. 전략 생성(POST)
-
-    // 2. 전략 생성(GET)
+    // 1. 전략 생성페이지(GET)
     @GetMapping("/registration-form")
     @ApiResponse(responseCode = "200", description = "Get Strategy Registration Form")
     public ResponseEntity<Map<String, Object>> getStrategyRegistrationForm() {
@@ -39,4 +38,22 @@ public class StrategyController {
                 "timestamp", timestamp.toString()
         ));
     }
+
+    // 2. 전략 생성(POST)
+    @PostMapping(produces="application/json")
+    public ResponseEntity<Map> createStrategy(@Valid @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
+        //TODO) 관리자 판별
+        //데이터 저장
+        strategyService.register(strategyPayloadDto);
+
+        //해쉬맵에 성공 메시지 저장
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("msg", "CREATE_SUCCESS");
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
+    }
+
+
+
+
 }

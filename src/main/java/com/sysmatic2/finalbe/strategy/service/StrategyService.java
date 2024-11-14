@@ -65,7 +65,6 @@ public class StrategyService {
         //TODO) 작성자 설정
         strategyEntity.setWriterId(101L);
 
-
         //save()
         strategyRepo.save(strategyEntity);
 
