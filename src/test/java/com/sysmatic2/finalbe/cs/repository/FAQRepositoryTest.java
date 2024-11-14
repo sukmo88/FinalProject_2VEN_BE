@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.cs.repository;
 
 import com.sysmatic2.finalbe.cs.entity.FAQ;
 import com.sysmatic2.finalbe.cs.entity.FAQCategory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,11 @@ class FAQRepositoryTest {
 
     @Autowired
     private FAQCategoryRepository faqCategoryRepository;
+
+    @BeforeEach
+    public void setUp(){
+        faqRepository.deleteAll();
+    }
 
     @Test
     public void whenSaveFaq_thenSuccess_forAdmin(){
