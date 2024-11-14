@@ -20,6 +20,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // 데이터베이스에서 사용자 정보 조회
         MemberEntity member = memberRepository.findByEmail(username);
 
+        System.out.println("member = " + member);
         // 조회된 사용자 정보가 없을 경우 예외 발생
         if (member == null) {
             throw new UsernameNotFoundException("User not found");
