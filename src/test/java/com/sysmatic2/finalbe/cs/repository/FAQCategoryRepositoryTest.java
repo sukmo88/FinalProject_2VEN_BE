@@ -13,8 +13,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DataJpaTest
-@TestPropertySource(locations = "classpath:application-test.properties")
+@SpringBootTest
 class FAQCategoryRepositoryTest {
 
     @Autowired
