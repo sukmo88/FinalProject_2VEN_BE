@@ -2,6 +2,8 @@ package com.sysmatic2.finalbe.member.entity;
 
 import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -13,6 +15,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
+@EqualsAndHashCode
 public class MemberTermEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -28,6 +31,7 @@ public class MemberTermEntity extends Auditable {
     private MemberEntity member;
 
     @Column(name = "is_term_agreed", nullable = false)
+    @Pattern(regexp = "Y|N", message = "isTermAgreed는 'Y' 또는 'N'만 허용됩니다.")
     private String isTermAgreed;
 
     @Column(name = "agreed_at")

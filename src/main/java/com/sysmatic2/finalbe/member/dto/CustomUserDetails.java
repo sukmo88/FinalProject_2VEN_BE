@@ -8,10 +8,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
     private final MemberEntity member;
+
+    public CustomUserDetails(MemberEntity member) {
+        this.member = member;
+    }
 
     public Long getMemberId() {
         return member.getMemberId();
@@ -24,7 +27,7 @@ public class CustomUserDetails implements UserDetails {
         authorities.add(new GrantedAuthority() {
             @Override
             public String getAuthority() {
-                String memberGradeCode = member.getMemberGradeCode().getCode();
+                String memberGradeCode = member.getMemberGradeCode();
                 return memberGradeCode.replaceFirst("^MEMBER_", "");
             }
         });
