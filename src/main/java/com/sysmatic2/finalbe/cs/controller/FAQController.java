@@ -53,7 +53,8 @@ public class FAQController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createFAQ(@RequestBody AdminFAQDto faq, @RequestHeader(value = "Authorization", required = false) String role) {
+    public ResponseEntity<?> createFAQ(@RequestBody AdminFAQDto faq,
+                                       @RequestHeader(value = "Authorization", required = false) String role) {
 
         try {
             // role이 null이거나 ROLE_ADMIN이 아닌 경우 접근 제한
@@ -84,7 +85,9 @@ public class FAQController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateFAQ(@PathVariable Long id, @RequestBody AdminFAQDto faq, @RequestHeader(value = "Authorization", required = false) String role) {
+    public ResponseEntity<?> updateFAQ(@PathVariable Long id,
+                                       @RequestBody AdminFAQDto faq,
+                                       @RequestHeader(value = "Authorization", required = false) String role) {
         try {
             AdminFAQDto updatedFAQ = faqService.updateFAQ(id, faq, role);
             return ResponseEntity.ok(updatedFAQ);
@@ -103,7 +106,8 @@ public class FAQController {
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteFAQ(@PathVariable Long id, @RequestHeader(value = "Authorization", required = false) String role) {
+    public ResponseEntity<?> deleteFAQ(@PathVariable Long id,
+                                       @RequestHeader(value = "Authorization", required = false) String role) {
         try {
             faqService.deleteFAQ(id, role);
             return ResponseEntity.ok(Map.of("message", "FAQ successfully deleted")); // 200 OK 상태 반환
