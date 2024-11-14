@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.config;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -17,8 +18,10 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
     public Optional<Long> getCurrentAuditor() {
          Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+         String principal = (String) authentication.getPrincipal();
+
 //         인증 정보가 없거나 인증이 되어 있지 않으면 빈 Optional을 반환
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || principal.equals("anonymousUser")) {
             return Optional.empty();
         }
 

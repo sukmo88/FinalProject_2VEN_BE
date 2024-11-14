@@ -30,9 +30,8 @@ public class StrategyApprovalHistoryEntity extends Auditable {
     @JoinColumn(name = "strategy_id", nullable = false)
     private StrategyEntity strategy;
 
-    @ManyToOne
-    @JoinColumn(name = "request_reason_code", nullable = false)
-    private StandardCodeEntity requestReasonCode;
+    @Column(name = "request_reason_code", nullable = false)
+    private String requestReasonCode;
 
     @Column(name = "request_date", nullable = false)
     private LocalDateTime requestDate;
@@ -49,7 +48,6 @@ public class StrategyApprovalHistoryEntity extends Auditable {
     @Column(name = "rejection_date")
     private LocalDateTime rejectionDate;
 
-    @ManyToOne
-    @JoinColumn(name = "status_code", nullable = false)
-    private StandardCodeEntity statusCode;
+    @Column(name = "status_code", nullable = false)
+    private String statusCode;
 }
