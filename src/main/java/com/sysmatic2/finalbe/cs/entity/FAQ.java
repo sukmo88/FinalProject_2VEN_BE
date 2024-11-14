@@ -40,7 +40,7 @@ public class FAQ {
   private Boolean isActive = Boolean.TRUE;
 
   @ManyToOne
-  @JoinColumn(name = "faq_category_id", nullable = false)
+  @JoinColumn(name = "faq_category_id")
   private FAQCategory faqCategory;
 
 }
