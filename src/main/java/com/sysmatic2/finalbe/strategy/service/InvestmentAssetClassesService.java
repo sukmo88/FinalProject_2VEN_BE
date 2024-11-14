@@ -4,8 +4,7 @@ import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
-import com.sysmatic2.finalbe.util.CreatePageResponse;
-import com.sysmatic2.finalbe.util.InvestmentAssetClassesMapper;
+import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
@@ -13,12 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.InvestmentAssetClassesMapper.toDto;
+import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
 
 //관리자 페이지 - 투자자산 분류 관리
 @Service
@@ -35,7 +32,7 @@ public class InvestmentAssetClassesService {
         //페이지 객체 리스트에 DB 데이터 엔티티들을 가져와서 넣는다.
         Page<InvestmentAssetClassesEntity> pageEntityList = iacRepository.findAll(pageable);
         //페이지 객체 리스트의 타입 변경
-        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(InvestmentAssetClassesMapper::toDto);
+        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(DtoEntityConversionUtils::toDto);
 
         return createPageResponse(pageDtoList);
     }
@@ -59,6 +56,20 @@ public class InvestmentAssetClassesService {
         //엔티티 객체를 DTO에 담아서 보낸다.
         return toDto(iacEntity);
     }
+
+    //1-2. 투자자산 분류 목록(isActive = Y 인것만)
+    @Transactional(readOnly = true)
+    public List<InvestmentAssetClassesDto> getActiveList() throws Exception {
+        List<InvestmentAssetClassesEntity> iacList = iacRepository.findByIsActiveOrderByOrderAsc("Y");
+        List<InvestmentAssetClassesDto> resultList = new ArrayList<>();
+
+        for(InvestmentAssetClassesEntity iacEntity : iacList){
+            resultList.add(toDto(iacEntity));
+        }
+
+        return resultList;
+    }
+
 
     //2. 투자자산 분류 생성
     //페이로드 DTO를 받아서 엔티티에 넣는다. 만들고 나면 반환용 DTO를 반환한다.

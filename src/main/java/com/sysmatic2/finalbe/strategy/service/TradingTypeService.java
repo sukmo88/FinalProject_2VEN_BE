@@ -2,12 +2,11 @@ package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.exception.DuplicateTradingTypeOrderException;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeRequestDto;
-import com.sysmatic2.finalbe.strategy.dto.TradingTypeResponseDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminRequestDto;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.strategy.repository.TradingTypeRepository;
-import com.sysmatic2.finalbe.util.CreatePageResponse;
-import com.sysmatic2.finalbe.util.TradingTypeMapper;
+import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,9 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-import static com.sysmatic2.finalbe.util.TradingTypeMapper.toDto;
-import static com.sysmatic2.finalbe.util.TradingTypeMapper.toEntity;
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
+import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
+import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toEntity;
 
 // 관리자 페이지 - 매매유형 관리
 @Service
@@ -44,7 +43,7 @@ public class TradingTypeService {
             tradingTypeList = tradingTypeRepository.findByIsActive(isActive, pageable); // 활성 상태에 따른 조회
         }
         // 페이지 객체 리스트 타입 변경
-        Page<TradingTypeResponseDto> pageDtoList = tradingTypeList.map(TradingTypeMapper::toDto);
+        Page<TradingTypeAdminResponseDto> pageDtoList = tradingTypeList.map(DtoEntityConversionUtils::toDto);
 
         // map으로 필요한 정보 추출하여 반환
         return createPageResponse(pageDtoList);
@@ -52,7 +51,7 @@ public class TradingTypeService {
 
     @Transactional(readOnly = true)
     // 1-1. 매매유형 분류 상세 조회 메서드
-    public TradingTypeResponseDto findTradingTypeById(Integer id) {
+    public TradingTypeAdminResponseDto findTradingTypeById(Integer id) {
         // TODO 현재 사용자 ID를 가져와 관리자인지 식별
         // id 값으로 TradingType 조회
         TradingTypeEntity tradingTypeEntity = tradingTypeRepository.findById(id)
@@ -64,24 +63,23 @@ public class TradingTypeService {
 
     // 2. 매매유형을 등록하는 메서드
     @Transactional
-    public void createTradingType(TradingTypeRequestDto tradingTypeRequestDto) {
+    public void createTradingType(TradingTypeAdminRequestDto tradingTypeAdminRequestDto) {
         // TODO 현재 사용자 ID를 가져와 관리자인지 식별
         // 요청된 순서 값 확인
-        Integer order = tradingTypeRequestDto.getTradingTypeOrder();
+        Integer order = tradingTypeAdminRequestDto.getTradingTypeOrder();
 
         if (order == null) {
             // trading_type_order가 null인 경우 최대 순서 값 + 1 설정
             Integer maxOrder = tradingTypeRepository.findMaxTradingTypeOrder()
                     .orElse(0) + 1; // 순서가 없으면 기본값 0 설정 후 +1
             // 매매유형순서 DTO에 설정
-            tradingTypeRequestDto.setTradingTypeOrder(maxOrder);
+            tradingTypeAdminRequestDto.setTradingTypeOrder(maxOrder);
         } else if (tradingTypeRepository.findByTradingTypeOrder(order).isPresent()) { // trading_type_order 중복 확인
             throw new DuplicateTradingTypeOrderException(order);
         }
 
-
         // 요청 DTO를 엔티티로 변환하여 매매유형 등록
-        TradingTypeEntity tradingTypeEntity = toEntity(tradingTypeRequestDto);
+        TradingTypeEntity tradingTypeEntity = toEntity(tradingTypeAdminRequestDto);
         tradingTypeRepository.save(tradingTypeEntity);
     }
 
@@ -113,7 +111,7 @@ public class TradingTypeService {
 
     // 4. 매매유형 수정하는 메서드
     @Transactional
-    public void updateTradingType(Integer id, TradingTypeRequestDto tradingTypeRequestDto) {
+    public void updateTradingType(Integer id, TradingTypeAdminRequestDto tradingTypeAdminRequestDto) {
         // TODO 현재 사용자 ID를 가져와 관리자인지 식별
         // id 값으로 TradingType 조회
         TradingTypeEntity existingTradingTypeEntity = tradingTypeRepository.findById(id)
@@ -122,7 +120,7 @@ public class TradingTypeService {
         // 중복된 trading_type_order 값 체크 (단, 수정 대상이 아닌 다른 엔티티와 중복되는지 확인)
         // requestOrder이 비어 있지 않고 기존의 순서랑 수정된 순서가 같지 않다면
         // 또한 다른 매매유형이 쓰고 있는 순서가 아니라면
-        Integer requestedOrder = tradingTypeRequestDto.getTradingTypeOrder();
+        Integer requestedOrder = tradingTypeAdminRequestDto.getTradingTypeOrder();
         if (requestedOrder != null && !requestedOrder.equals(existingTradingTypeEntity.getTradingTypeOrder())) {
             tradingTypeRepository.findByTradingTypeOrder(requestedOrder)
                     .ifPresent(order -> {
@@ -131,10 +129,10 @@ public class TradingTypeService {
         }
 
         // 업데이트할 필드 설정
-        existingTradingTypeEntity.setTradingTypeOrder(tradingTypeRequestDto.getTradingTypeOrder());
-        existingTradingTypeEntity.setTradingTypeName(tradingTypeRequestDto.getTradingTypeName());
-        existingTradingTypeEntity.setTradingTypeIcon(tradingTypeRequestDto.getTradingTypeIcon());
-        existingTradingTypeEntity.setIsActive(tradingTypeRequestDto.getIsActive());
+        existingTradingTypeEntity.setTradingTypeOrder(tradingTypeAdminRequestDto.getTradingTypeOrder());
+        existingTradingTypeEntity.setTradingTypeName(tradingTypeAdminRequestDto.getTradingTypeName());
+        existingTradingTypeEntity.setTradingTypeIcon(tradingTypeAdminRequestDto.getTradingTypeIcon());
+        existingTradingTypeEntity.setIsActive(tradingTypeAdminRequestDto.getIsActive());
 
         // 수정한 엔티티 저장
         tradingTypeRepository.save(existingTradingTypeEntity);
