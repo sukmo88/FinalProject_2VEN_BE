@@ -11,7 +11,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +23,7 @@ class TradingTypeEntityRepositoryTest {
 
     @Autowired
     TradingTypeRepository tradingTypeRepository;
-
+    @Test
     public void createTradingTypeList() {
         for (int i = 1; i <= 10; i++) {
             TradingTypeEntity tradingTypeEntity = new TradingTypeEntity();

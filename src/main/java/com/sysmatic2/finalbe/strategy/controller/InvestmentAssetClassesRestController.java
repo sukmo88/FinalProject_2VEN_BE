@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.strategy.controller;
 
 import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
+import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.service.InvestmentAssetClassesService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +51,15 @@ public class InvestmentAssetClassesRestController {
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", iasDto);
 
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+    }
+
+    //1-2. 투자자산 분류 is_active Y 리스트(테스트)
+    @GetMapping(value="/inv-asset-classes/isactive")
+    public ResponseEntity<Map> getIACActive() throws Exception {
+        List<InvestmentAssetClassesDto> iasResult = iacService.getActiveList();
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("data", iasResult);
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
 
