@@ -19,7 +19,6 @@ public class InvestAssetClassesRepositoryTest {
 
     //Test Data 넣기
     @BeforeEach
-//    @Test
     void setUp() {
         iacRepo.deleteAll();
 
