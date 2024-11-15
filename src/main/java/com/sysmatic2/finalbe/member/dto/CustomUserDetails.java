@@ -16,7 +16,7 @@ public class CustomUserDetails implements UserDetails {
         this.member = member;
     }
 
-    public Long getMemberId() {
+    public String getMemberId() {
         return member.getMemberId();
     }
 
