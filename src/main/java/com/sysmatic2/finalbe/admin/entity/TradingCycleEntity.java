@@ -1,10 +1,13 @@
 package com.sysmatic2.finalbe.admin.entity;
 
 import com.sysmatic2.finalbe.common.Auditable;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.util.List;
 
 @Entity
 @Table(name = "trading_cycle")
@@ -31,4 +34,8 @@ public class TradingCycleEntity extends Auditable {
 
     @Column(name="is_active", nullable = false)
     private String isActive; // 사용유무
+
+    //전략(N) : 주기(1)
+//    @OneToMany(mappedBy = "tradingCycleEntity")
+//    private List<StrategyEntity> strategyEntities;
 }

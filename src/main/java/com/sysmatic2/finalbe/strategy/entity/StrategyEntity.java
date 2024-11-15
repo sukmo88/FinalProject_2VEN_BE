@@ -31,16 +31,17 @@ public class StrategyEntity extends Auditable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long strategyId; // 전략 ID
 
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_type_id", nullable = false)
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
-    @ManyToOne
-    @JoinColumn(name = "trading_cycle_code", nullable = false)
-    private TradingCycleEntity tradingCycleEntity; // 매매주기
-
     @Column(name = "strategy_status_code", nullable = false)
-    private String strategyStatusCode; // 전략상태코드(공통 코드) //TODO)
+    private String strategyStatusCode; // 전략상태코드(공통 코드)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trading_cycle_id", nullable = false)
+    private TradingCycleEntity tradingCycleEntity; // 매매주기 ID
 
     @Column(name = "min_investment_amount", nullable = false)
     private String minInvestmentAmount; //최소운용가능금액
@@ -85,8 +86,8 @@ public class StrategyEntity extends Auditable {
     private LocalDateTime exitDate; // 전략종료일시
 
     //전략(1) : 관계(N)
-    @OneToMany(mappedBy = "strategyEntity")
-    private List<StrategyIACEntity> strategyIACEntities;
+//    @OneToMany(mappedBy = "strategyEntity")
+//    private List<StrategyIACEntity> strategyIACEntities;
 
 //    public void updateOperationPeriod() {
 //        // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.

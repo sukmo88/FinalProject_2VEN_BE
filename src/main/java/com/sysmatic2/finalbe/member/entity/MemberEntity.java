@@ -14,9 +14,8 @@ import java.time.LocalDateTime;
 @ToString
 public class MemberEntity extends Auditable {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "member_id")
-    private Long memberId;  // 회원 ID
+    private String memberId;  // 회원 ID
 
     @Column(name = "member_grade_code", nullable = false)
     private String memberGradeCode;  // 회원등급코드
