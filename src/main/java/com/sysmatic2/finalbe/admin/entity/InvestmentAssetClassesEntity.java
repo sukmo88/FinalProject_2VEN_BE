@@ -13,7 +13,7 @@ import java.util.Objects;
 
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "strategyIACEntities")
 @Entity
 @Table(name = "investment_asset_classes") //투자자산 분류
 public class InvestmentAssetClassesEntity extends Auditable {

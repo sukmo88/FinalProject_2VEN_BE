@@ -13,7 +13,7 @@ import java.util.List;
 @Table(name = "trading_cycle")
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "strategyEntities")
 public class TradingCycleEntity extends Auditable {
     @Id
     @Column(name="trading_cycle_id")
