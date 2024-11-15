@@ -29,10 +29,6 @@ public class AuditorAwareImpl implements AuditorAware<String> {
             return Optional.empty();
         }
 
-//        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof CustomUserDetails)) {
-//            return Optional.empty();
-//        }
-
         // CustomUserDetails에서 memberId를 가져옴
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         return Optional.ofNullable(userDetails.getMemberId());
