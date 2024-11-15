@@ -5,7 +5,7 @@ import com.sysmatic2.finalbe.cs.entity.NoticeStatus;
 import lombok.Data;
 
 @Data
-public class NoticeDTO {
+public class NoticeDto {
   private Long id;
   private NoticeStatus noticeStatus;
   private String title;

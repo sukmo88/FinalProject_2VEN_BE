@@ -1,6 +1,6 @@
 package com.sysmatic2.finalbe.cs.service;
 
-import com.sysmatic2.finalbe.cs.dto.NoticeDTO;
+import com.sysmatic2.finalbe.cs.dto.NoticeDto;
 import com.sysmatic2.finalbe.cs.entity.Notice;
 import com.sysmatic2.finalbe.cs.entity.NoticeStatus;
 import com.sysmatic2.finalbe.cs.repository.NoticeRepository;
@@ -41,7 +41,7 @@ class NoticeServiceTest {
     when(noticeRepository.findAll(any(PageRequest.class))).thenReturn(noticePage);
 
     // When
-    Page<NoticeDTO> result = noticeService.getAllNotices(0, 10);
+    Page<NoticeDto> result = noticeService.getAllNotices(0, 10);
 
     // Then
     assertNotNull(result);
@@ -58,7 +58,7 @@ class NoticeServiceTest {
     when(noticeRepository.findById(1L)).thenReturn(Optional.of(notice));
 
     // When
-    Optional<NoticeDTO> result = noticeService.getNoticeById(1L);
+    Optional<NoticeDto> result = noticeService.getNoticeById(1L);
 
     // Then
     assertTrue(result.isPresent());
@@ -71,11 +71,11 @@ class NoticeServiceTest {
   void saveNotice_shouldSaveAndReturnNoticeDTO() {
     // Given
     Notice notice = createSampleNotice(NoticeStatus.DRAFT);
-    NoticeDTO noticeDTO = noticeService.convertToDTO(notice);
+    NoticeDto noticeDTO = noticeService.convertToDTO(notice);
     when(noticeRepository.save(any(Notice.class))).thenReturn(notice);
 
     // When
-    NoticeDTO result = noticeService.saveNotice(noticeDTO);
+    NoticeDto result = noticeService.saveNotice(noticeDTO);
 
     // Then
     assertNotNull(result);

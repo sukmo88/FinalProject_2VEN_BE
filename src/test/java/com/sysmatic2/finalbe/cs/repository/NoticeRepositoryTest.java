@@ -2,20 +2,18 @@ package com.sysmatic2.finalbe.cs.repository;
 
 import com.sysmatic2.finalbe.cs.entity.Notice;
 import com.sysmatic2.finalbe.cs.entity.NoticeStatus;
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@Transactional
+@DataJpaTest
 class NoticeRepositoryTest {
 
   @Autowired
