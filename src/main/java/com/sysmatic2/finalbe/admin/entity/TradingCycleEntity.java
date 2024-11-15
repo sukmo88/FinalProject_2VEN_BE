@@ -13,7 +13,7 @@ import java.util.List;
 @Table(name = "trading_cycle")
 @Getter
 @Setter
-@ToString(exclude = "strategyEntities")
+@ToString
 public class TradingCycleEntity extends Auditable {
     @Id
     @Column(name="trading_cycle_id")
@@ -36,6 +36,6 @@ public class TradingCycleEntity extends Auditable {
     private String isActive; // 사용유무
 
     //전략(N) : 주기(1)
-    @OneToMany(mappedBy = "tradingCycleEntity")
-    private List<StrategyEntity> strategyEntities;
+//    @OneToMany(mappedBy = "tradingCycleEntity")
+//    private List<StrategyEntity> strategyEntities;
 }
