@@ -10,12 +10,12 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 @Component
-public class AuditorAwareImpl implements AuditorAware<Long> {
+public class AuditorAwareImpl implements AuditorAware<String> {
 
     @Override
     // 현재 사용자의 ID나 이름을 반환.
     // Optional을 사용하여 null이 될 수 있음을 처리
-    public Optional<Long> getCurrentAuditor() {
+    public Optional<String> getCurrentAuditor() {
          Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
 
@@ -32,7 +32,6 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
 //        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof CustomUserDetails)) {
 //            return Optional.empty();
 //        }
-
 
         // CustomUserDetails에서 memberId를 가져옴
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();

@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 public class Auditable {
     @CreatedBy
     @Column(name="created_by", updatable = false)
-    private Long createdBy; // 최초작성자 ID
+    private String createdBy; // 최초작성자 ID
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -29,7 +29,7 @@ public class Auditable {
 
     @LastModifiedBy
     @Column(name = "modified_by")
-    private Long modifiedBy; // 최종수정자 ID
+    private String modifiedBy; // 최종수정자 ID
 
     @LastModifiedDate
     @Column(name = "modified_at")

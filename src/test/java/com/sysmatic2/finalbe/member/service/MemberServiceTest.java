@@ -53,4 +53,9 @@ class MemberServiceTest {
         // 메소드 제대로 호출되었는지 확인
         verify(memberRepository, times(1)).findByNickname(newNickname);
     }
+
+    @Test
+    public void createUUID() {
+        // UUID 생성 메소드 테스트 필요!! -> private인데 어떻게 테스트하지?
+    }
 }

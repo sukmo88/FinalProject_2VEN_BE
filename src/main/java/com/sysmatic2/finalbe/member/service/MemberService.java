@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Base64;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class MemberService {
@@ -53,16 +56,9 @@ public class MemberService {
 
     // SignupDTO를 MemberEntity로 변환하는 메소드
     private MemberEntity convertToMemberEntity(SignupDTO signupDTO) {
-        // memberType 넘어온 값에 "MEMBER_ROLE_" 붙여서 -> memberGradeCode
-        // "MEMBER_STATUS_ACTIVE" -> memberStatusCode
-        // email Redis에서 가져와서 -> email
-        // password 해싱 인코딩해서 -> password
-        // nickname 그대로 -> nickname
-        // phoneNumber 그대로 -> phoneNumber
-        // 마케팅,광고성 정보 수신 여부 -> Y
-        // 가입일자는 auditing 사용??
 
         MemberEntity member = new MemberEntity();
+        member.setMemberId(createUUID());
         member.setMemberGradeCode("MEMBER_GRADE_" + signupDTO.getMemberType());
         member.setMemberStatusCode("MEMBER_STATUS_ACTIVE");
         member.setEmail(signupDTO.getEmail()); // Redis 에서 가져오는 걸로 변경 필요
@@ -70,7 +66,28 @@ public class MemberService {
         member.setNickname(signupDTO.getNickname());
         member.setPhoneNumber(signupDTO.getPhoneNumber());
         member.setIsAgreedMarketingAd('Y');
+        // 가입일자는 auditing 사용?? -> 석모님 확인 필요
 
         return member;
+    }
+
+    // UUID 생성
+    private String createUUID() {
+        UUID uuid = UUID.randomUUID();
+
+        // UUID를 바이트 배열로 변환
+        byte[] bytes = new byte[16];
+        long msb = uuid.getMostSignificantBits();
+        long lsb = uuid.getLeastSignificantBits();
+        for (int i = 7; i >= 0; i--) {
+            bytes[i] = (byte) (msb & 0xFF);
+            msb >>= 8;
+            bytes[8+i] = (byte) (lsb & 0xFF);
+            lsb >>= 8;
+        }
+
+        // Base64로 인코딩하고 패딩 제거
+        String base64UUID = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return base64UUID;
     }
 }
