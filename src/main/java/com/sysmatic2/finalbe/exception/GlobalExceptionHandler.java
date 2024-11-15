@@ -168,4 +168,13 @@ public class GlobalExceptionHandler {
         errorMap.put("error", "METHOD_NOT_ALLOWED");
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorMap);
     }
+
+    @ExceptionHandler(MemberAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleMemberAlreadyExistsException(MemberAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "Member_Already_Exists",
+                "message", ex.getMessage(),
+                "timestamp", Instant.now().toEpochMilli()
+        ));
+    }
 }

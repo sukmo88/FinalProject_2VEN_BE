@@ -18,12 +18,21 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
     public Optional<Long> getCurrentAuditor() {
          Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-         String principal = (String) authentication.getPrincipal();
 
 //         인증 정보가 없거나 인증이 되어 있지 않으면 빈 Optional을 반환
-        if (authentication == null || !authentication.isAuthenticated() || principal.equals("anonymousUser")) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             return Optional.empty();
         }
+
+        String principal = (String) authentication.getPrincipal();
+        if (principal.equals("anonymousUser")) {
+            return Optional.empty();
+        }
+
+//        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof CustomUserDetails)) {
+//            return Optional.empty();
+//        }
+
 
         // CustomUserDetails에서 memberId를 가져옴
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
