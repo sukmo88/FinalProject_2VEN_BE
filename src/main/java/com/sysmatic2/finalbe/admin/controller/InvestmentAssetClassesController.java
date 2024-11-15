@@ -6,9 +6,12 @@ import com.sysmatic2.finalbe.admin.service.InvestmentAssetClassesService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
@@ -17,6 +20,7 @@ import java.util.*;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Tag(name = "Admin InvestmentAssetClasses Controller", description = "관리자가 투자자산 분류를 관리하는 컨트롤러")
+@Validated
 public class InvestmentAssetClassesController {
     private final InvestmentAssetClassesService iacService;
 
@@ -27,8 +31,8 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="401", description = "Unauthorized")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Map> getAllInvestmentAssetClasses(@RequestParam(value = "page", defaultValue = "0") int page,
-                                                             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) throws Exception{
+    public ResponseEntity<Map> getAllInvestmentAssetClasses(@RequestParam(value = "page", defaultValue = "0") @Min(value = 0, message = "Page number must be 0 or greater") int page,
+                                                             @RequestParam(value = "pageSize", defaultValue = "10") @Positive(message = "Page size must be greater than zero") int pageSize) throws Exception{
         //TODO)관리자 판별
         Map pageList = iacService.getList(page, pageSize);
 
@@ -43,7 +47,7 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="404", description = "NOT EXIST")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Map> getInvestmentAssetClasses(@PathVariable("id") Integer id) throws Exception {
+    public ResponseEntity<Map> getInvestmentAssetClasses(@PathVariable("id") @Positive Integer id) throws Exception {
         //TODO)관리자 판별
         InvestmentAssetClassesDto iasDto = iacService.getById(id);
         Map<String, Object> responseMap = new HashMap<>();
@@ -104,7 +108,7 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="404", description = "NOT EXIST")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") Integer id) throws Exception {
+    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") @Positive Integer id) throws Exception {
         //TODO) 관리자 판별
         iacService.softDelete(id);
         Map<String, String> responseMap = new HashMap<>();
@@ -121,7 +125,7 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="404", description = "NOT EXIST")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Map> updateInvestmentAssetClass(@PathVariable("id") Integer id,
+    public ResponseEntity<Map> updateInvestmentAssetClass(@PathVariable("id") @Positive Integer id,
                                                           @Valid @RequestBody InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception {
         //TODO) 관리자 판별
         iacService.update(id, iacPayloadDto);
