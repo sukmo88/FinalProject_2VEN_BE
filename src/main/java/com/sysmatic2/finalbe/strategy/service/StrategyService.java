@@ -1,5 +1,7 @@
 package com.sysmatic2.finalbe.strategy.service;
 
+import com.sysmatic2.finalbe.admin.dto.TradingCycleRegistrationDto;
+import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
 import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
@@ -33,7 +35,7 @@ public class StrategyService {
     private final StrategyRepository strategyRepo;
     private final InvestmentAssetClassesRepository iacRepo;
     private final TradingTypeRepository ttRepo;
-    private final TradingTypeRepository tradingTypeRepository;
+    private final TradingCycleRepository tcRepo;
     private final StrategyIACRepository strategyIACRepository;
 
     //1. 전략 생성
@@ -85,19 +87,22 @@ public class StrategyService {
     }
 
     /**
-     2. 사용자 전략 등록 폼에 필요한 정보를 제공하는 메서드
+     * 사용자 전략 등록 폼에 필요한 정보를 제공하는 메서드.
+     *
      * @return StrategyRegistrationDto 전략 등록에 필요한 DTO
      */
     @Transactional
     public StrategyRegistrationDto getStrategyRegistrationForm() {
-        // TradingType 및 InvestmentAssetClass 데이터를 각각 DTO 리스트로 변환
+        // TradingType, InvestmentAssetClass 및 TradingCycle 데이터를 각각 DTO 리스트로 변환
         List<TradingTypeRegistrationDto> tradingTypeDtos = convertToTradingTypeDtos(ttRepo.findByIsActiveOrderByTradingTypeOrderAsc("Y"));
         List<InvestmentAssetClassesRegistrationDto> investmentAssetClassDtos = convertToInvestmentAssetClassDtos(iacRepo.findByIsActiveOrderByOrderAsc("Y"));
+        List<TradingCycleRegistrationDto> tradingCycleDtos = convertToTradingCycleDtos(tcRepo.findByIsActiveOrderByTradingCycleOrderAsc("Y"));
 
         // DTO 설정 및 반환
         StrategyRegistrationDto strategyRegistrationDto = new StrategyRegistrationDto();
         strategyRegistrationDto.setTradingTypeRegistrationDtoList(tradingTypeDtos);
         strategyRegistrationDto.setInvestmentAssetClassesRegistrationDtoList(investmentAssetClassDtos);
+        strategyRegistrationDto.setTradingCycleRegistrationDtoList(tradingCycleDtos); // 매매주기 데이터 설정
 
         return strategyRegistrationDto;
     }

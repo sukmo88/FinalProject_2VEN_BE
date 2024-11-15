@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import java.util.Map;
 @RequestMapping("/api/strategies")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Strategy Controller", description = "전략 컨트롤러")
 public class StrategyController {
     private final StrategyService strategyService;
 

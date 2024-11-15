@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.strategy.service;
+package com.sysmatic2.finalbe.admin.service;
 
 import com.sysmatic2.finalbe.admin.service.TradingTypeService;
 import com.sysmatic2.finalbe.exception.DuplicateTradingTypeOrderException;

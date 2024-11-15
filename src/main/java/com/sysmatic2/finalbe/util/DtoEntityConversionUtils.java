@@ -1,11 +1,8 @@
 package com.sysmatic2.finalbe.util;
 
-import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesDto;
-import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminRequestDto;
-import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminResponseDto;
-import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
-import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
+import com.sysmatic2.finalbe.admin.dto.*;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
+import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
@@ -106,6 +103,37 @@ public class DtoEntityConversionUtils {
     }
 
     /**
+     * TradingCycleEntity를 TradingCycleAdminResponseDto로 변환하는 메서드.
+     *
+     * @param tradingCycleEntity 변환할 TradingCycleEntity 객체
+     * @return 변환된 TradingCycleAdminResponseDto 객체
+     */
+    public static TradingCycleAdminResponseDto toDto(TradingCycleEntity tradingCycleEntity) {
+        TradingCycleAdminResponseDto dto = new TradingCycleAdminResponseDto();
+        dto.setTradingCycleId(tradingCycleEntity.getTradingCycleId());
+        dto.setTradingCycleOrder(tradingCycleEntity.getTradingCycleOrder());
+        dto.setTradingCycleName(tradingCycleEntity.getTradingCycleName());
+        dto.setTradingCycleIcon(tradingCycleEntity.getTradingCycleIcon());
+        dto.setIsActive(tradingCycleEntity.getIsActive());
+        return dto;
+    }
+
+    /**
+     * TradingCycleAdminRequestDto를 TradingCycleEntity로 변환하는 메서드.
+     *
+     * @param dto 변환할 TradingCycleAdminRequestDto 객체
+     * @return 변환된 TradingCycleEntity 객체
+     */
+    public static TradingCycleEntity toEntity(TradingCycleAdminRequestDto dto) {
+        TradingCycleEntity tradingCycleEntity = new TradingCycleEntity();
+        tradingCycleEntity.setTradingCycleOrder(dto.getTradingCycleOrder());
+        tradingCycleEntity.setTradingCycleName(dto.getTradingCycleName());
+        tradingCycleEntity.setTradingCycleIcon(dto.getTradingCycleIcon());
+        tradingCycleEntity.setIsActive(dto.getIsActive());
+        return tradingCycleEntity;
+    }
+
+    /**
      * TradingTypeEntity 리스트를 TradingTypeRegistrationDto 리스트로 변환하는 메서드.
      *
      * @param tradingTypes 변환할 TradingTypeEntity 리스트
@@ -144,6 +172,21 @@ public class DtoEntityConversionUtils {
         return responseDto;
     }
 
-
-
+    /**
+     * TradingCycleEntity 리스트를 TradingCycleRegistrationDto 리스트로 변환하는 메서드.
+     *
+     * @param tradingCycles 변환할 TradingCycleEntity 리스트
+     * @return 변환된 TradingCycleRegistrationDto 리스트
+     */
+    public static List<TradingCycleRegistrationDto> convertToTradingCycleDtos(List<TradingCycleEntity> tradingCycles) {
+        return tradingCycles.stream()
+                .map(tradingCycle -> {
+                    TradingCycleRegistrationDto dto = new TradingCycleRegistrationDto();
+                    dto.setTradingCycleId(tradingCycle.getTradingCycleId());
+                    dto.setTradingCycleName(tradingCycle.getTradingCycleName());
+                    dto.setTradingCycleIcon(tradingCycle.getTradingCycleIcon());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
 }

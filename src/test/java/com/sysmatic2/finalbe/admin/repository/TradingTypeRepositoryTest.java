@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.strategy.repository;
+package com.sysmatic2.finalbe.admin.repository;
 
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;

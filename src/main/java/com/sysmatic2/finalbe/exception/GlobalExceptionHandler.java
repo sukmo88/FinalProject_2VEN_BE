@@ -184,4 +184,27 @@ public class GlobalExceptionHandler {
                 "timestamp", Instant.now()
         ));
     }
+
+    // 투자주기 순서 중복 예외 처리
+    @ExceptionHandler(DuplicateTradingCycleOrderException.class)
+    public ResponseEntity<Object> handleDuplicateTradingCycleOrderException(DuplicateTradingCycleOrderException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", "CONFLICT",
+                "errorType", ex.getClass().getSimpleName(),
+                "message", ex.getMessage(),
+                "timestamp", Instant.now()
+        ));
+    }
+
+    // 투자주기 ID 미존재 예외 처리
+    @ExceptionHandler(TradingCycleNotFoundException.class)
+    public ResponseEntity<Object> handleTradingCycleNotFoundException(TradingCycleNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "error", "NOT_FOUND",
+                "errorType", ex.getClass().getSimpleName(),
+                "message", ex.getMessage(),
+                "timestamp", Instant.now()
+        ));
+    }
+
 }
