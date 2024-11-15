@@ -24,7 +24,8 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-@ToString
+//@ToString
+@ToString(exclude={"strategyIACEntities", "TradingCycleEntity", "TradingTypeEntity"})
 public class StrategyEntity extends Auditable {
     @Id
     @Column(name = "strategy_id")
