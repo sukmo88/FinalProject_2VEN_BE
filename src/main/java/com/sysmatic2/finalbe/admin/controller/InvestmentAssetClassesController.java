@@ -1,8 +1,8 @@
-package com.sysmatic2.finalbe.strategy.controller;
+package com.sysmatic2.finalbe.admin.controller;
 
-import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
-import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
-import com.sysmatic2.finalbe.strategy.service.InvestmentAssetClassesService;
+import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesDto;
+import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesPayloadDto;
+import com.sysmatic2.finalbe.admin.service.InvestmentAssetClassesService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
