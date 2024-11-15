@@ -1,5 +1,7 @@
 package com.sysmatic2.finalbe.strategy.service;
 
+import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
+import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
@@ -20,6 +22,9 @@ public class StrategyServiceMockTest {
 
     @Mock
     private InvestmentAssetClassesRepository iacRepo;
+
+    @Mock
+    private TradingCycleRepository tcRepo;
 
     @InjectMocks
     private StrategyService strategyService;
@@ -42,6 +47,12 @@ public class StrategyServiceMockTest {
         investmentAssetClassDto.setInvestmentAssetClassesId(1);
         investmentAssetClassDto.setInvestmentAssetClassesName("Class A");
         investmentAssetClassDto.setInvestmentAssetClassesIcon("icon_B.png");
+
+        TradingCycleEntity tradingCycleDto = new TradingCycleEntity();
+        tradingCycleDto.setTradingCycleId(1);
+        tradingCycleDto.setTradingCycleName("Cycle A");
+        tradingCycleDto.setTradingCycleIcon("icon_C.png");
+
 
         when(ttRepo.findByIsActiveOrderByTradingTypeOrderAsc("Y")).thenReturn(List.of(tradingTypeDto));
         when(iacRepo.findByIsActiveOrderByOrderAsc("Y")).thenReturn(List.of(investmentAssetClassDto));

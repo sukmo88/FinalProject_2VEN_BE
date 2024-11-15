@@ -1,6 +1,5 @@
-package com.sysmatic2.finalbe;
+package com.sysmatic2.finalbe.common;
 
-import com.sysmatic2.finalbe.strategy.entity.Auditable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.strategy.entity;
+package com.sysmatic2.finalbe.common;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

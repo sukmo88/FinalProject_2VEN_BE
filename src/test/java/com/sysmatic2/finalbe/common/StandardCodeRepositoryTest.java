@@ -1,6 +1,7 @@
-package com.sysmatic2.finalbe.strategy.repository;
+package com.sysmatic2.finalbe.common;
 
-import com.sysmatic2.finalbe.StandardCodeEntity;
+import com.sysmatic2.finalbe.common.StandardCodeEntity;
+import com.sysmatic2.finalbe.strategy.repository.StrategyStandardCodeRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

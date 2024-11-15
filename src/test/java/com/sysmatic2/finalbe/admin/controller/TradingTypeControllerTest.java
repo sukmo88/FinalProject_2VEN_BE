@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.strategy.controller;
+package com.sysmatic2.finalbe.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sysmatic2.finalbe.admin.controller.TradingTypeController;

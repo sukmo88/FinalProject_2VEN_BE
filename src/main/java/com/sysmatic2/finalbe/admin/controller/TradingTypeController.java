@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminRequestDto;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.admin.service.TradingTypeService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Admin TradingType Controller", description = "관리자가 매매유형을 관리하는 컨트롤러")
 public class TradingTypeController {
 
     private final TradingTypeService tradingTypeService;
