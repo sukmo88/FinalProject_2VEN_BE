@@ -7,6 +7,8 @@ import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
+import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +24,7 @@ public class DtoEntityConversionUtils {
     // 인스턴스화를 방지하기 위한 private 생성자
     private DtoEntityConversionUtils() {}
 
+    //투자자산 분류
     /**
      * InvestmentAssetClassesEntity를 InvestmentAssetClassesDto로 변환하는 메서드.
      *
@@ -53,6 +56,24 @@ public class DtoEntityConversionUtils {
         return iacEntity;
     }
 
+    /**
+     * InvestmentAssetClassEntity 리스트를 InvestmentAssetClassesRegistrationDto 리스트로 변환하는 메서드.
+     *
+     * @param assetClasses 변환할 InvestmentAssetClassEntity 리스트
+     * @return 변환된 InvestmentAssetClassesRegistrationDto 리스트
+     */
+    public static List<InvestmentAssetClassesRegistrationDto> convertToInvestmentAssetClassDtos(List<InvestmentAssetClassesEntity> assetClasses) {
+        return assetClasses.stream()
+                .map(assetClass -> {
+                    InvestmentAssetClassesRegistrationDto dto = new InvestmentAssetClassesRegistrationDto();
+                    dto.setInvestmentAssetClassesId(assetClass.getInvestmentAssetClassesId());
+                    dto.setInvestmentAssetClassesName(assetClass.getInvestmentAssetClassesName());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    //매매유형
     /**
      * TradingTypeEntity를 TradingTypeAdminResponseDto로 변환하는 메서드.
      *
@@ -102,20 +123,27 @@ public class DtoEntityConversionUtils {
                 .collect(Collectors.toList());
     }
 
+    //전략
     /**
-     * InvestmentAssetClassEntity 리스트를 InvestmentAssetClassesRegistrationDto 리스트로 변환하는 메서드.
+     * StrategyEntity를 StrategyResponseDto로 변환하는 메서드.
      *
-     * @param assetClasses 변환할 InvestmentAssetClassEntity 리스트
-     * @return 변환된 InvestmentAssetClassesRegistrationDto 리스트
+     * @param  변환할 StrategyEntity
+     * @return 변환된 StrategyResponseDto
      */
-    public static List<InvestmentAssetClassesRegistrationDto> convertToInvestmentAssetClassDtos(List<InvestmentAssetClassesEntity> assetClasses) {
-        return assetClasses.stream()
-                .map(assetClass -> {
-                    InvestmentAssetClassesRegistrationDto dto = new InvestmentAssetClassesRegistrationDto();
-                    dto.setInvestmentAssetClassesId(assetClass.getInvestmentAssetClassesId());
-                    dto.setInvestmentAssetClassesName(assetClass.getInvestmentAssetClassesName());
-                    return dto;
-                })
-                .collect(Collectors.toList());
+    public static StrategyResponseDto convertToStrategyDto(StrategyEntity strategyEntity) {
+        StrategyResponseDto responseDto = new StrategyResponseDto();
+
+        responseDto.setStrategyId(strategyEntity.getStrategyId());
+        responseDto.setStrategyTitle(strategyEntity.getStrategyTitle());
+        responseDto.setStrategyOverview(strategyEntity.getStrategyOverview());
+        responseDto.setFollowersCount(strategyEntity.getFollowersCount());
+        responseDto.setWritedAt(strategyEntity.getWritedAt());
+        responseDto.setIsPosted(strategyEntity.getIsPosted());
+        responseDto.setIsGranted(strategyEntity.getIsGranted());
+
+        return responseDto;
     }
+
+
+
 }

@@ -33,7 +33,7 @@ public class StrategyIACEntity extends Auditable {
 
     @Column(name="is_active", nullable = false, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isActive; //사용유무
+    private String isActive = "Y"; //사용유무 default Y
 
     @CreatedBy
     @Column(name="writer_id", nullable = false)
