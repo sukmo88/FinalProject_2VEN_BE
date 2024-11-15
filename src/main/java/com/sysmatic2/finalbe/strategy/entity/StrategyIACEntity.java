@@ -19,8 +19,7 @@ import java.time.LocalDateTime;
 @IdClass(StrategyIACId.class)
 @Getter
 @Setter
-//@ToString
-@ToString(exclude="strategy")
+@ToString(exclude = "strategy")
 public class StrategyIACEntity extends Auditable {
     //복합키(@IdClass) - 전략ID, 투자자산분류ID
     @Id
