@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.entity;
 
+import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
@@ -30,15 +31,16 @@ public class StrategyEntity extends Auditable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long strategyId; // 전략 ID
 
-    @ManyToOne
-    @JoinColumn(name = "trading_type_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trading_type_id", nullable = false)
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
     @Column(name = "strategy_status_code", nullable = false)
-    private String strategyStatusCode; // 전략상태코드(공통 코드) //TODO)
+    private String strategyStatusCode; // 전략상태코드(공통 코드)
 
-    @Column(name = "trading_cycle_code", nullable = false)
-    private String tradingCycleCode; // 매매주기코드(공통 코드) //TODO)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trading_cycle_id", nullable = false)
+    private TradingCycleEntity tradingCycleEntity; // 매매주기 ID
 
     @Column(name = "min_investment_amount", nullable = false)
     private String minInvestmentAmount; //최소운용가능금액
