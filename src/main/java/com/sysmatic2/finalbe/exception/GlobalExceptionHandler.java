@@ -1,7 +1,10 @@
 package com.sysmatic2.finalbe.exception;
 
+import com.sysmatic2.finalbe.util.ResponseUtils;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.tomcat.websocket.AuthenticationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -10,11 +13,12 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.nio.file.AccessDeniedException;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -22,189 +26,153 @@ import java.util.NoSuchElementException;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    //500
-    //일반적인 예외
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // 500: 일반적인 예외 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                "error", "INTERNAL_SERVER_ERROR",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", "알 수 없는 오류가 발생했습니다.",
-                "timestamp", Instant.now()
-        ));
+        logger.error("Unhandled exception occurred: ", ex);
+        return ResponseUtils.buildErrorResponse(
+                "INTERNAL_SERVER_ERROR",
+                ex.getClass().getSimpleName(),
+                "알 수 없는 오류가 발생했습니다.",
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
     }
 
-    //400
-    //1. HttpMessageNotReadableException 처리
+    // 400: 잘못된 데이터 타입
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "HTTP_MESSAGE_NOT_READABLE",
-                "errorType", e.getClass().getSimpleName(),
-                "message", "잘못된 데이터 타입입니다.",
-                "timestamp", Instant.now()
-        ));
+        logger.warn("Invalid data format: {}", e.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "HTTP_MESSAGE_NOT_READABLE",
+                e.getClass().getSimpleName(),
+                "잘못된 데이터 타입입니다.",
+                HttpStatus.BAD_REQUEST
+        );
     }
 
-    //2. 엔티티 유효성 검사 실패
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                "error", "CONSTRAINT_VIOLATION",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", "유효성 검사가 실패했습니다: " + ex.getMessage(),
-                "timestamp", Instant.now()
-        ));
-    }
+    // 400: 유효성 검사 실패
+    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class})
+    public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
+        logger.warn("Validation failed: {}", ex.getMessage());
 
-    //3. 메서드 매개변수 유효성 검사 위배
-    /*
-    {
-      "errors": {
-        "tradingTypeOrder": "매매유형 순서는 양수여야 합니다.",
-        "tradingTypeName": "매매유형명은 필수 입력 값입니다.",
-        "tradingTypeIcon": "매매유형 아이콘 URL은 필수 입력 값입니다.",
-        "isActive": "사용유무는 'Y' 또는 'N'만 허용됩니다."
-      },
-      "timestamp": 1678732200000
-    }
-    */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Object> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(error.getField(), error.getDefaultMessage()); // 각 필드별 커스텀 메시지 추가
+        if (ex instanceof MethodArgumentNotValidException) {
+            MethodArgumentNotValidException methodEx = (MethodArgumentNotValidException) ex;
+            for (FieldError error : methodEx.getBindingResult().getFieldErrors()) {
+                fieldErrors.put(error.getField(), error.getDefaultMessage());
+            }
+        } else if (ex instanceof ConstraintViolationException) {
+            ConstraintViolationException constraintEx = (ConstraintViolationException) ex;
+            constraintEx.getConstraintViolations().forEach(violation -> {
+                String field = violation.getPropertyPath().toString();
+                String message = violation.getMessage();
+                fieldErrors.put(field, message);
+            });
         }
 
-        return ResponseEntity.badRequest().body(Map.of(
-                "errors", fieldErrors,
-                "errorType", ex.getClass().getSimpleName(),
-                "message", "유효성 검사에 실패했습니다.",
-                "timestamp", Instant.now()
-        ));
+        return ResponseUtils.buildFieldErrorResponse(
+                fieldErrors,
+                ex.getClass().getSimpleName(),
+                "유효성 검사에 실패했습니다.",
+                HttpStatus.BAD_REQUEST
+        );
     }
 
-    //401
-    //1. 미인증(Spring Security 자동 예외 발생)
+    // 401: 인증 실패
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Object> handleAuthenticationException(AuthenticationException e) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                "error", "UNAUTHORIZED",
-                "errorType", e.getClass().getSimpleName(),
-                "message", "로그인 정보가 없습니다.",
-                "timestamp", Instant.now()
-        ));
+        logger.warn("Authentication failed: {}", e.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "UNAUTHORIZED",
+                e.getClass().getSimpleName(),
+                "로그인 정보가 없습니다.",
+                HttpStatus.UNAUTHORIZED
+        );
     }
 
-    //403
-    //1. 비인가(Spring Security 자동 예외 발생)
+    // 403: 권한 없음
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException e) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                "error", "FORBIDDEN",
-                "errorType", e.getClass().getSimpleName(),
-                "message", "권한이 없습니다.",
-                "timestamp", Instant.now()
-        ));
+        logger.warn("Access denied: {}", e.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "FORBIDDEN",
+                e.getClass().getSimpleName(),
+                "권한이 없습니다.",
+                HttpStatus.FORBIDDEN
+        );
     }
 
-    //404
-    //1. NoSuchElementException 처리
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<Object> handleNoSuchElementException(NoSuchElementException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "NO_SUCH_ELEMENT",
-                "errorType", e.getClass().getSimpleName(),
-                "message", "해당되는 데이터를 찾을 수 없습니다.",
-                "timestamp", Instant.now()
-        ));
+    // 404: 데이터 없음
+    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class, TradingCycleNotFoundException.class, EmptyResultDataAccessException.class})
+    public ResponseEntity<Object> handleNotFoundExceptions(Exception ex) {
+        logger.warn("Data not found: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "NOT_FOUND",
+                ex.getClass().getSimpleName(),
+                "해당되는 데이터를 찾을 수 없습니다.",
+                HttpStatus.NOT_FOUND
+        );
     }
 
-    //2. 매매유형 찾을 수 없음
-    /*
-    {
-      "status": 404,
-      "error": "Not Found",
-      "message": "매매유형이 존재하지 않습니다. ID: 123",
-      "timestamp": 1678732200000
-    }
-    */
-    @ExceptionHandler(TradingTypeNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleTradingTypeNotFoundException(TradingTypeNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "NOT_FOUND",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", ex.getMessage(),
-                "timestamp", Instant.now()
-        ));
-    }
-
-    //3. 존재하지 않는 ID로 삭제 시 발생
-    @ExceptionHandler(EmptyResultDataAccessException.class)
-    public ResponseEntity<Object> handleEmptyResultDataAccess(EmptyResultDataAccessException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "RESOURCE_NOT_FOUND",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", "해당되는 데이터가 존재하지 않습니다.",
-                "timestamp", Instant.now()
-        ));
-    }
-
-    //405
-    //1. MethodNotAllowedException 처리
+    // 405: 잘못된 요청 메서드
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Object> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(Map.of(
-                "error", "METHOD_NOT_ALLOWED",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", "호출 메서드가 잘못되었습니다.",
-                "timestamp", Instant.now()
-        ));
+        logger.warn("Invalid HTTP method: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "METHOD_NOT_ALLOWED",
+                ex.getClass().getSimpleName(),
+                "호출 메서드가 잘못되었습니다.",
+                HttpStatus.METHOD_NOT_ALLOWED
+        );
     }
 
-    //409
-    //1. 제약 조건 위반(고유성, 외래키, NotNull 위반 등), 참조 무결성 위반(외래 키로 참조된 엔티티 삭제 등)
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Object> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "DATA_INTEGRITY_VIOLATION",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", "데이터베이스 제약 조건을 위반했습니다.",
-                "timestamp", Instant.now()
-        ));
+    // 409: 데이터 충돌
+    @ExceptionHandler({DataIntegrityViolationException.class, DuplicateTradingTypeOrderException.class, DuplicateTradingCycleOrderException.class})
+    public ResponseEntity<Object> handleConflictExceptions(Exception ex) {
+        logger.error("Data conflict: {}", ex.getMessage());
+
+        String message;
+        if (ex instanceof DuplicateTradingTypeOrderException || ex instanceof DuplicateTradingCycleOrderException) {
+            message = ex.getMessage();
+        } else {
+            message = "데이터베이스 제약 조건을 위반했습니다.";
+        }
+
+        return ResponseUtils.buildErrorResponse(
+                "CONFLICT",
+                ex.getClass().getSimpleName(),
+                message,
+                HttpStatus.CONFLICT
+        );
     }
 
-    //2. tradingTypeOrder 유니크 조건 위배
-    @ExceptionHandler(DuplicateTradingTypeOrderException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicateTradingTypeOrderException(DuplicateTradingTypeOrderException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "DUPLICATE_ORDER",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", ex.getMessage(),
-                "timestamp", Instant.now()
-        ));
-    }
+    // 400: 잘못된 파라미터 (타입 및 누락)
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Object> handleBadRequestExceptions(Exception ex) {
+        logger.warn("Bad request parameter: {}", ex.getMessage());
 
-    // 투자주기 순서 중복 예외 처리
-    @ExceptionHandler(DuplicateTradingCycleOrderException.class)
-    public ResponseEntity<Object> handleDuplicateTradingCycleOrderException(DuplicateTradingCycleOrderException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "CONFLICT",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", ex.getMessage(),
-                "timestamp", Instant.now()
-        ));
-    }
+        String message;
+        if (ex instanceof MissingServletRequestParameterException) {
+            MissingServletRequestParameterException missingEx = (MissingServletRequestParameterException) ex;
+            message = String.format("필수 요청 파라미터 '%s'가 누락되었습니다. 기대하는 타입: %s",
+                    missingEx.getParameterName(), missingEx.getParameterType());
+        } else if (ex instanceof MethodArgumentTypeMismatchException) {
+            MethodArgumentTypeMismatchException mismatchEx = (MethodArgumentTypeMismatchException) ex;
+            message = String.format("파라미터 '%s'의 값 '%s'이(가) 잘못되었습니다. 기대되는 타입: %s",
+                    mismatchEx.getName(),
+                    mismatchEx.getValue(),
+                    mismatchEx.getRequiredType() != null ? mismatchEx.getRequiredType().getSimpleName() : "알 수 없음");
+        } else {
+            message = "잘못된 요청입니다.";
+        }
 
-    // 투자주기 ID 미존재 예외 처리
-    @ExceptionHandler(TradingCycleNotFoundException.class)
-    public ResponseEntity<Object> handleTradingCycleNotFoundException(TradingCycleNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "error", "NOT_FOUND",
-                "errorType", ex.getClass().getSimpleName(),
-                "message", ex.getMessage(),
-                "timestamp", Instant.now()
-        ));
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                message,
+                HttpStatus.BAD_REQUEST
+        );
     }
-
 }

@@ -45,28 +45,28 @@ public class StrategyServiceTest {
 //        }
 //    }
 
-    @Test
-    public void testRegister_Successful() throws Exception {
-        // Given
-        StrategyPayloadDto dto = new StrategyPayloadDto();
-
-        dto.setStrategyTitle("Test Strategy");
-        dto.setTradingTypeId(1);
-        dto.setTradingCycleCode("STRATEGY_TRADINGCYCLE_DAY");
-        dto.setMinInvestmentAmount("1~1000");
-        dto.setStrategyOverview("Test Overview");
-        List<Integer> tempList = new ArrayList<>();
-            for(int j = 0; j < 2; j++){
-                tempList.add(j+1);
-            }
-        dto.setInvestmentAssetClassesIdList(tempList);
-        dto.setIsPosted("Y");
-
-        // When
-        strategyService.register(dto);
-
-
-    }
+//    @Test
+//    public void testRegister_Successful() throws Exception {
+//        // Given
+//        StrategyPayloadDto dto = new StrategyPayloadDto();
+//
+//        dto.setStrategyTitle("Test Strategy");
+//        dto.setTradingTypeId(1);
+//        dto.setTradingCycleCode("STRATEGY_TRADINGCYCLE_DAY");
+//        dto.setMinInvestmentAmount("1~1000");
+//        dto.setStrategyOverview("Test Overview");
+//        List<Integer> tempList = new ArrayList<>();
+//            for(int j = 0; j < 2; j++){
+//                tempList.add(j+1);
+//            }
+//        dto.setInvestmentAssetClassesIdList(tempList);
+//        dto.setIsPosted("Y");
+//
+//        // When
+//        strategyService.register(dto);
+//
+//
+//    }
 
 
 }

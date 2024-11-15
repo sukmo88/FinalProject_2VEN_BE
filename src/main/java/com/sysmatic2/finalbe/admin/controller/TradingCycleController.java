@@ -31,7 +31,7 @@ public class TradingCycleController {
     public ResponseEntity<Map<String, Object>> getAllTradingCycles(
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number must be 0 or greater") int page,
             @RequestParam(defaultValue = "10") @Positive(message = "Page size must be greater than zero") int pageSize,
-            @RequestParam(required = false) String isActive) {
+            @RequestParam(required = false) @Pattern(regexp = "Y|N", message = "isActive must be 'Y', 'N', or null") String isActive) {
         Map<String, Object> response = tradingCycleService.findAllTradingCycles(page, pageSize, isActive);
         return ResponseEntity.ok(response);
     }
@@ -39,7 +39,7 @@ public class TradingCycleController {
     // 1-1. 투자주기 상세 조회 메서드
     @GetMapping("/trading-cycles/{id}")
     @ApiResponse(responseCode = "200", description = "Get Trading Cycle by ID")
-    public ResponseEntity<Map<String, Object>> getTradingCycleById(@PathVariable("id") Integer id) {
+    public ResponseEntity<Map<String, Object>> getTradingCycleById(@PathVariable("id") @Positive Integer id) {
         TradingCycleAdminResponseDto tradingCycleAdminResponseDto = tradingCycleService.findTradingCycleById(id);
         Instant timestamp = Instant.now();
         return ResponseEntity.ok(Map.of(
@@ -63,7 +63,7 @@ public class TradingCycleController {
     // 3. 투자주기 삭제
     @DeleteMapping("/trading-cycles/{id}")
     @ApiResponse(responseCode = "200", description = "Delete Trading Cycle")
-    public ResponseEntity<Map<String, String>> deleteTradingCycle(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, String>> deleteTradingCycle(@PathVariable @Positive Integer id) {
         tradingCycleService.deleteTradingCycle(id);
         Instant timestamp = Instant.now();
         return ResponseEntity.ok(Map.of(
@@ -75,7 +75,7 @@ public class TradingCycleController {
     // 3-1. 투자주기 논리적 삭제
     @PatchMapping("/trading-cycles/{id}")
     @ApiResponse(responseCode = "200", description = "Soft Delete Trading Cycle")
-    public ResponseEntity<Map<String, String>> softDeleteTradingCycle(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, String>> softDeleteTradingCycle(@PathVariable @Positive Integer id) {
         tradingCycleService.softDeleteTradingCycle(id);
         Instant timestamp = Instant.now();
         return ResponseEntity.ok(Map.of(
@@ -88,7 +88,7 @@ public class TradingCycleController {
     @PutMapping("/trading-cycles/{id}")
     @ApiResponse(responseCode = "200", description = "Update Trading Cycle")
     public ResponseEntity<Map<String, String>> updateTradingCycle(
-            @PathVariable Integer id,
+            @PathVariable @Positive Integer id,
             @Valid @RequestBody TradingCycleAdminRequestDto tradingCycleAdminRequestDto) {
         System.out.println("id = " + id);
         System.out.println("tradingCycleService = " + tradingCycleAdminRequestDto);
