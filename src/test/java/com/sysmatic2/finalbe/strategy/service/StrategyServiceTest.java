@@ -52,7 +52,7 @@ public class StrategyServiceTest {
 
         dto.setStrategyTitle("Test Strategy");
         dto.setTradingTypeId(1);
-        dto.setTradingCycleCode("STRATEGY_TRADINGCYCLE_DAY");
+        dto.setTradingCycleId(1);
         dto.setMinInvestmentAmount("1~1000");
         dto.setStrategyOverview("Test Overview");
         List<Integer> tempList = new ArrayList<>();

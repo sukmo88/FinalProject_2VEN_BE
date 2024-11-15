@@ -1,9 +1,12 @@
 package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.admin.dto.TradingCycleRegistrationDto;
+import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
+import com.sysmatic2.finalbe.exception.TradingCycleNotFoundException;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
 import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
+import com.sysmatic2.finalbe.strategy.dto.StrategyIACResponseDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
@@ -25,6 +28,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
 
@@ -37,6 +41,7 @@ public class StrategyService {
     private final TradingTypeRepository ttRepo;
     private final TradingCycleRepository tcRepo;
     private final StrategyIACRepository strategyIACRepository;
+    private final TradingCycleRepository tradingCycleRepository;
 
     //1. 전략 생성
     @Transactional
@@ -52,11 +57,14 @@ public class StrategyService {
         //페이로드에서 가져온 투자자산분류 id로 해당 투자자산 분류 엔티티들 가져오기
         List<Integer> iacIds = strategyPayloadDto.getInvestmentAssetClassesIdList();
         List<InvestmentAssetClassesEntity> iacEntities = iacRepo.findAllById(iacIds);
+        //페이로드에서 가져온 주기 id로 해당 주기 엔티티 가져오기
+        TradingCycleEntity tradingCycleEntity = tradingCycleRepository.findById(strategyPayloadDto.getTradingCycleId())
+                .orElseThrow(() -> new TradingCycleNotFoundException(strategyPayloadDto.getTradingCycleId()));
 
         //payload내용을 엔티티에 담기
         strategyEntity.setStrategyTitle(strategyPayloadDto.getStrategyTitle());
         strategyEntity.setTradingTypeEntity(ttEntity);
-        strategyEntity.setTradingCycleCode(strategyPayloadDto.getTradingCycleCode());
+        strategyEntity.setTradingCycleEntity(tradingCycleEntity);
         strategyEntity.setMinInvestmentAmount(strategyPayloadDto.getMinInvestmentAmount());
         strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
         strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
@@ -112,19 +120,41 @@ public class StrategyService {
      * @return StrategyResponseDto - 전략 기본정보 DTO
      * TODO) 트레이더는 비공개한 자신의 전략상세를 볼 수 있다. 관리자는 모든 전략의 상세를 볼 수 있다. 유저는 공개만 볼 수 있다.
      */
-//    @Transactional
-//    public StrategyResponseDto getStrategyDetails(Long id){
-//        //id값으로 해당 전략 조회
-//        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(() ->
-//                new NoSuchElementException());
-//
-//        //기본정보 dto담기
-//        StrategyResponseDto responseDto = convertToStrategyDto(strategyEntity);
-//        //매매유형 dto담기
-//        responseDto.setTradingTypeName(strategyEntity.getTradingTypeEntity().getTradingTypeName());
-//        responseDto.setTradingTypeIcon(strategyEntity.getTradingTypeEntity().getTradingTypeIcon());
-//        //
-//    }
+    @Transactional
+    public StrategyResponseDto getStrategyDetails(Long id){
+        //id값으로 해당 전략 조회
+        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(() ->
+                new NoSuchElementException());
+
+        //기본정보 dto담기
+        StrategyResponseDto responseDto = convertToStrategyDto(strategyEntity);
+
+        //매매유형 dto담기
+        responseDto.setTradingTypeName(strategyEntity.getTradingTypeEntity().getTradingTypeName());
+        responseDto.setTradingTypeIcon(strategyEntity.getTradingTypeEntity().getTradingTypeIcon());
+
+        //주기 dto 담기
+        responseDto.setTradingCycleName(strategyEntity.getTradingCycleEntity().getTradingCycleName());
+        responseDto.setTradingCycleIcon(strategyEntity.getTradingCycleEntity().getTradingCycleIcon());
+
+        //투자자산 분류 dto 담기
+        //전략 - 투자자산 분류 관계 테이블 조회
+        List<StrategyIACEntity> strategyIACEntities = strategyIACRepository.findByStrategyEntity_StrategyId(strategyEntity.getStrategyId());
+
+        //엔티티의 내용을 DTO에 담는다.
+        List<StrategyIACResponseDto> strategyIACDtos = strategyIACEntities.stream()
+                .map(iacDto -> new StrategyIACResponseDto(
+                        iacDto.getInvestmentAssetClassesEntity().getInvestmentAssetClassesId(),                 // 투자자산 분류 ID
+                        iacDto.getInvestmentAssetClassesEntity().getInvestmentAssetClassesName(),               // 투자자산 분류 이름
+                        iacDto.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon()                // 투자자산 분류 아이콘
+                ))
+                .collect(Collectors.toList());
+
+        // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
+        responseDto.setStrategyIACEntities(strategyIACDtos);
+
+        return responseDto;
+    }
 }
 
 //이미지 링크는 이미지 링크+{imageId}의 형태라서 imageId만 DB에 저장
