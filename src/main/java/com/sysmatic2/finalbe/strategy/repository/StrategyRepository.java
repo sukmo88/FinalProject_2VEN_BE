@@ -11,7 +11,7 @@ import java.util.List;
 @Repository
 public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>, QuerydslPredicateExecutor<StrategyEntity> {
     // 작성자 ID로 전략 목록 조회
-    List<StrategyEntity> findByWriterId(Long writerId);
+    List<StrategyEntity> findByWriterId(String writerId);
 
     // 전략 상태 코드로 조회
     List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);
