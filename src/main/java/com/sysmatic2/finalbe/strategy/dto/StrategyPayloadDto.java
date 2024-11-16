@@ -15,7 +15,7 @@ public class StrategyPayloadDto {
     //TODO) validation
     private String strategyTitle; //전략명
     private Integer tradingTypeId; //매매유형 id(자동/반자동/수동)
-    private String tradingCycleCode; //주기 공통코드(데이/포지션)
+    private Integer tradingCycleId; //주기 id(데이/포지션)
     private String minInvestmentAmount; //최소운용가능금액
     private String strategyOverview; //전략 소개
     private List<Integer> InvestmentAssetClassesIdList; //투자자자산 분류 id 목록

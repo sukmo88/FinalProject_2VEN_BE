@@ -5,13 +5,20 @@ import com.sysmatic2.finalbe.member.service.MemberService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 
 @RestController
 @RequestMapping("/api/members")
 @RequiredArgsConstructor
+@Validated
 public class MemberController {
 
     private final MemberService memberService;
@@ -50,16 +57,30 @@ public class MemberController {
 
     //회원가입
     @PostMapping("/signup")
-    public String signup(@Valid @RequestBody SignupDTO signupDTO) {
+    public ResponseEntity<Map<String, String>> signup(@Valid @RequestBody SignupDTO signupDTO) {
 
         memberService.signUp(signupDTO);
-        return "signup successful";
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "status", "success",
+                "message", "회원가입에 성공했습니다."
+        ));
     }
 
     //닉네임 중복 체크
     @GetMapping("/check-nickname")
-    public String checkNickname(HttpServletRequest request) {
-        return "check-nickname";
+    public ResponseEntity<Map<String, String>> checkNickname(
+            @Pattern(
+                regexp = "^[A-Za-z\\d]{2,10}$",
+                message = "닉네임은 2~10자 이내의 문자여야 합니다."
+            )
+            String nickname) {
+
+        memberService.duplicateNicknameCheck(nickname);
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "사용 가능한 닉네임입니다."
+        ));
     }
 
     //회원탈퇴
