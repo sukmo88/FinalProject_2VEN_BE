@@ -43,7 +43,9 @@ public class StrategyService {
     private final StrategyIACRepository strategyIACRepository;
     private final TradingCycleRepository tradingCycleRepository;
 
-    //1. 전략 생성
+    /**
+     * 1. 전략을 생성하는 Service
+     */
     @Transactional
     public void register(StrategyPayloadDto strategyPayloadDto) throws Exception {
         //TODO) 트레이더 판별
@@ -73,7 +75,7 @@ public class StrategyService {
         strategyEntity.setStrategyStatusCode("STRATEGY_STATUS_UNDER_MANAGEMENT");
 
         //TODO) 작성자 설정
-        strategyEntity.setWriterId(101L);
+        strategyEntity.setWriterId("101");
 
         //save() - 저장후 저장한 엔티티 바로 가져옴
         StrategyEntity createdEntity = strategyRepo.save(strategyEntity);
@@ -87,7 +89,7 @@ public class StrategyService {
             strategyIACEntity.setInvestmentAssetClassesEntity(iacEntities.get(i));
 
             //TODO) 작성자 설정
-            strategyIACEntity.setWritedBy(101L);
+            strategyIACEntity.setWritedBy("101");
             strategyIACEntity.setWritedAt(LocalDateTime.now());
 
             strategyIACRepository.save(strategyIACEntity);
@@ -155,6 +157,22 @@ public class StrategyService {
 
         return responseDto;
     }
+
+    /**
+     * 4. 전략을 삭제하는 메서드
+     */
+//    @Transactional
+//    public void deleteStrategy(Long id){
+//
+//    }
+
+
+    /**
+     * 5. 전략을 수정하는 메서드
+     *
+     * @return StrategyPayloadDto 전략 수정에 필요한 DTO
+     */
+
 }
 
 //이미지 링크는 이미지 링크+{imageId}의 형태라서 imageId만 DB에 저장

@@ -52,9 +52,10 @@ public class StrategyEntity extends Auditable {
     @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
 
+    //TODO) member ID String 으로 변경
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)
-    private Long writerId; // 작성자 ID
+    private String writerId; // 작성자 ID
 
     @Column(name = "is_posted", nullable = false, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
@@ -73,7 +74,7 @@ public class StrategyEntity extends Auditable {
 
     @LastModifiedBy
     @Column(name="updater_id")
-    private Long updaterId; // 수정자 ID
+    private String updaterId; // 수정자 ID
 
     @LastModifiedDate
     @Column(name="updated_at")
@@ -83,8 +84,8 @@ public class StrategyEntity extends Auditable {
     private LocalDateTime exitDate; // 전략종료일시
 
     //전략(1) : 관계(N)
-    @OneToMany(mappedBy = "strategyEntity")
-    private List<StrategyIACEntity> strategyIACEntities;
+//    @OneToMany(mappedBy = "strategyEntity")
+//    private List<StrategyIACEntity> strategyIACEntities;
 
 //    public void updateOperationPeriod() {
 //        // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.
