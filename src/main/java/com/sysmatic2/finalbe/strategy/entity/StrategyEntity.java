@@ -71,9 +71,6 @@ public class StrategyEntity extends Auditable {
     @Column(name = "strategy_overview", length = 1000)
     private String strategyOverview; // 전략소개
 
-//    @Column(name="strategy_operation_days", nullable = false)
-//    private Integer strategyOperationDays = 1; // 총전략운용일수 default = 1
-
     @LastModifiedBy
     @Column(name="updater_id")
     private Long updaterId; // 수정자 ID
@@ -86,8 +83,8 @@ public class StrategyEntity extends Auditable {
     private LocalDateTime exitDate; // 전략종료일시
 
     //전략(1) : 관계(N)
-//    @OneToMany(mappedBy = "strategyEntity")
-//    private List<StrategyIACEntity> strategyIACEntities;
+    @OneToMany(mappedBy = "strategyEntity")
+    private List<StrategyIACEntity> strategyIACEntities;
 
 //    public void updateOperationPeriod() {
 //        // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.
