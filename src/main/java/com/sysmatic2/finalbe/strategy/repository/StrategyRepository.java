@@ -19,12 +19,6 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     // 팔로워 수가 특정 값 이상인 전략 조회
     List<StrategyEntity> findByFollowersCountGreaterThanEqual(Long followersCount);
 
-    // 운용일 수로 전략 조회
-    List<StrategyEntity> findByStrategyOperationDays(int strategyOperationDays);
-
-    // 누적 수익률이 특정 값 이상인 전략 조회
-    List<StrategyEntity> findByCumulativeReturnGreaterThanEqual(BigDecimal cumulativeReturn);
-
     // 작성일을 기준으로 전략 정렬 조회
     List<StrategyEntity> findByOrderByWritedAtDesc();
 }
