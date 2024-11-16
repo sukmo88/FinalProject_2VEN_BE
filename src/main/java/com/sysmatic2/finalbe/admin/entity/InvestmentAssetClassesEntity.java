@@ -13,7 +13,8 @@ import java.util.Objects;
 
 @Getter
 @Setter
-@ToString(exclude = "strategyIACEntities")
+//@ToString(exclude = "strategyIACEntities")
+@ToString
 @Entity
 @Table(name = "investment_asset_classes") //투자자산 분류
 public class InvestmentAssetClassesEntity extends Auditable {
@@ -39,8 +40,8 @@ public class InvestmentAssetClassesEntity extends Auditable {
     private String isActive; //사용 유무
 
     //IAC(1) : 관계(N)
-    @OneToMany(mappedBy = "investmentAssetClassesEntity")
-    private List<StrategyIACEntity> strategyIACEntities;
+//    @OneToMany(mappedBy = "investmentAssetClassesEntity")
+//    private List<StrategyIACEntity> strategyIACEntities;
 
     //equals()
     @Override
