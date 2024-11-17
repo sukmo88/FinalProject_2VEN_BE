@@ -30,7 +30,7 @@ public interface NoticeRepository extends JpaRepository<NoticeEntity, Long> {
 
   // 특정 작성자 공지 검색 (정렬 옵션은 Pageable에서 제공)
   @Query("SELECT n FROM NoticeEntity n WHERE n.writer.id = :writerId")
-  Page<NoticeEntity> findByWriter(@Param("writerId") Long writerId, Pageable pageable);
+  Page<NoticeEntity> findByWriter(@Param("writerId") String writerId, Pageable pageable);
 
   // 일정 기간 내 작성된 공지 검색 (정렬 옵션은 Pageable에서 제공)
   @Query("SELECT n FROM NoticeEntity n WHERE n.postedAt BETWEEN :startDate AND :endDate")
