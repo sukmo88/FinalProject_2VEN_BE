@@ -1,18 +1,19 @@
 package com.sysmatic2.finalbe.strategy.service;
 
-import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
-import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
+import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesRegistrationDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
-import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
-import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
-import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
-import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
+import com.sysmatic2.finalbe.strategy.dto.TradingTypeRegistrationDto;
+import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
+import com.sysmatic2.finalbe.strategy.entity.TradingTypeEntity;
+import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
+import com.sysmatic2.finalbe.strategy.repository.TradingTypeRepository;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
 import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
+import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -22,9 +23,6 @@ public class StrategyServiceMockTest {
 
     @Mock
     private InvestmentAssetClassesRepository iacRepo;
-
-    @Mock
-    private TradingCycleRepository tcRepo;
 
     @InjectMocks
     private StrategyService strategyService;
@@ -47,12 +45,6 @@ public class StrategyServiceMockTest {
         investmentAssetClassDto.setInvestmentAssetClassesId(1);
         investmentAssetClassDto.setInvestmentAssetClassesName("Class A");
         investmentAssetClassDto.setInvestmentAssetClassesIcon("icon_B.png");
-
-        TradingCycleEntity tradingCycleDto = new TradingCycleEntity();
-        tradingCycleDto.setTradingCycleId(1);
-        tradingCycleDto.setTradingCycleName("Cycle A");
-        tradingCycleDto.setTradingCycleIcon("icon_C.png");
-
 
         when(ttRepo.findByIsActiveOrderByTradingTypeOrderAsc("Y")).thenReturn(List.of(tradingTypeDto));
         when(iacRepo.findByIsActiveOrderByOrderAsc("Y")).thenReturn(List.of(investmentAssetClassDto));

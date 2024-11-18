@@ -1,9 +1,9 @@
-package com.sysmatic2.finalbe.admin.service;
+package com.sysmatic2.finalbe.strategy.service;
 
-import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesDto;
-import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesPayloadDto;
-import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
-import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
+import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesDto;
+import com.sysmatic2.finalbe.strategy.dto.InvestmentAssetClassesPayloadDto;
+import com.sysmatic2.finalbe.strategy.entity.InvestmentAssetClassesEntity;
+import com.sysmatic2.finalbe.strategy.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -97,9 +97,9 @@ public class InvestmentAssetClassesService {
 
         //최초 작성자, 최초 작성일시, 최종 수정자, 최종 수정일시 넣기 - 시스템컬럼
         //TODO) User 객체 받아오기 - spring security
-//        iacEntity.setCreatedBy(100L);
+        iacEntity.setCreatedBy(100L);
         iacEntity.setCreatedAt(LocalDateTime.now());
-//        iacEntity.setModifiedBy(100L);
+        iacEntity.setModifiedBy(100L);
         iacEntity.setModifiedAt(LocalDateTime.now());
 
         //save()
@@ -141,7 +141,7 @@ public class InvestmentAssetClassesService {
 
         //IsActive N으로 변경, 시스템 컬럼 수정
         iacEntity.setIsActive("N");
-        iacEntity.setModifiedBy("100");
+        iacEntity.setModifiedBy(100L);
         iacEntity.setModifiedAt(LocalDateTime.now());
 
         //변경 엔티티 저장
@@ -176,7 +176,7 @@ public class InvestmentAssetClassesService {
         iacEntity.setInvestmentAssetClassesIcon(iacPayloadDto.getInvestmentAssetClassesIcon());
         iacEntity.setIsActive(iacPayloadDto.getIsActive());
         //시스템컬럼 수정
-        iacEntity.setModifiedBy("100");
+        iacEntity.setModifiedBy(100L);
         iacEntity.setModifiedAt(LocalDateTime.now());
 
         //save()

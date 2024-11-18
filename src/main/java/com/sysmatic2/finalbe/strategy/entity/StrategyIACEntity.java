@@ -1,7 +1,5 @@
 package com.sysmatic2.finalbe.strategy.entity;
 
-import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
-import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
@@ -13,13 +11,14 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "strategy_investment_asset_classes")
 @IdClass(StrategyIACId.class)
 @Getter
 @Setter
-@ToString(exclude = "strategy")
+@ToString
 public class StrategyIACEntity extends Auditable {
     //복합키(@IdClass) - 전략ID, 투자자산분류ID
     @Id
@@ -34,11 +33,11 @@ public class StrategyIACEntity extends Auditable {
 
     @Column(name="is_active", nullable = false, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isActive = "Y"; //사용유무 default Y
+    private String isActive; //사용유무
 
     @CreatedBy
     @Column(name="writer_id", nullable = false)
-    private String writedBy; //작성자Id
+    private Long writedBy; //작성자Id
 
     @CreatedDate
     @Column(name="writed_at", nullable = false)
@@ -46,7 +45,7 @@ public class StrategyIACEntity extends Auditable {
 
     @LastModifiedBy
     @Column(name="updater_id")
-    private String updatedBy; //수정자Id
+    private Long updatedBy; //수정자Id
 
     @LastModifiedDate
     @Column(name="updated_at")
