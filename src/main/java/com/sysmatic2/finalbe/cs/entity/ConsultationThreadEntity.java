@@ -41,4 +41,11 @@ public class ConsultationThreadEntity {
 
   @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<ConsultationMessageEntity> messages = new ArrayList<>(); // 메시지 목록
+
+  @PrePersist
+  protected void onCreate() {
+    if (this.createdAt == null) {
+      this.createdAt = LocalDateTime.now();
+    }
+  }
 }
