@@ -143,4 +143,6 @@ public class StrategyServiceMockTest {
         assertThat(result.get("totalPages")).isEqualTo(0);
         assertThat(result.get("totalElements")).isEqualTo(0L);
     }
+
+
 }
