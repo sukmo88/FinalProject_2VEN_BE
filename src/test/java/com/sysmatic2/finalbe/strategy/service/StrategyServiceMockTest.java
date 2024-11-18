@@ -67,4 +67,6 @@ public class StrategyServiceMockTest {
         assertEquals("Type A", result.getTradingTypeRegistrationDtoList().get(0).getTradingTypeName());
         assertEquals("Class A", result.getInvestmentAssetClassesRegistrationDtoList().get(0).getInvestmentAssetClassesName());
     }
+
+
 }
