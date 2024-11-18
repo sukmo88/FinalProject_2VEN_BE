@@ -15,7 +15,9 @@ import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
+import com.sysmatic2.finalbe.strategy.entity.StrategyHistoryEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
+import com.sysmatic2.finalbe.strategy.repository.StrategyHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyIACRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyStandardCodeRepository;
@@ -42,6 +44,7 @@ public class StrategyService {
     private final TradingCycleRepository tcRepo;
     private final StrategyIACRepository strategyIACRepository;
     private final TradingCycleRepository tradingCycleRepository;
+    private final StrategyHistoryRepository strategyHistoryRepo;
 
     /**
      * 1. 전략을 생성하는 Service
@@ -155,16 +158,54 @@ public class StrategyService {
         // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
+        //TODO)트레이더 정보 넣기
+        responseDto.setTraderId("1");
+        responseDto.setTraderName("곽두팔");
+        responseDto.setTraderImage("트레이더프로필이미지");
+
         return responseDto;
     }
 
     /**
      * 4. 전략을 삭제하는 메서드
+     * 전략테이블에선 삭제가 되고 전략 이력 테이블에선 삭제 이력 데이터가 추가된다.
      */
-//    @Transactional
-//    public void deleteStrategy(Long id){
-//
-//    }
+    @Transactional
+    public void deleteStrategy(Long id){
+        //TODO) 관리자 or 작성한 트레이더 판별
+        StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
+        strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
+
+        //1. 전략의 id를 검색해서 유무 판별
+        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(
+                () -> new NoSuchElementException());
+
+        //TODO) 메서드로 빼기
+        //2. 해당 전략의 정보를 전략 이력엔티티에 담는다.
+        strategyHistoryEntity.setStrategyId(strategyEntity.getStrategyId());
+        strategyHistoryEntity.setTradingTypeId(strategyEntity.getTradingTypeEntity().getTradingTypeId());
+        strategyHistoryEntity.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
+        strategyHistoryEntity.setTradingCycle(strategyEntity.getTradingCycleEntity().getTradingCycleId());
+        strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_DELETED");
+        strategyHistoryEntity.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
+        strategyHistoryEntity.setFollowersCount(strategyEntity.getFollowersCount());
+        strategyHistoryEntity.setStrategyTitle(strategyEntity.getStrategyTitle());
+        strategyHistoryEntity.setWriterId(strategyEntity.getWriterId());
+        strategyHistoryEntity.setIsPosted(strategyEntity.getIsPosted());
+        strategyHistoryEntity.setIsGranted(strategyEntity.getIsGranted());
+        strategyHistoryEntity.setWritedAt(strategyEntity.getWritedAt());
+        strategyHistoryEntity.setStrategyOverview(strategyEntity.getStrategyOverview());
+        strategyHistoryEntity.setUpdaterId(strategyEntity.getUpdaterId());
+        strategyHistoryEntity.setUpdatedAt(strategyEntity.getUpdatedAt());
+        strategyHistoryEntity.setExitDate(strategyEntity.getExitDate());
+
+        //3. 해당 전략을 삭제한다.
+        strategyRepo.deleteById(strategyEntity.getStrategyId());
+
+        //4. 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
+        strategyHistoryRepo.save(strategyHistoryEntity);
+    }
 
 
     /**
