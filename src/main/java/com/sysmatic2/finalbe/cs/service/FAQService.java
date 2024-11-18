@@ -21,12 +21,10 @@ import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 public class FAQService {
 
     private final FAQRepository faqRepository;
-    private final FAQCategoryRepository faqCategoryRepository;
 
     @Autowired
     public FAQService(FAQRepository faqRepository, FAQCategoryRepository faqCategoryRepository) {
         this.faqRepository = faqRepository;
-        this.faqCategoryRepository = faqCategoryRepository;
     }
 
     @Transactional
@@ -36,14 +34,20 @@ public class FAQService {
         faq.setQuestion(AdminFaq.getQuestion());
         faq.setAnswer(AdminFaq.getAnswer());
         faq.setPostedAt(AdminFaq.getPostedAt());
-        faq.setFaqCategory(AdminFaq.getFaqCategory());
+
+        // 카테고리의 내용이 없으면 default값으로 세팅
+        if(faq.getFaqCategory() == null) {
+            faq.setFaqCategory(1L);
+        } else {
+            faq.setFaqCategory(AdminFaq.getFaqCategory());
+        }
 
         FAQ savedFaq = faqRepository.save(faq);
         return new AdminFAQDto(
                 savedFaq.getId(),
+                savedFaq.getWriterId(),
                 savedFaq.getQuestion(),
                 savedFaq.getAnswer(),
-                savedFaq.getWriterId(),
                 savedFaq.getPostedAt(),
                 savedFaq.getUpdatedAt(),
                 savedFaq.getIsActive(),
@@ -75,7 +79,7 @@ public class FAQService {
             ));
             return createPageResponse(pageDtoList);
         }
-        // USER 역할인 경우 UserFAQDto로 매핑하여 반환
+        // TRADER, INVESTOR 역할인 경우 UserFAQDto로 매핑하여 반환
         else {
             Page<UserFAQDto> pageDtoList = faqPage.map(faq -> new UserFAQDto(
                     faq.getId(),
@@ -88,30 +92,30 @@ public class FAQService {
 
     }
 
-    public FAQResponse getFAQById(Long id, String role) {
-        FAQ faq = faqRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("FAQ with id " + id + " not found"));
-
-        if ("ROLE_ADMIN".equalsIgnoreCase(role)) {
-            return new AdminFAQDto(
-                    faq.getId(),
-                    faq.getQuestion(),
-                    faq.getAnswer(),
-                    faq.getWriterId(),
-                    faq.getPostedAt(),
-                    faq.getUpdatedAt(),
-                    faq.getIsActive(),
-                    faq.getFaqCategory()
-            );
-        } else {
-            return new UserFAQDto(
-                    faq.getId(),
-                    faq.getQuestion(),
-                    faq.getAnswer(),
-                    faq.getFaqCategory()
-            );
-        }
-    }
+//    public FAQResponse getFAQById(Long id, String role) {
+//        FAQ faq = faqRepository.findById(id)
+//                .orElseThrow(() -> new IllegalArgumentException("FAQ with id " + id + " not found"));
+//
+//        if ("ROLE_ADMIN".equalsIgnoreCase(role)) {
+//            return new AdminFAQDto(
+//                    faq.getId(),
+//                    faq.getQuestion(),
+//                    faq.getAnswer(),
+//                    faq.getWriterId(),
+//                    faq.getPostedAt(),
+//                    faq.getUpdatedAt(),
+//                    faq.getIsActive(),
+//                    faq.getFaqCategory()
+//            );
+//        } else {
+//            return new UserFAQDto(
+//                    faq.getId(),
+//                    faq.getQuestion(),
+//                    faq.getAnswer(),
+//                    faq.getFaqCategory()
+//            );
+//        }
+//    }
 
     @Transactional
     public AdminFAQDto updateFAQ(Long id, AdminFAQDto faq, String role){
@@ -133,9 +137,9 @@ public class FAQService {
         FAQ savedFaq = faqRepository.save(existingFAQ);
         return new AdminFAQDto(
                 savedFaq.getId(),
+                savedFaq.getWriterId(),
                 savedFaq.getQuestion(),
                 savedFaq.getAnswer(),
-                savedFaq.getWriterId(),
                 savedFaq.getPostedAt(),
                 savedFaq.getUpdatedAt(),
                 savedFaq.getIsActive(),
