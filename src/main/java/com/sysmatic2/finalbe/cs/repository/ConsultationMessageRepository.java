@@ -20,13 +20,13 @@ public interface ConsultationMessageRepository extends JpaRepository<Consultatio
 
   // 특정 사용자가 보낸 메시지 조회 (페이징 및 정렬 포함)
   @Query("SELECT m FROM ConsultationMessageEntity m WHERE m.sender.memberId = :userId ORDER BY m.sentAt DESC")
-  Page<ConsultationMessageEntity> findSentMessagesByUserId(@Param("userId") Long userId, Pageable pageable);
+  Page<ConsultationMessageEntity> findSentMessagesByUserId(@Param("userId") String userId, Pageable pageable);
 
   // 특정 사용자가 받은 메시지 조회 (페이징 및 정렬 포함)
   @Query("SELECT m FROM ConsultationMessageEntity m " +
           "WHERE (m.thread.investor.memberId = :userId OR m.thread.trader.memberId = :userId) " +
           "AND m.sender.memberId != :userId ORDER BY m.sentAt DESC")
-  Page<ConsultationMessageEntity> findReceivedMessagesByUserId(@Param("userId") Long userId, Pageable pageable);
+  Page<ConsultationMessageEntity> findReceivedMessagesByUserId(@Param("userId") String userId, Pageable pageable);
 
   // 키워드로 메시지 검색 (페이징 및 정렬 포함)
   @Query("SELECT m FROM ConsultationMessageEntity m WHERE LOWER(m.content) LIKE LOWER(CONCAT('%', :keyword, '%')) ORDER BY m.sentAt DESC")

@@ -70,7 +70,7 @@ public class ConsultationService {
    * @return ConsultationDto
    */
   @Transactional
-  public ConsultationDto createConsultation(Long investorId, Long traderId, Long strategyId, String consultationTitle, String content) {
+  public ConsultationDto createConsultation(String investorId, String traderId, Long strategyId, String consultationTitle, String content) {
     MemberEntity investor = memberRepository.findById(investorId)
             .orElseThrow(() -> new IllegalArgumentException("투자자를 찾을 수 없습니다."));
     MemberEntity trader = memberRepository.findById(traderId)
@@ -144,7 +144,7 @@ public class ConsultationService {
    * @return ConsultationMessageDto
    */
   @Transactional
-  public ConsultationMessageDto sendMessage(Long senderId, SendMessageDto dto) {
+  public ConsultationMessageDto sendMessage(String senderId, SendMessageDto dto) {
     ConsultationThreadEntity thread = threadRepository.findById(dto.getThreadId())
             .orElseThrow(() -> new IllegalArgumentException("상담 스레드를 찾을 수 없습니다."));
     MemberEntity sender = memberRepository.findById(senderId)
@@ -168,7 +168,7 @@ public class ConsultationService {
     ConsultationMessageEntity savedMessage = messageRepository.save(message);
 
     // 수신자 (상대방 사용자)에 대한 MessageRecipient 생성
-    Long recipientId = thread.getInvestor().getMemberId().equals(senderId) ?
+    String recipientId = thread.getInvestor().getMemberId().equals(senderId) ?
             thread.getTrader().getMemberId() :
             thread.getInvestor().getMemberId();
 
@@ -209,7 +209,7 @@ public class ConsultationService {
    * @param pageable 페이징 및 정렬 정보
    * @return Page<ConsultationMessageDto>
    */
-  public Page<ConsultationMessageDto> getUserMessages(Long userId, boolean sent, Pageable pageable) {
+  public Page<ConsultationMessageDto> getUserMessages(String userId, boolean sent, Pageable pageable) {
     Page<ConsultationMessageEntity> messages = sent
             ? messageRepository.findSentMessagesByUserId(userId, pageable)
             : messageRepository.findReceivedMessagesByUserId(userId, pageable);
@@ -248,7 +248,7 @@ public class ConsultationService {
    * @param userId    사용자 ID
    */
   @Transactional
-  public void markMessageAsRead(Long messageId, Long userId) {
+  public void markMessageAsRead(Long messageId, String userId) {
     ConsultationMessageEntity message = messageRepository.findById(messageId)
             .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
 
@@ -278,8 +278,8 @@ public class ConsultationService {
    * @param userId 사용자 ID
    * @return List<ConsultationSummaryDto>
    */
-  public List<ConsultationSummaryDto> getUserConsultations(Long userId) {
-    List<ConsultationThreadEntity> threads = threadRepository.findByInvestor_MemberIdOrTrader_MemberId(userId, userId);
+  public List<ConsultationSummaryDto> getUserConsultations(String userId) {
+    List<ConsultationThreadEntity> threads = threadRepository.findByInvestor_MemberIdOrTrader_MemberId(userId);
     return threads.stream()
             .map(ConsultationMapper::toSummaryDto)
             .collect(Collectors.toList());

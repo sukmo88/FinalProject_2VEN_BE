@@ -35,8 +35,8 @@ public class ConsultationController {
    * @return ConsultationDto
    */
   @PostMapping
-  public ConsultationDto createConsultation(@RequestParam Long investorId,
-                                            @RequestParam Long traderId,
+  public ConsultationDto createConsultation(@RequestParam String investorId,
+                                            @RequestParam String traderId,
                                             @RequestParam Long strategyId,
                                             @RequestParam String consultationTitle,
                                             @RequestParam String content) {
@@ -51,7 +51,7 @@ public class ConsultationController {
    * @return ConsultationMessageDto
    */
   @PostMapping("/messages")
-  public ConsultationMessageDto sendMessage(@RequestParam Long senderId,
+  public ConsultationMessageDto sendMessage(@RequestParam String senderId,
                                             @RequestBody SendMessageDto dto) {
     return consultationService.sendMessage(senderId, dto);
   }
@@ -65,7 +65,7 @@ public class ConsultationController {
    * @return Page<ConsultationMessageDto>
    */
   @GetMapping("/messages")
-  public Page<ConsultationMessageDto> getUserMessages(@RequestParam Long userId,
+  public Page<ConsultationMessageDto> getUserMessages(@RequestParam String userId,
                                                       @RequestParam boolean sent,
                                                       Pageable pageable) {
     return consultationService.getUserMessages(userId, sent, pageable);
@@ -110,7 +110,7 @@ public class ConsultationController {
    */
   @PutMapping("/messages/{id}/read")
   public void markMessageAsRead(@PathVariable("id") Long messageId,
-                                @RequestParam Long userId) {
+                                @RequestParam String userId) {
     consultationService.markMessageAsRead(messageId, userId);
   }
 
@@ -121,7 +121,7 @@ public class ConsultationController {
    * @return List<ConsultationSummaryDto>
    */
   @GetMapping("/summary")
-  public List<ConsultationSummaryDto> getUserConsultations(@RequestParam Long userId) {
+  public List<ConsultationSummaryDto> getUserConsultations(@RequestParam String userId) {
     return consultationService.getUserConsultations(userId);
   }
 

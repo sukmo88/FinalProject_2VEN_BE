@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MessageRecipientId implements java.io.Serializable {
   private Long messageId;
-  private Long recipientId;
+  private String recipientId;
 }
