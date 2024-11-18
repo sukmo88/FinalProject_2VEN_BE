@@ -125,6 +125,7 @@ public class InvestmentAssetClassesService {
 //        iacRepository.deleteById(id);
 //    }
 
+    //TODO) 다중삭제, 관련된 전략들 다 비공개로 처리
     //3-1. 투자자산 분류 삭제(soft delete)
     //해당 id값의 투자자산 분류 사용유무 N으로 변경
     @Transactional
@@ -141,6 +142,7 @@ public class InvestmentAssetClassesService {
 
         //IsActive N으로 변경, 시스템 컬럼 수정
         iacEntity.setIsActive("N");
+        //TODO)수정자 정보
         iacEntity.setModifiedBy("100");
         iacEntity.setModifiedAt(LocalDateTime.now());
 

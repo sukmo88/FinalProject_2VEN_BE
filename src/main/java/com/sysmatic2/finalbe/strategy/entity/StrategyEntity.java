@@ -31,6 +31,7 @@ public class StrategyEntity extends Auditable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long strategyId; // 전략 ID
 
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_type_id", nullable = false)
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
@@ -46,7 +47,7 @@ public class StrategyEntity extends Auditable {
     private String minInvestmentAmount; //최소운용가능금액
 
     @Column(name = "followers_count", nullable = false)
-    private Long followersCount = 0L; // 팔로워수 default = 0
+    private Long followersCount; // 팔로워수
 
     @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
@@ -57,12 +58,12 @@ public class StrategyEntity extends Auditable {
     private String writerId; // 작성자 ID
 
     @Column(name = "is_posted", nullable = false, columnDefinition = "CHAR(1)")
-    @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
+    @Pattern(regexp = "Y|N", message = "isPosted 필드는 'Y' 또는 'N'만 허용됩니다.")
     private String isPosted; // 공개여부
 
     @Column(name = "is_granted", nullable = false, columnDefinition = "CHAR(1)")
-    @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isGranted = "N"; // 승인여부 default = N
+    @Pattern(regexp = "Y|N", message = "isGranted 필드는 'Y' 또는 'N'만 허용됩니다.")
+    private String isGranted; // 승인여부
 
     @CreatedDate
     @Column(name="writed_at", updatable = false, nullable = false)
@@ -83,7 +84,7 @@ public class StrategyEntity extends Auditable {
     private LocalDateTime exitDate; // 전략종료일시
 
     //전략(1) : 관계(N)
-    @OneToMany(mappedBy = "strategyEntity", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "strategyEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StrategyIACEntity> strategyIACEntities;
 
 //    public void updateOperationPeriod() {
