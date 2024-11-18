@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class StrategyApprovalHistoryEntity extends Auditable {
     @Id
     @Column(name = "strategy_approval_history_id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long strategyApprovalHistoryId;
 
     @ManyToOne
