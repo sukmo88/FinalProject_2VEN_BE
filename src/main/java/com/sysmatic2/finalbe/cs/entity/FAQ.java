@@ -42,4 +42,5 @@ public class FAQ {
   @Column(name = "faq_category_id")
   private Long faqCategory;
 
+
 }
