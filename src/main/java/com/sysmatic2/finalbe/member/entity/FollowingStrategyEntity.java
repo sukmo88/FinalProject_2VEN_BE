@@ -1,6 +1,6 @@
 package com.sysmatic2.finalbe.member.entity;
 
-import com.sysmatic2.finalbe.strategy.entity.Auditable;
+import com.sysmatic2.finalbe.common.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
 import lombok.Getter;

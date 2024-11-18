@@ -1,8 +1,7 @@
 package com.sysmatic2.finalbe.admin.entity;
 
-import com.sysmatic2.finalbe.StandardCodeEntity;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
-import com.sysmatic2.finalbe.strategy.entity.Auditable;
+import com.sysmatic2.finalbe.common.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -19,7 +18,7 @@ import java.time.LocalDateTime;
 public class StrategyApprovalHistoryEntity extends Auditable {
     @Id
     @Column(name = "strategy_approval_history_id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long strategyApprovalHistoryId;
 
     @ManyToOne

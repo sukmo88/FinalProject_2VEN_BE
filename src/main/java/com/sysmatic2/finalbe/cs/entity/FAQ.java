@@ -22,7 +22,7 @@ public class FAQ {
   private Long id;
 
   @Column(name = "writer_id", nullable = false)
-  private Long writerId;
+  private String writerId;
 
   @Column(name = "question", nullable = false, length = 255)
   private String question;
@@ -39,8 +39,8 @@ public class FAQ {
   @Column(name = "is_active", nullable = false)
   private Boolean isActive = Boolean.TRUE;
 
-  @ManyToOne
-  @JoinColumn(name = "faq_category_id")
-  private FAQCategory faqCategory;
+  @Column(name = "faq_category_id")
+  private Long faqCategory;
+
 
 }
