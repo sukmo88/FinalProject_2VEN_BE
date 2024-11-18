@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.admin.entity;
 import com.sysmatic2.finalbe.common.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
 import java.util.List;
