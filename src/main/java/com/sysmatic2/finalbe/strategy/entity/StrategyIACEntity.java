@@ -38,7 +38,7 @@ public class StrategyIACEntity extends Auditable {
 
     @CreatedBy
     @Column(name="writer_id", nullable = false)
-    private Long writedBy; //작성자Id
+    private String writedBy; //작성자Id
 
     @CreatedDate
     @Column(name="writed_at", nullable = false)
@@ -46,7 +46,7 @@ public class StrategyIACEntity extends Auditable {
 
     @LastModifiedBy
     @Column(name="updater_id")
-    private Long updatedBy; //수정자Id
+    private String updatedBy; //수정자Id
 
     @LastModifiedDate
     @Column(name="updated_at")

@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @ToString
 public class StrategyProposalEntity extends Auditable {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "strategy_proposal_id")
     private Long strategyProposalId; // 전략제안서 ID
 

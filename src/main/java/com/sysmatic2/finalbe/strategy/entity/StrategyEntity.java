@@ -24,13 +24,12 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-@ToString(exclude = "strategyIACEntities")
+@ToString(exclude = {"strategyIACEntities", "tradingTypeEntity", "tradingCycleEntity", "writerId", "updaterId"})
 public class StrategyEntity extends Auditable {
     @Id
     @Column(name = "strategy_id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long strategyId; // 전략 ID
-
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_type_id", nullable = false)
@@ -52,9 +51,10 @@ public class StrategyEntity extends Auditable {
     @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
 
+    //TODO) member ID String 으로 변경
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)
-    private Long writerId; // 작성자 ID
+    private String writerId; // 작성자 ID
 
     @Column(name = "is_posted", nullable = false, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
@@ -73,7 +73,7 @@ public class StrategyEntity extends Auditable {
 
     @LastModifiedBy
     @Column(name="updater_id")
-    private Long updaterId; // 수정자 ID
+    private String updaterId; // 수정자 ID
 
     @LastModifiedDate
     @Column(name="updated_at")
@@ -83,7 +83,7 @@ public class StrategyEntity extends Auditable {
     private LocalDateTime exitDate; // 전략종료일시
 
     //전략(1) : 관계(N)
-    @OneToMany(mappedBy = "strategyEntity")
+    @OneToMany(mappedBy = "strategyEntity", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<StrategyIACEntity> strategyIACEntities;
 
 //    public void updateOperationPeriod() {

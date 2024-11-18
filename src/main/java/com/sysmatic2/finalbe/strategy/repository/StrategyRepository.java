@@ -9,9 +9,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
-public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>, QuerydslPredicateExecutor<StrategyEntity> {
+// 기본 JPA 리포지토리 + 커스텀 QueryDSL 리포지토리 기능 확장
+public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>, StrategyRepositoryCustom {
     // 작성자 ID로 전략 목록 조회
-    List<StrategyEntity> findByWriterId(Long writerId);
+    List<StrategyEntity> findByWriterId(String writerId);
 
     // 전략 상태 코드로 조회
     List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);

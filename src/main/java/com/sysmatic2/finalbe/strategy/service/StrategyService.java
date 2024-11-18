@@ -6,12 +6,9 @@ import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
 import com.sysmatic2.finalbe.exception.TradingCycleNotFoundException;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
 import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyIACResponseDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
+import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
-import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
@@ -21,15 +18,20 @@ import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyStandardCodeRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
+import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
 
 @Service
@@ -43,7 +45,9 @@ public class StrategyService {
     private final StrategyIACRepository strategyIACRepository;
     private final TradingCycleRepository tradingCycleRepository;
 
-    //1. 전략 생성
+    /**
+     * 1. 전략을 생성하는 Service
+     */
     @Transactional
     public void register(StrategyPayloadDto strategyPayloadDto) throws Exception {
         //TODO) 트레이더 판별
@@ -73,7 +77,7 @@ public class StrategyService {
         strategyEntity.setStrategyStatusCode("STRATEGY_STATUS_UNDER_MANAGEMENT");
 
         //TODO) 작성자 설정
-        strategyEntity.setWriterId(101L);
+        strategyEntity.setWriterId("101");
 
         //save() - 저장후 저장한 엔티티 바로 가져옴
         StrategyEntity createdEntity = strategyRepo.save(strategyEntity);
@@ -87,7 +91,7 @@ public class StrategyService {
             strategyIACEntity.setInvestmentAssetClassesEntity(iacEntities.get(i));
 
             //TODO) 작성자 설정
-            strategyIACEntity.setWritedBy(101L);
+            strategyIACEntity.setWritedBy("101");
             strategyIACEntity.setWritedAt(LocalDateTime.now());
 
             strategyIACRepository.save(strategyIACEntity);
@@ -95,7 +99,7 @@ public class StrategyService {
     }
 
     /**
-     * 사용자 전략 등록 폼에 필요한 정보를 제공하는 메서드.
+     * 2. 사용자 전략 등록 폼에 필요한 정보를 제공하는 메서드.
      *
      * @return StrategyRegistrationDto 전략 등록에 필요한 DTO
      */
@@ -154,6 +158,37 @@ public class StrategyService {
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
         return responseDto;
+    }
+
+    /**
+     * 4. 전략을 삭제하는 메서드
+     */
+//    @Transactional
+//    public void deleteStrategy(Long id){
+//
+//    }
+
+
+    /**
+     * 5. 전략을 수정하는 메서드
+     *
+     * @return StrategyPayloadDto 전략 수정에 필요한 DTO
+     */
+
+    /**
+     * 6. 필터 조건에 따라 전략 목록을 반환 (페이징 포함)
+     *
+     * @param tradingCycleId 투자주기 ID (nullable)
+     * @param investmentAssetClassesId 투자자산 분류 ID (nullable)
+     * @param page 현재 페이지 번호 (0부터 시작)
+     * @param pageSize 페이지당 데이터 개수
+     * @return 필터링된 전략 목록 및 페이징 정보를 포함한 Map 객체
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategies(Integer tradingCycleId, Integer investmentAssetClassesId, int page, int pageSize) {
+        Pageable pageable = PageRequest.of(page, pageSize); // 페이지 요청 객체 생성
+        Page<StrategyListDto> strategyPage = strategyRepo.findStrategiesByFilters(tradingCycleId, investmentAssetClassesId, pageable);
+        return createPageResponse(strategyPage); // 유틸 메서드를 사용해 Map 형태로 변환
     }
 }
 
