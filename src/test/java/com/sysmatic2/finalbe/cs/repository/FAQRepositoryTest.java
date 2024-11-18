@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@TestPropertySource(locations = "classpath:application-test.properties")
 class FAQRepositoryTest {
 
     @Autowired
@@ -46,8 +47,8 @@ class FAQRepositoryTest {
         adminFaq.setQuestion("faq_question");
         adminFaq.setAnswer("faq_answer");
         adminFaq.setPostedAt(LocalDateTime.now());
-        adminFaq.setWriterId(1L);
-        adminFaq.setFaqCategory(faqCategory);
+        adminFaq.setWriterId("writer");
+        adminFaq.setFaqCategory(1L);
 
         // when
         FAQ savedFaq = faqRepository.save(adminFaq);
@@ -71,8 +72,8 @@ class FAQRepositoryTest {
         faq.setQuestion("faq_question");
         faq.setAnswer("faq_answer");
         faq.setPostedAt(LocalDateTime.now());
-        faq.setWriterId(1L);
-        faq.setFaqCategory(faqCategory);
+        faq.setWriterId("writer");
+        faq.setFaqCategory(1L);
 
         // when
         FAQ savedFaq = faqRepository.save(faq);
@@ -97,8 +98,8 @@ class FAQRepositoryTest {
             faq.setQuestion("faq_question" + i);
             faq.setAnswer("faq_answer" + i);
             faq.setPostedAt(LocalDateTime.now());
-            faq.setWriterId(1L);
-            faq.setFaqCategory(faqCategory);
+            faq.setWriterId("writer");
+            faq.setFaqCategory(1L);
             faqRepository.save(faq);
         }
 
@@ -125,8 +126,8 @@ class FAQRepositoryTest {
             faq.setQuestion("faq_question" + i);
             faq.setAnswer("faq_answer" + i);
             faq.setPostedAt(LocalDateTime.now());
-            faq.setWriterId(1L);
-            faq.setFaqCategory(faqCategory);
+            faq.setWriterId("writer");
+            faq.setFaqCategory(1L);
             faqRepository.save(faq);
         }
 
@@ -159,8 +160,8 @@ class FAQRepositoryTest {
             faq.setQuestion("faq_question" + i);
             faq.setAnswer("faq_answer" + i);
             faq.setPostedAt(LocalDateTime.now());
-            faq.setWriterId(1L);
-            faq.setFaqCategory(faqCategory);
+            faq.setWriterId("writer");
+            faq.setFaqCategory(1L);
             faqRepository.save(faq);
         }
 
@@ -192,8 +193,8 @@ class FAQRepositoryTest {
             faq.setQuestion("faq_question" + i);
             faq.setAnswer("faq_answer" + i);
             faq.setPostedAt(LocalDateTime.now());
-            faq.setWriterId(1L);
-            faq.setFaqCategory(faqCategory);
+            faq.setWriterId("writer");
+            faq.setFaqCategory(1L);
             faqRepository.save(faq);
         }
 
@@ -219,16 +220,16 @@ class FAQRepositoryTest {
         faq.setQuestion("faq_question");
         faq.setAnswer("faq_answer");
         faq.setPostedAt(LocalDateTime.now());
-        faq.setWriterId(1L);
-        faq.setFaqCategory(faqCategory);
+        faq.setWriterId("writer");
+        faq.setFaqCategory(1L);
         faqRepository.save(faq);
 
         FAQ faq2 = new FAQ();
         faq2.setQuestion("what is this?");
         faq2.setAnswer("This is answer");
         faq2.setPostedAt(LocalDateTime.now());
-        faq2.setWriterId(1L);
-        faq2.setFaqCategory(faqCategory);
+        faq2.setWriterId("writer");
+        faq2.setFaqCategory(1L);
         faqRepository.save(faq2);
 
         // when

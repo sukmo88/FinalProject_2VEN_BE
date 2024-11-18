@@ -153,7 +153,7 @@ public class DtoEntityConversionUtils {
 
     //전략
     /**
-     * StrategyEntity를 StrategyResponseDto로 변환하는 메서드.
+     * StrategyEntity의 기본정보를 StrategyResponseDto에 담는 메서드.
      *
      * @param  변환할 StrategyEntity
      * @return 변환된 StrategyResponseDto
@@ -163,6 +163,7 @@ public class DtoEntityConversionUtils {
 
         responseDto.setStrategyId(strategyEntity.getStrategyId());
         responseDto.setStrategyTitle(strategyEntity.getStrategyTitle());
+        responseDto.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
         responseDto.setStrategyOverview(strategyEntity.getStrategyOverview());
         responseDto.setFollowersCount(strategyEntity.getFollowersCount());
         responseDto.setWritedAt(strategyEntity.getWritedAt());
