@@ -6,6 +6,7 @@ import com.sysmatic2.finalbe.cs.repository.NoticeRepository;
 import com.sysmatic2.finalbe.cs.util.NoticeMapper;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -104,7 +105,7 @@ public class NoticeService {
   }
 
   // 기간별 공지사항 검색
-  public Page<NoticeSummaryDto> searchByDateRange(String startDate, String endDate, Pageable pageable) {
+  public Page<NoticeSummaryDto> searchByDateRange(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
     Page<NoticeEntity> notices = noticeRepository.findByPostedAtBetween(startDate, endDate, pageable);
     return notices.map(NoticeMapper::toSummaryDto);
   }

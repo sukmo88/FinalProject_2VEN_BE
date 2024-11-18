@@ -53,8 +53,8 @@ public class NoticeEntity {
   @JoinColumn(name = "writer_id", nullable = false)
   private MemberEntity writer; // MemberEntity와 연관 관계 설정
 
-  @OneToMany(mappedBy = "notice", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Attachment> attachments = new ArrayList<>(); // 첨부파일 연관 관계 설정
+//  @OneToMany(mappedBy = "notice", cascade = CascadeType.ALL, orphanRemoval = true)
+//  private List<Attachment> attachments = new ArrayList<>(); // 첨부파일 연관 관계 설정
 
   @PreUpdate
   protected void onUpdate() {

@@ -5,6 +5,7 @@ import com.sysmatic2.finalbe.cs.dto.NoticeDto;
 import com.sysmatic2.finalbe.cs.dto.NoticeSummaryDto;
 import com.sysmatic2.finalbe.cs.dto.UpdateNoticeDto;
 import com.sysmatic2.finalbe.cs.service.NoticeService;
+import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -74,7 +75,7 @@ public class NoticeController {
 
   // 기간별 공지사항 검색
   @GetMapping("/search/date-range")
-  public Page<NoticeSummaryDto> searchByDateRange(@RequestParam String startDate, @RequestParam String endDate, Pageable pageable) {
+  public Page<NoticeSummaryDto> searchByDateRange(@RequestParam LocalDateTime startDate, @RequestParam LocalDateTime endDate, Pageable pageable) {
     return noticeService.searchByDateRange(startDate, endDate, pageable);
   }
 }
