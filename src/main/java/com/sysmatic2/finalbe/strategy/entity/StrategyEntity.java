@@ -24,12 +24,13 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-@ToString(exclude = "strategyIACEntities")
+@ToString(exclude = {"strategyIACEntities", "tradingTypeEntity", "tradingCycleEntity", "writerId", "updaterId"})
 public class StrategyEntity extends Auditable {
     @Id
     @Column(name = "strategy_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long strategyId; // 전략 ID
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_type_id", nullable = false)
@@ -51,6 +52,7 @@ public class StrategyEntity extends Auditable {
     @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
 
+    //TODO) member ID String 으로 변경
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)
     private String writerId; // 작성자 ID

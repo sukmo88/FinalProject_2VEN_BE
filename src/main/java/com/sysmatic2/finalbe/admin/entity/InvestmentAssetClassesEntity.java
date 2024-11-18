@@ -3,12 +3,8 @@ package com.sysmatic2.finalbe.admin.entity;
 import com.sysmatic2.finalbe.common.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Pattern;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
-import java.time.Year;
 import java.util.List;
 import java.util.Objects;
 
@@ -19,6 +15,8 @@ import java.util.Objects;
 @ToString
 @Entity
 @Table(name = "investment_asset_classes") //투자자산 분류
+@AllArgsConstructor
+@NoArgsConstructor
 public class InvestmentAssetClassesEntity extends Auditable {
     @Id
     @Column(name="investment_asset_classes_id")
