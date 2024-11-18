@@ -1,27 +1,27 @@
-package com.sysmatic2.finalbe.strategy.service;
-
-import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
-import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
-import com.sysmatic2.finalbe.strategy.repository.StrategyStandardCodeRepository;
-import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
-import java.util.ArrayList;
-import java.util.List;
-
-@SpringBootTest
-public class StrategyServiceTest {
-    @Autowired
-    private StrategyService strategyService;
-    @Autowired
-    private InvestmentAssetClassesRepository iacRepo;
-    @Autowired
-    private TradingTypeRepository ttRepo;
-    @Autowired
-    private StrategyStandardCodeRepository standardCodeRepo;
-
+//package com.sysmatic2.finalbe.strategy.service;
+//
+//import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
+//import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
+//import com.sysmatic2.finalbe.strategy.repository.StrategyStandardCodeRepository;
+//import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
+//import org.junit.jupiter.api.Test;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.boot.test.context.SpringBootTest;
+//
+//import java.util.ArrayList;
+//import java.util.List;
+//
+//@SpringBootTest
+//public class StrategyServiceTest {
+//    @Autowired
+//    private StrategyService strategyService;
+//    @Autowired
+//    private InvestmentAssetClassesRepository iacRepo;
+//    @Autowired
+//    private TradingTypeRepository ttRepo;
+//    @Autowired
+//    private StrategyStandardCodeRepository standardCodeRepo;
+//
 //    @Test
 //    public void strategyInputTest() throws Exception {
 //        //총 5개의 DTO 생성, i번째 DTO는 i개의 투자자산 분류를 가지고 있다.
@@ -44,7 +44,7 @@ public class StrategyServiceTest {
 //            strategyService.register(strategyPayloadDto);
 //        }
 //    }
-
+//
 //    @Test
 //    public void testRegister_Successful() throws Exception {
 //        // Given
@@ -67,6 +67,6 @@ public class StrategyServiceTest {
 //
 //
 //    }
-
-
-}
+//
+//
+//}
