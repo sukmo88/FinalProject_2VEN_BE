@@ -24,13 +24,12 @@ import java.util.List;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-@ToString(exclude = "strategyIACEntities")
+@ToString(exclude = {"strategyIACEntities", "tradingTypeEntity", "tradingCycleEntity", "writerId", "updaterId"})
 public class StrategyEntity extends Auditable {
     @Id
     @Column(name = "strategy_id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long strategyId; // 전략 ID
-
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_type_id", nullable = false)
@@ -84,8 +83,8 @@ public class StrategyEntity extends Auditable {
     private LocalDateTime exitDate; // 전략종료일시
 
     //전략(1) : 관계(N)
-//    @OneToMany(mappedBy = "strategyEntity")
-//    private List<StrategyIACEntity> strategyIACEntities;
+    @OneToMany(mappedBy = "strategyEntity", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<StrategyIACEntity> strategyIACEntities;
 
 //    public void updateOperationPeriod() {
 //        // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.
