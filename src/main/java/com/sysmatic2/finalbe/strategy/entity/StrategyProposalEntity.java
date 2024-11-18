@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.entity;
 
+import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-public class StrategyProposalEntity extends Auditable{
+public class StrategyProposalEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "strategy_proposal_id")
