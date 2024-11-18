@@ -1,7 +1,6 @@
 package com.sysmatic2.finalbe.member.entity;
 
-import com.sysmatic2.finalbe.StandardCodeEntity;
-import com.sysmatic2.finalbe.strategy.entity.Auditable;
+import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,7 +37,6 @@ public class VerificationCodeEntity extends Auditable {
     @Column(name = "last_attempt_time")
     private LocalDateTime lastAttemptTime;
 
-    @ManyToOne
-    @JoinColumn(name = "verification_reason_code", nullable = false)
-    private StandardCodeEntity verificationReasonCode;
+    @Column(name = "verification_reason_code", nullable = false)
+    private String verificationReasonCode;
 }

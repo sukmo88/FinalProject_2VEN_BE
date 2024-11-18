@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.member.entity;
-import com.sysmatic2.finalbe.StandardCodeEntity;
-import com.sysmatic2.finalbe.strategy.entity.Auditable;
+import com.sysmatic2.finalbe.common.Auditable;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -15,17 +14,14 @@ import java.time.LocalDateTime;
 @ToString
 public class MemberEntity extends Auditable {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "member_id")
-    private Long memberId;  // 회원 ID
+    private String memberId;  // 회원 ID
 
-    @ManyToOne
-    @JoinColumn(name = "member_grade_code", nullable = false)
-    private StandardCodeEntity memberGradeCode;  // 회원등급코드
+    @Column(name = "member_grade_code", nullable = false)
+    private String memberGradeCode;  // 회원등급코드
 
-    @ManyToOne
-    @JoinColumn(name = "member_status_code", nullable = false)
-    private StandardCodeEntity memberStatusCode;  // 회원상태코드
+    @Column(name = "member_status_code", nullable = false)
+    private String memberStatusCode;  // 회원상태코드
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;  // 이메일
@@ -74,5 +70,8 @@ public class MemberEntity extends Auditable {
 
     @Column(name = "notes")
     private String notes;  // 비고 (탈퇴사유 등 참고사항)
+
+    @Column(name = "is_agreed_marketing_ad")
+    private char isAgreedMarketingAd; // 마케팅, 광고성 정보 수신 동의 여부
 
 }

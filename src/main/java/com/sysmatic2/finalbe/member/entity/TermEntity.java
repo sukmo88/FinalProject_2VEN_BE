@@ -1,7 +1,6 @@
 package com.sysmatic2.finalbe.member.entity;
 
-import com.sysmatic2.finalbe.StandardCodeEntity;
-import com.sysmatic2.finalbe.strategy.entity.Auditable;
+import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,9 +28,8 @@ public class TermEntity extends Auditable {
     @Column(name = "is_required", nullable = false)
     private String isRequired;
 
-    @ManyToOne
-    @JoinColumn(name = "target_member_grade_code", nullable = false)
-    private StandardCodeEntity targetMemberGradeCode;
+    @Column(name = "target_member_grade_code", nullable = false)
+    private String targetMemberGradeCode;
 
     @Column(name = "version")
     private String version;

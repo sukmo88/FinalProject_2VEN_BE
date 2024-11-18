@@ -15,6 +15,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final MemberRepository memberRepository;
 
+    // username : 토큰에서 추출한 사용자 식별자
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // 데이터베이스에서 사용자 정보 조회
