@@ -1,7 +1,6 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
 import com.querydsl.core.Tuple;
-import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sysmatic2.finalbe.strategy.dto.StrategyListDto;
 import com.sysmatic2.finalbe.strategy.entity.QStrategyEntity;
@@ -15,6 +14,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * QueryDSL을 사용한 커스텀 리포지토리 구현체
@@ -49,67 +50,83 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         QStrategyIACEntity strategyIAC = QStrategyIACEntity.strategyIACEntity;
         QInvestmentAssetClassesEntity investmentAsset = QInvestmentAssetClassesEntity.investmentAssetClassesEntity;
 
-        // 1. 기본 데이터 조회 (투자자산 필터링 포함)
+        // 1. 전략 데이터 조회 (중복 방지 및 투자자산 아이콘 제외)
+        List<Long> strategyIds = queryFactory
+                .select(strategy.strategyId)
+                .from(strategy)
+                .leftJoin(strategy.tradingCycleEntity, tradingCycle)
+                .leftJoin(strategy.tradingTypeEntity, tradingType)
+                .where(
+                        tradingCycleId != null ? tradingCycle.tradingCycleId.eq(tradingCycleId) : null,
+                        investmentAssetClassesId != null ? strategy.strategyIACEntities.any().investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null
+                )
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .distinct() // 중복 제거
+                .fetch();
+
+        if (strategyIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        // 2. 전략 데이터와 매매 유형, 매매 주기 정보 조회
         List<Tuple> tuples = queryFactory
                 .select(
-                        strategy.strategyId, // 전략 ID (후처리용)
-                        tradingType.tradingTypeIcon, // 매매유형 아이콘
-                        tradingCycle.tradingCycleIcon, // 매매주기 아이콘
-                        strategy.strategyTitle, // 전략명
-                        strategy.followersCount // 팔로워 수
+                        strategy.strategyId,
+                        tradingType.tradingTypeIcon,
+                        tradingCycle.tradingCycleIcon,
+                        strategy.strategyTitle,
+                        strategy.followersCount
                 )
-                .from(strategy) // 전략 테이블에서 시작
-                .leftJoin(strategy.tradingCycleEntity, tradingCycle) // 매매주기와 LEFT JOIN
-                .leftJoin(strategy.tradingTypeEntity, tradingType) // 매매유형과 LEFT JOIN
-                .leftJoin(strategy.strategyIACEntities, strategyIAC) // 전략과 투자자산 관계 LEFT JOIN
-                .leftJoin(strategyIAC.investmentAssetClassesEntity, investmentAsset) // 투자자산과 LEFT JOIN
-                .where(
-                        tradingCycleId != null ? tradingCycle.tradingCycleId.eq(tradingCycleId) : null, // 매매주기 ID 필터
-                        investmentAssetClassesId != null ? investmentAsset.investmentAssetClassesId.eq(investmentAssetClassesId) : null // 투자자산 ID 필터
-                )
-                .offset(pageable.getOffset()) // 페이지 시작 위치 설정
-                .limit(pageable.getPageSize()) // 페이지 크기 설정
-                .fetch(); // 쿼리 실행 및 결과 반환
+                .from(strategy)
+                .leftJoin(strategy.tradingCycleEntity, tradingCycle)
+                .leftJoin(strategy.tradingTypeEntity, tradingType)
+                .where(strategy.strategyId.in(strategyIds)) // 필터링된 전략 ID에 해당하는 데이터만 조회
+                .fetch();
 
-        // 2. 투자자산 아이콘 리스트 조회 및 DTO 생성
+        // 3. 투자자산 아이콘 리스트 조회
+        Map<Long, List<String>> strategyAssetIconsMap = queryFactory
+                .select(
+                        strategyIAC.strategyEntity.strategyId,
+                        investmentAsset.investmentAssetClassesIcon
+                )
+                .from(strategyIAC)
+                .join(strategyIAC.investmentAssetClassesEntity, investmentAsset)
+                .where(strategyIAC.strategyEntity.strategyId.in(strategyIds))
+                .fetch()
+                .stream()
+                .collect(
+                        // Map<StrategyId, List<InvestmentAssetIcons>>
+                        Collectors.groupingBy(
+                                tuple -> tuple.get(strategyIAC.strategyEntity.strategyId),
+                                Collectors.mapping(tuple -> tuple.get(investmentAsset.investmentAssetClassesIcon), Collectors.toList())
+                        )
+                );
+
+        // 4. DTO 생성
         List<StrategyListDto> results = tuples.stream()
-                .map(tuple -> {
-                    Long strategyId = tuple.get(strategy.strategyId);
-
-                    // 서브쿼리로 투자자산 아이콘 리스트 조회
-                    List<String> investmentAssetIcons = queryFactory
-                            .select(investmentAsset.investmentAssetClassesIcon)
-                            .from(strategyIAC)
-                            .join(strategyIAC.investmentAssetClassesEntity, investmentAsset)
-                            .where(strategyIAC.strategyEntity.strategyId.eq(strategyId)) // 동일한 전략 ID로 필터링
-                            .fetch();
-
-                    // DTO 생성
-                    return new StrategyListDto(
-                            tuple.get(tradingType.tradingTypeIcon), // 매매유형 아이콘
-                            tuple.get(tradingCycle.tradingCycleIcon), // 매매주기 아이콘
-                            investmentAssetIcons, // 투자자산 아이콘 리스트
-                            tuple.get(strategy.strategyTitle), // 전략명
-                            tuple.get(strategy.followersCount) // 팔로워 수
-                    );
-                })
+                .map(tuple -> new StrategyListDto(
+                        tuple.get(tradingType.tradingTypeIcon), // 매매유형 아이콘
+                        tuple.get(tradingCycle.tradingCycleIcon), // 매매주기 아이콘
+                        strategyAssetIconsMap.getOrDefault(tuple.get(strategy.strategyId), List.of()), // 투자자산 아이콘 리스트
+                        tuple.get(strategy.strategyTitle), // 전략명
+                        tuple.get(strategy.followersCount) // 팔로워 수
+                ))
                 .toList();
 
-        // 3. 총 데이터 개수 조회
+        // 5. 총 데이터 개수 조회
         long total = queryFactory
                 .select(strategy.count())
                 .from(strategy)
                 .leftJoin(strategy.tradingCycleEntity, tradingCycle)
                 .leftJoin(strategy.tradingTypeEntity, tradingType)
-                .leftJoin(strategy.strategyIACEntities, strategyIAC)
-                .leftJoin(strategyIAC.investmentAssetClassesEntity, investmentAsset)
                 .where(
                         tradingCycleId != null ? tradingCycle.tradingCycleId.eq(tradingCycleId) : null,
-                        investmentAssetClassesId != null ? investmentAsset.investmentAssetClassesId.eq(investmentAssetClassesId) : null
+                        investmentAssetClassesId != null ? strategy.strategyIACEntities.any().investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null
                 )
                 .fetchOne();
 
-        // 4. Page 객체 생성 및 반환
+        // 6. Page 객체 생성 및 반환
         return new PageImpl<>(results, pageable, total);
     }
 }
