@@ -106,6 +106,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         // 4. DTO 생성
         List<StrategyListDto> results = tuples.stream()
                 .map(tuple -> new StrategyListDto(
+                        tuple.get(strategy.strategyId), // 전략 ID
                         tuple.get(tradingType.tradingTypeIcon), // 매매유형 아이콘
                         tuple.get(tradingCycle.tradingCycleIcon), // 매매주기 아이콘
                         strategyAssetIconsMap.getOrDefault(tuple.get(strategy.strategyId), List.of()), // 투자자산 아이콘 리스트
