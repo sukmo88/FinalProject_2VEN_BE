@@ -2,20 +2,20 @@ package com.sysmatic2.finalbe.admin.entity;
 
 import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @Entity
 @Table(name = "trading_type")
 @Getter
 @Setter
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class TradingTypeEntity extends Auditable {
 
     @Id
     @Column(name="trading_type_id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer tradingTypeId; // 매매유형 ID
 
     @Column(name="trading_type_order", nullable = false,unique = true)
