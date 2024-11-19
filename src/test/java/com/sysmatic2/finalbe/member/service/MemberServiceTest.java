@@ -55,7 +55,33 @@ class MemberServiceTest {
     }
 
     @Test
-    public void createUUID() {
-        // UUID 생성 메소드 테스트 필요!! -> private인데 어떻게 테스트하지?
+    @DisplayName("이메일 중복 체크 - 이메일이 이미 존재하는 경우 MemberAlreadyExistException 발생")
+    public void duplicateEmail_emailExists() {
+        String existingEmail = "email@email.com";
+        MemberEntity mockMember = new MemberEntity();
+        mockMember.setEmail(existingEmail);
+
+        // 디비에 이메일이 이미 존재 -> MemberRepository.findByEmail() 시 Member 객체 반환
+        when(memberRepository.findByEmail(existingEmail)).thenReturn(mockMember);
+
+        // 존재하는 이메일로 검증 시도하면 예외 발생
+        assertThrows(MemberAlreadyExistsException.class,
+                () -> memberService.duplicateEmailCheck(existingEmail));
+
+        verify(memberRepository, times(1)).findByEmail(existingEmail);
+    }
+
+    @Test
+    @DisplayName("이메일 중복 체크 - 이메일이 존재하지 않으면 예외 발생하지 않음")
+    public void duplicateEmail_emailNotExists() {
+
+        // DB에 존재하지 않는 이메일로 중복 검사 시행
+        String newEmail = "email@email.com";
+        when(memberRepository.findByEmail(newEmail)).thenReturn(null);
+
+        memberService.duplicateEmailCheck(newEmail);
+
+        // 메소드 제대로 호출되었는지 확인
+        verify(memberRepository, times(1)).findByEmail(newEmail);
     }
 }
