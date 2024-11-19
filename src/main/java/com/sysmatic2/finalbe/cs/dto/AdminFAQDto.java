@@ -17,7 +17,7 @@ public class AdminFAQDto implements FAQResponse{
 
     private Long id;
 
-    private Long writerId;
+    private String writerId;
 
     private String question;
 
@@ -29,17 +29,6 @@ public class AdminFAQDto implements FAQResponse{
 
     private Boolean isActive;
 
-    private FAQCategory faqCategory;
+    private Long faqCategory;
 
-    public AdminFAQDto(Long id, String question, String answer, Long writerId, LocalDateTime postedAt,
-                       LocalDateTime updatedAt, Boolean isActive, FAQCategory faqCategory) {
-        this.id = id;
-        this.question = question;
-        this.answer = answer;
-        this.writerId = writerId;
-        this.postedAt = postedAt;
-        this.updatedAt = updatedAt;
-        this.isActive = isActive;
-        this.faqCategory = faqCategory;
-    }
 }

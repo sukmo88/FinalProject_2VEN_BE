@@ -3,9 +3,8 @@ package com.sysmatic2.finalbe.admin.entity;
 import com.sysmatic2.finalbe.common.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import jakarta.validation.constraints.Pattern;
+import lombok.*;
 
 import java.util.List;
 import java.util.Objects;
@@ -17,6 +16,8 @@ import java.util.Objects;
 @ToString
 @Entity
 @Table(name = "investment_asset_classes") //투자자산 분류
+@AllArgsConstructor
+@NoArgsConstructor
 public class InvestmentAssetClassesEntity extends Auditable {
     @Id
     @Column(name="investment_asset_classes_id")
@@ -36,8 +37,9 @@ public class InvestmentAssetClassesEntity extends Auditable {
     @Column(name = "introduce", length = 3000, nullable = true)
     private String introduce; //투자자산분류 설명
 
-    @Column(name = "is_Active", length = 1, nullable = false)
-    private String isActive; //사용 유무
+    @Column(name = "is_Active", nullable = false, columnDefinition = "CHAR(1)")
+    @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
+    private String isActive = "Y"; //사용 유무 default = Y
 
     //IAC(1) : 관계(N)
 //    @OneToMany(mappedBy = "investmentAssetClassesEntity")

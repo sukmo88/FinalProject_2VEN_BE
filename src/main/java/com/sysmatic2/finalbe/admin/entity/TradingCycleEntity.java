@@ -3,9 +3,7 @@ package com.sysmatic2.finalbe.admin.entity;
 import com.sysmatic2.finalbe.common.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.List;
 
@@ -14,10 +12,12 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class TradingCycleEntity extends Auditable {
     @Id
     @Column(name="trading_cycle_id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer tradingCycleId; // 투자주기 ID
 
     @Column(name="trading_cycle_order", nullable = false,unique = true)
