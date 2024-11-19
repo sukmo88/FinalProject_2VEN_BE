@@ -40,23 +40,24 @@ public class ConsultationService {
   private final MemberRepository memberRepository;
   private final StrategyRepository strategyRepository;
   private final SimpMessagingTemplate messagingTemplate; // WebSocket 메시지 전송을 위한 템플릿
-  private final MailService mailService; // 이메일 전송을 위한 서비스
+//  private final MailService mailService; // 이메일 전송을 위한 서비스
 
+  //메일 서비스 후에 다시 넣기
   @Autowired
   public ConsultationService(ConsultationThreadRepository threadRepository,
                              ConsultationMessageRepository messageRepository,
                              MessageRecipientRepository messageRecipientRepository,
                              MemberRepository memberRepository,
                              StrategyRepository strategyRepository,
-                             SimpMessagingTemplate messagingTemplate,
-                             MailService mailService) {
+                             SimpMessagingTemplate messagingTemplate)
+                              {
     this.threadRepository = threadRepository;
     this.messageRepository = messageRepository;
     this.messageRecipientRepository = messageRecipientRepository;
     this.memberRepository = memberRepository;
     this.strategyRepository = strategyRepository;
     this.messagingTemplate = messagingTemplate;
-    this.mailService = mailService;
+
   }
 
   /**
@@ -128,9 +129,9 @@ public class ConsultationService {
 
     messagingTemplate.convertAndSend("/topic/notifications/" + traderId, notification);
 
-    // 이메일 알림 전송 (트레이더에게 이메일을 통해 메시지가 도착했음을 알림)
-    EmailNotificationDto emailNotification = EmailNotificationMapper.toEmailDto(savedMessage, trader);
-    mailService.sendEmail(emailNotification);
+//    // 이메일 알림 전송 (트레이더에게 이메일을 통해 메시지가 도착했음을 알림)
+//    EmailNotificationDto emailNotification = EmailNotificationMapper.toEmailDto(savedMessage, trader);
+//    mailService.sendEmail(emailNotification);
 
     // 상담 DTO 반환
     return ConsultationMapper.toDto(thread);
@@ -195,8 +196,8 @@ public class ConsultationService {
     messagingTemplate.convertAndSend("/topic/notifications/" + recipientId, notification);
 
     // 이메일 알림 전송 (수신자에게 이메일을 통해 메시지가 도착했음을 알림)
-    EmailNotificationDto emailNotification = EmailNotificationMapper.toEmailDto(savedMessage, recipient);
-    mailService.sendEmail(emailNotification);
+//    EmailNotificationDto emailNotification = EmailNotificationMapper.toEmailDto(savedMessage, recipient);
+//    mailService.sendEmail(emailNotification);
 
     return ConsultationMessageMapper.toDto(savedMessage);
   }
