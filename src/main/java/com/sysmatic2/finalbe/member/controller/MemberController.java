@@ -1,17 +1,23 @@
 package com.sysmatic2.finalbe.member.controller;
 
+import com.sysmatic2.finalbe.exception.EmailVerificationFailedException;
 import com.sysmatic2.finalbe.member.dto.SignupDTO;
+import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.member.service.MemberService;
+import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 
@@ -22,6 +28,7 @@ import java.util.Map;
 public class MemberController {
 
     private final MemberService memberService;
+    private final EmailService emailService;
 
     //로그인
     @PostMapping("/login")
@@ -43,12 +50,6 @@ public class MemberController {
         return "check-phone";
     }
 
-    //이메일 체크(중복체크) & 이메일 인증 코드 전송
-    @GetMapping("/check-email")
-    public String checkEmail(HttpServletRequest request) {
-        return "check-email";
-    }
-
     //비밀번호 재설정
     @PostMapping("/password")
     public String password(HttpServletRequest request) {
@@ -57,9 +58,22 @@ public class MemberController {
 
     //회원가입
     @PostMapping("/signup")
-    public ResponseEntity<Map<String, String>> signup(@Valid @RequestBody SignupDTO signupDTO) {
+    public ResponseEntity<Map<String, String>> signup(@Valid @RequestBody SignupDTO signupDTO, HttpServletRequest req) {
 
-        memberService.signUp(signupDTO);
+        // session 에서 이메일 인증 성공 여부 확인 (-> 세션을 Redis에 저장하도록 변경 필요!!!)
+
+        // 인증 X -> 예외 발생
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("verified") == null || session.getAttribute("verified").equals(false)) {
+            // 이메일 인증이 완료되지 않았다는 예외 발생 (세션 없는 경우와 세분화해야 하나?)
+            throw new EmailVerificationFailedException("이메일 인증이 완료되지 않았습니다.");
+        }
+
+        // 인증 OK -> signupDTO 에 email 설정
+        signupDTO.setEmail(session.getAttribute("email").toString());
+
+        // 회원가입 로직 진행
+        memberService.signup(signupDTO);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "status", "success",
@@ -80,6 +94,35 @@ public class MemberController {
         return ResponseEntity.ok(Map.of(
                 "status", "success",
                 "message", "사용 가능한 닉네임입니다."
+        ));
+    }
+
+    //이메일 체크(중복체크) & 이메일 인증 코드 전송
+    @GetMapping("/check-email")
+    public ResponseEntity<Map<String, String>> checkEmail(
+            @Email(message = "이메일 형식에 맞게 입력되어야 합니다.") String email, HttpServletRequest req) {
+
+        // 1. 이메일 중복 검사
+        memberService.duplicateEmailCheck(email);
+
+        // 2. 이메일로 인증코드 전송
+        // 2-1. 인증코드 생성
+        String verificationCode = RandomKeyGenerator.generateVerificationCode(6);
+
+        // 2-2. 인증 이메일 발송
+        emailService.sendVerificationMail(email, verificationCode);
+
+        // 2-3. 인증코드 저장 (Session -> Redis 저장하도록 수정 필요!!!)
+        HttpSession session = req.getSession(true);
+        // 이메일, 인증번호, 만료시간 설정
+        session.setAttribute("email", email);
+        session.setAttribute("verificationCode", verificationCode);
+        session.setAttribute("expiryTime", LocalDateTime.now().plusMinutes(5));  // 인증시간 5분 설정
+        session.setAttribute("verified", false);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "인증 번호가 이메일로 전송되었습니다."
         ));
     }
 
