@@ -76,7 +76,6 @@ public class SecurityConfig {
     @Bean
     @Profile("local") // 프로파일이 'local'일 때만 활성화
     public SecurityFilterChain securityFilterChainLocal(HttpSecurity http) throws Exception {
-        System.out.println("local 확인");
         http
                 // 모든 요청을 허용하고 HTTPS 강제 설정 없음
                 .authorizeHttpRequests(auth -> auth
