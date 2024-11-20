@@ -80,10 +80,10 @@ public class SecurityConfig {
         http
                 // 모든 요청을 허용하고 HTTPS 강제 설정 없음
                 .authorizeHttpRequests(auth -> auth
-                        //.requestMatchers("/**").permitAll() // 모든 경로를 허용
-                        .requestMatchers("/api/members/login").permitAll()
-                        .requestMatchers("/api/auth/**").hasAuthority("ROLE_ADMIN")
-                        //.requestMatchers("/api/auth/").hasRole("ADMIN")
+                        .requestMatchers("/**").permitAll() // 모든 경로를 허용
+//                        .requestMatchers("/api/members/login").permitAll()
+//                        .requestMatchers("/api/auth/**").hasAuthority("ROLE_ADMIN")
+//                        .requestMatchers("/api/auth/").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable()); // CSRF 보호 비활성화
@@ -103,14 +103,10 @@ public class SecurityConfig {
                 .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration),jwtUtil), UsernamePasswordAuthenticationFilter.class);
 
         //JWT 사용으로 세션 비활성화 설정
-        http.sessionManagement((session) -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+//        http.sessionManagement((session) -> session
+//                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
     }
-
-
-
-
 
 }

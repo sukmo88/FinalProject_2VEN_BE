@@ -9,12 +9,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@Transactional
 class MemberServiceTest {
 
     @Mock
@@ -27,8 +30,8 @@ class MemberServiceTest {
     @DisplayName("닉네임 중복 체크 - 닉네임이 이미 존재하는 경우 MemberAlreadyExistException 발생")
     public void duplicateNickname_nicknameExists() {
         String existingNickname = "nickname";
-        MemberEntity mockMember = new MemberEntity();
-        mockMember.setNickname(existingNickname);
+        Optional<MemberEntity> mockMember = Optional.of(new MemberEntity());
+        mockMember.get().setNickname(existingNickname);
 
         // 디비에 닉네임이 이미 존재 -> MemberRepository.findByNickname() 시 Member 객체 반환
         when(memberRepository.findByNickname(existingNickname)).thenReturn(mockMember);
@@ -46,7 +49,7 @@ class MemberServiceTest {
 
         // DB에 존재하지 않는 닉네임으로 중복 검사 시행
         String newNickname = "uniqueNickname";
-        when(memberRepository.findByNickname(newNickname)).thenReturn(null);
+        when(memberRepository.findByNickname(newNickname)).thenReturn(Optional.empty());
 
         memberService.duplicateNicknameCheck(newNickname);
 
@@ -58,8 +61,8 @@ class MemberServiceTest {
     @DisplayName("이메일 중복 체크 - 이메일이 이미 존재하는 경우 MemberAlreadyExistException 발생")
     public void duplicateEmail_emailExists() {
         String existingEmail = "email@email.com";
-        MemberEntity mockMember = new MemberEntity();
-        mockMember.setEmail(existingEmail);
+        Optional<MemberEntity> mockMember = Optional.of(new MemberEntity());
+        mockMember.get().setEmail(existingEmail);
 
         // 디비에 이메일이 이미 존재 -> MemberRepository.findByEmail() 시 Member 객체 반환
         when(memberRepository.findByEmail(existingEmail)).thenReturn(mockMember);
@@ -77,7 +80,7 @@ class MemberServiceTest {
 
         // DB에 존재하지 않는 이메일로 중복 검사 시행
         String newEmail = "email@email.com";
-        when(memberRepository.findByEmail(newEmail)).thenReturn(null);
+        when(memberRepository.findByEmail(newEmail)).thenReturn(Optional.empty());
 
         memberService.duplicateEmailCheck(newEmail);
 
