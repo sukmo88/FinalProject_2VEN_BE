@@ -51,15 +51,17 @@ public class StrategyController {
     public ResponseEntity<Map> createStrategy(@Valid @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
         //TODO) 관리자 판별
         //데이터 저장
-        strategyService.register(strategyPayloadDto);
+        Map<String, Long> responseData = strategyService.register(strategyPayloadDto);
 
         //해쉬맵에 성공 메시지 저장
-        Map<String, String> responseMap = new HashMap<>();
+        Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "CREATE_SUCCESS");
+        responseMap.put("data", responseData);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 
+    // 3. 전략 목록
     /**
      * 3. 필터 조건에 따라 전략 목록 반환 (페이징 포함)
      *
@@ -89,7 +91,7 @@ public class StrategyController {
         return ResponseEntity.ok(response);
     }
 
-    //4. 전략 상세
+    // 4. 전략 상세
     @GetMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long id) throws Exception{
         StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id);
@@ -99,21 +101,31 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
 
-    //5. 전략 삭제
+    // 5. 전략 삭제
     @DeleteMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> deleteStrategy(@PathVariable("id") Long id) throws Exception{
         strategyService.deleteStrategy(id);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
+
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
 
-    //6. 전략 수정
-//    @PutMapping(value = "/{id}", produces = "application/json")
-//    public ResponseEntity<Map> deleteStrategy(@PathVariable("id") Long id, @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
-//        strategyService.updateStrategy(id, strategyPayloadDto);
-//        Map<String, String> responseMap = new HashMap<>();
-//        responseMap.put("msg", "UPDATE_SUCCESS");
-//        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
-//    }
+    //6. 전략 수정 페이지(GET)
+    @GetMapping(value = "/update-form/{id}", produces = "application/json")
+    public ResponseEntity<Map> updateStrategyForm(@PathVariable("id") Long id) throws Exception{
+        Map<String, Object> dataMap = strategyService.getStrategyUpdateForm(id);
+
+        return ResponseEntity.status(HttpStatus.OK).body(dataMap);
+    }
+
+    //7. 전략 수정(POST)
+    @PutMapping(value = "/{id}", produces = "application/json")
+    public ResponseEntity<Map> updateStrategy(@PathVariable("id") Long id, @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
+        Map<String, Long> dataMap = strategyService.updateStrategy(id, strategyPayloadDto);
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("msg", "UPDATE_SUCCESS");
+        responseMap.put("data", dataMap);
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+    }
 }
