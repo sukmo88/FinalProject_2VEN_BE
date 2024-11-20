@@ -80,7 +80,7 @@ class StrategyRepositoryTest {
             strategy.setStrategyTitle("Strategy " + i);
             strategy.setFollowersCount((long) (i * 10));
             strategy.setMinInvestmentAmount("10000");
-            strategy.setStrategyStatusCode("ACTIVE");
+//            strategy.setStrategyStatusCode("ACTIVE");
             strategy.setIsPosted("Y");
             strategy.setIsGranted("Y");
             strategy.setWriterId("Writer_" + i);
@@ -92,7 +92,6 @@ class StrategyRepositoryTest {
                 StrategyIACEntity strategyIAC = new StrategyIACEntity();
                 strategyIAC.setStrategyEntity(strategy);
                 strategyIAC.setInvestmentAssetClassesEntity(investmentAssetClassesRepository.findById(j).orElseThrow());
-                strategyIAC.setIsActive("Y");
                 strategyIAC.setWritedBy("Writer_" + i + "_IAC_" + j);
                 strategyIACRepository.save(strategyIAC);
             }

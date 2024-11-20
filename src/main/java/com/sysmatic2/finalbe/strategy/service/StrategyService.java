@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.strategy.service;
 import com.sysmatic2.finalbe.admin.dto.TradingCycleRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
+import com.sysmatic2.finalbe.exception.InvestmentAssetClassesNotFoundException;
 import com.sysmatic2.finalbe.exception.TradingCycleNotFoundException;
 import com.sysmatic2.finalbe.exception.TradingTypeNotFoundException;
 import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
@@ -14,10 +15,8 @@ import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.entity.StrategyHistoryEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
-import com.sysmatic2.finalbe.strategy.repository.StrategyHistoryRepository;
-import com.sysmatic2.finalbe.strategy.repository.StrategyIACRepository;
-import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
-import com.sysmatic2.finalbe.strategy.repository.StrategyStandardCodeRepository;
+import com.sysmatic2.finalbe.strategy.entity.StrategyIACHistoryEntity;
+import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,9 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
@@ -39,14 +36,14 @@ import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
 @Service
 @RequiredArgsConstructor
 public class StrategyService {
-
     private final StrategyRepository strategyRepo;
+    private final StrategyHistoryRepository strategyHistoryRepo;
     private final InvestmentAssetClassesRepository iacRepo;
-    private final TradingTypeRepository ttRepo;
-    private final TradingCycleRepository tcRepo;
     private final StrategyIACRepository strategyIACRepository;
     private final TradingCycleRepository tradingCycleRepository;
-    private final StrategyHistoryRepository strategyHistoryRepo;
+    private final TradingTypeRepository tradingTypeRepository;
+    private final StrategyIACHistoryRepository strategyIACHistoryRepository;
+
 
     /**
      * 1. 전략을 생성하는 Service
@@ -59,14 +56,27 @@ public class StrategyService {
         StrategyEntity strategyEntity = new StrategyEntity();
 
         //페이로드에서 가져온 매매유형 id로 해당 매매유형 엔티티가져오기
-        TradingTypeEntity ttEntity = ttRepo.findById(strategyPayloadDto.getTradingTypeId())
+        TradingTypeEntity ttEntity = tradingTypeRepository.findById(strategyPayloadDto.getTradingTypeId())
                 .orElseThrow(() -> new TradingTypeNotFoundException(strategyPayloadDto.getTradingTypeId()));
-        //페이로드에서 가져온 투자자산분류 id로 해당 투자자산 분류 엔티티들 가져오기
-        List<Integer> iacIds = strategyPayloadDto.getInvestmentAssetClassesIdList();
-        List<InvestmentAssetClassesEntity> iacEntities = iacRepo.findAllById(iacIds);
+
         //페이로드에서 가져온 주기 id로 해당 주기 엔티티 가져오기
         TradingCycleEntity tradingCycleEntity = tradingCycleRepository.findById(strategyPayloadDto.getTradingCycleId())
                 .orElseThrow(() -> new TradingCycleNotFoundException(strategyPayloadDto.getTradingCycleId()));
+
+        //페이로드에서 가져온 투자자산분류 id로 해당 투자자산 분류 엔티티들 가져오기
+        List<Integer> iacIds = strategyPayloadDto.getInvestmentAssetClassesIdList();
+        List<InvestmentAssetClassesEntity> iacEntities = iacRepo.findAllById(iacIds);
+
+        //요청한 ID와 조회된 ID 비교
+        Set<Integer> foundIds = iacEntities.stream()
+                        .map(InvestmentAssetClassesEntity::getInvestmentAssetClassesId)
+                        .collect(Collectors.toSet());
+        List<Integer> missingIds = iacIds.stream()
+                        .filter(id -> !foundIds.contains(id))
+                        .collect(Collectors.toList());
+        if(!missingIds.isEmpty()) {
+            throw new InvestmentAssetClassesNotFoundException("INVESTMENT_ASSET_CLASSES_NOT_FOUND");
+        }
 
         //payload내용을 엔티티에 담기
         strategyEntity.setStrategyTitle(strategyPayloadDto.getStrategyTitle());
@@ -76,11 +86,8 @@ public class StrategyService {
         strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
         strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
 
-        //전략 상태 공통코드
-        strategyEntity.setStrategyStatusCode("STRATEGY_STATUS_UNDER_MANAGEMENT");
-
         //TODO) 작성자 설정
-        strategyEntity.setWriterId("101");
+        strategyEntity.setWriterId("TestTrader101");
 
         //save() - 저장후 저장한 엔티티 바로 가져옴
         StrategyEntity createdEntity = strategyRepo.save(strategyEntity);
@@ -94,7 +101,7 @@ public class StrategyService {
             strategyIACEntity.setInvestmentAssetClassesEntity(iacEntities.get(i));
 
             //TODO) 작성자 설정
-            strategyIACEntity.setWritedBy("101");
+            strategyIACEntity.setWritedBy("TestTrader101");
             strategyIACEntity.setWritedAt(LocalDateTime.now());
 
             strategyIACRepository.save(strategyIACEntity);
@@ -109,9 +116,9 @@ public class StrategyService {
     @Transactional
     public StrategyRegistrationDto getStrategyRegistrationForm() {
         // TradingType, InvestmentAssetClass 및 TradingCycle 데이터를 각각 DTO 리스트로 변환
-        List<TradingTypeRegistrationDto> tradingTypeDtos = convertToTradingTypeDtos(ttRepo.findByIsActiveOrderByTradingTypeOrderAsc("Y"));
+        List<TradingTypeRegistrationDto> tradingTypeDtos = convertToTradingTypeDtos(tradingTypeRepository.findByIsActiveOrderByTradingTypeOrderAsc("Y"));
         List<InvestmentAssetClassesRegistrationDto> investmentAssetClassDtos = convertToInvestmentAssetClassDtos(iacRepo.findByIsActiveOrderByOrderAsc("Y"));
-        List<TradingCycleRegistrationDto> tradingCycleDtos = convertToTradingCycleDtos(tcRepo.findByIsActiveOrderByTradingCycleOrderAsc("Y"));
+        List<TradingCycleRegistrationDto> tradingCycleDtos = convertToTradingCycleDtos(tradingCycleRepository.findByIsActiveOrderByTradingCycleOrderAsc("Y"));
 
         // DTO 설정 및 반환
         StrategyRegistrationDto strategyRegistrationDto = new StrategyRegistrationDto();
@@ -171,10 +178,15 @@ public class StrategyService {
     /**
      * 4. 전략을 삭제하는 메서드
      * 전략테이블에선 삭제가 되고 전략 이력 테이블에선 삭제 이력 데이터가 추가된다.
+     * 관계테이블도 삭제가 되고 이력테이블에 삭제 이력이 추가된다.
+     *
+     * 전략 이력 등록시작 -> 전략 관계 테이블 이력 등록 -> 전략 관계 테이블 삭제 -> 전략 삭제 -> 전략 이력 등록끝
      */
     @Transactional
     public void deleteStrategy(Long id){
         //TODO) 관리자 or 작성한 트레이더 판별
+        //1. 전략 이력 등록 시작
+        //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
 
@@ -186,7 +198,6 @@ public class StrategyService {
         //2. 해당 전략의 정보를 전략 이력엔티티에 담는다.
         strategyHistoryEntity.setStrategyId(strategyEntity.getStrategyId());
         strategyHistoryEntity.setTradingTypeId(strategyEntity.getTradingTypeEntity().getTradingTypeId());
-        strategyHistoryEntity.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
         strategyHistoryEntity.setTradingCycle(strategyEntity.getTradingCycleEntity().getTradingCycleId());
         strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_DELETED");
         strategyHistoryEntity.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
@@ -201,20 +212,142 @@ public class StrategyService {
         strategyHistoryEntity.setUpdatedAt(strategyEntity.getUpdatedAt());
         strategyHistoryEntity.setExitDate(strategyEntity.getExitDate());
 
-        //3. 해당 전략을 삭제한다.
+        //3. 전략 관계 테이블 이력 등록
+        List<StrategyIACEntity> strategyIACEntities = strategyEntity.getStrategyIACEntities();
+        for(int i = 0 ; i < strategyIACEntities.size() ; i++){
+            StrategyIACHistoryEntity strategyIACHistoryEntity = new StrategyIACHistoryEntity();
+            strategyIACHistoryEntity.setStrategyId(strategyIACEntities.get(i).getStrategyEntity().getStrategyId());
+            strategyIACHistoryEntity.setInvestmentAssetClassId((strategyIACEntities.get(i).getInvestmentAssetClassesEntity().getInvestmentAssetClassesId()));
+            strategyIACHistoryEntity.setWriterId(strategyIACEntities.get(i).getWritedBy());
+            strategyIACHistoryEntity.setWrittenAt(strategyIACEntities.get(i).getWritedAt());
+            strategyIACHistoryEntity.setUpdaterId(strategyIACEntities.get(i).getUpdatedBy());
+            strategyIACHistoryEntity.setUpdatedAt(strategyIACEntities.get(i).getUpdatedAt());
+            strategyIACHistoryEntity.setStatus("STRATEGY_IAC_DELETED");
+            strategyIACHistoryRepository.save(strategyIACHistoryEntity);
+        }
+
+        //4. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //4. 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //5. 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
     }
 
 
     /**
-     * 5. 전략을 수정하는 메서드
+     * 5. 전략 기본정보를 수정하는 메서드
+     * @param strategyPayloadDto 전략 수정에 필요한 내용을 담은DTO
      *
-     * @return StrategyPayloadDto 전략 수정에 필요한 DTO
+     * 전략 이력 등록시작 -> 전략 관계 테이블 이력 등록 -> 전략 관계 테이블 clear ->  -> 전략 이력 등록끝
+     *
      */
+//    @Transactional
+//    public void updateStrategy(Long id, StrategyPayloadDto strategyPayloadDto){
+//        //1. 전략 이력 엔티티 생성
+//        StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
+//        strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
+//
+//        //2. 전략의 id를 검색해서 유무 판별
+//        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(
+//                () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
+//
+//        //3. payload의 id값으로 필요한 객체들을 찾아온다.
+//        //페이로드에서 가져온 매매유형 id로 해당 매매유형 엔티티가져오기
+//        TradingTypeEntity tradingTypeEntity = tradingTypeRepository.findById(strategyPayloadDto.getTradingTypeId())
+//                .orElseThrow(() -> new TradingTypeNotFoundException(strategyPayloadDto.getTradingTypeId()));
+//        //페이로드에서 가져온 주기 id로 해당 주기 엔티티 가져오기
+//        TradingCycleEntity tradingCycleEntity = tradingCycleRepository.findById(strategyPayloadDto.getTradingCycleId())
+//                .orElseThrow(() -> new TradingCycleNotFoundException(strategyPayloadDto.getTradingCycleId()));
+//
+//        //4. 전략테이블의 데이터를 수정한다.(전략엔티티에 payload를 넣고 save)
+//        strategyEntity.setStrategyTitle(strategyPayloadDto.getStrategyTitle());
+//        strategyEntity.setTradingTypeEntity(tradingTypeEntity);
+//        strategyEntity.setTradingCycleEntity(tradingCycleEntity);
+//        strategyEntity.setMinInvestmentAmount(strategyPayloadDto.getMinInvestmentAmount());
+//        strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
+//        strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
+//
+//        //TODO) 수정자 설정
+//        strategyEntity.setUpdaterId("1004");
+//        strategyEntity.setUpdatedAt(LocalDateTime.now());
+//
+//        //변경된 값으로 저장
+//        strategyRepo.save(strategyEntity);
+//
+//        //5. 변경된 투자자산 분류 값 설정(관계테이블)
+//        //페이로드에서 가져온 투자자산분류 id로 해당 투자자산 분류 엔티티들 가져오기
+//        List<Integer> iacIds = strategyPayloadDto.getInvestmentAssetClassesIdList();
+//
+//        //기존 iac엔티티 리스트를 가져온다.
+//        List<StrategyIACEntity> existingIACEntities = strategyEntity.getStrategyIACEntities();
+//
+//        //투자자산 분류 Id 리스트 추출
+//        Set<Integer> existingIacIds = existingIACEntities.stream()
+//                .filter(relationEntity -> "Y".equals(relationEntity.getIsActive()))
+//                .map(relationEntity -> relationEntity.getInvestmentAssetClassesEntity().getInvestmentAssetClassesId())
+//                .collect(Collectors.toSet());
+//
+//        //페이로드로 받은 ID 리스트
+//        Set<Integer> newIacIdSet = new HashSet<>(iacIds);
+//
+//        //비교
+//        //테이블에 추가되어야 할 투자자산 분류 id
+//        Set<Integer> toAdd = new HashSet<>(newIacIdSet);
+//        toAdd.removeAll(existingIacIds);
+//        //N으로 변경되어야할 투자자산 분류 id
+//        Set<Integer> toRemove = new HashSet<>(existingIacIds);
+//        toRemove.removeAll(newIacIdSet);
+//
+//        //테이블에 추가
+//        for (Integer addId : toAdd) {
+//            InvestmentAssetClassesEntity iacEntity = iacRepo.findById(addId)
+//                    .orElseThrow(() -> new NoSuchElementException("투자자산 분류를 찾을 수 없습니다: " + addId));
+//
+//            StrategyIACEntity newRelation = new StrategyIACEntity();
+//            newRelation.setStrategyEntity(strategyEntity);
+//            newRelation.setInvestmentAssetClassesEntity(iacEntity);
+//            newRelation.setIsActive("Y");
+//            //TODO)작성자정보
+//            newRelation.setWritedBy("1004");
+//            newRelation.setWritedAt(LocalDateTime.now());
+//            existingIACEntities.add(newRelation);
+//        }
+//
+//        //isActive = "N"
+//        for (StrategyIACEntity relation : existingIACEntities) {
+//            if (toRemove.contains(relation.getInvestmentAssetClassesEntity().getInvestmentAssetClassesId())) {
+//                //TODO)수정자 정보
+//                relation.setUpdatedBy("1004");
+//                relation.setUpdatedAt(LocalDateTime.now());
+//                relation.setIsActive("N");
+//            }
+//        }
+//
+//        strategyRepo.save(strategyEntity);
+//
+//        //6. 이력 테이블에 데이터 추가
+//        strategyHistoryEntity.setStrategyId(strategyEntity.getStrategyId());
+//        strategyHistoryEntity.setTradingTypeId(strategyEntity.getTradingTypeEntity().getTradingTypeId());
+//        strategyHistoryEntity.setTradingCycle(strategyEntity.getTradingCycleEntity().getTradingCycleId());
+//        strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_UPDATED");
+//        strategyHistoryEntity.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
+//        strategyHistoryEntity.setFollowersCount(strategyEntity.getFollowersCount());
+//        strategyHistoryEntity.setStrategyTitle(strategyEntity.getStrategyTitle());
+//        strategyHistoryEntity.setWriterId(strategyEntity.getWriterId());
+//        strategyHistoryEntity.setIsPosted(strategyEntity.getIsPosted());
+//        strategyHistoryEntity.setIsGranted(strategyEntity.getIsGranted());
+//        strategyHistoryEntity.setWritedAt(strategyEntity.getWritedAt());
+//        strategyHistoryEntity.setStrategyOverview(strategyEntity.getStrategyOverview());
+//        strategyHistoryEntity.setUpdaterId(strategyEntity.getUpdaterId());
+//        strategyHistoryEntity.setUpdatedAt(strategyEntity.getUpdatedAt());
+//        strategyHistoryEntity.setExitDate(strategyEntity.getExitDate());
+//
+//        strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
+//        strategyHistoryRepo.save(strategyHistoryEntity);
+//    }
+
+
 
     /**
      * 6. 필터 조건에 따라 전략 목록을 반환 (페이징 포함)
