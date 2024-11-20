@@ -51,7 +51,7 @@ class StrategyDeleteMockTest {
         tradingCycleEntity.setTradingCycleId(2);
         mockStrategyEntity.setTradingCycleEntity(tradingCycleEntity); // Assume TradingCycleEntity with ID 2
 
-        mockStrategyEntity.setStrategyStatusCode("ACTIVE");
+//        mockStrategyEntity.setStrategyStatusCode("ACTIVE");
         mockStrategyEntity.setMinInvestmentAmount("100000");
         mockStrategyEntity.setFollowersCount(50L);
         mockStrategyEntity.setStrategyTitle("Test Strategy");

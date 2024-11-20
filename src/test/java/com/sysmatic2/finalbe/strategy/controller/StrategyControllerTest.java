@@ -104,7 +104,7 @@ class StrategyControllerTest {
             strategy.setStrategyTitle("Strategy " + i);
             strategy.setFollowersCount((long) (i * 10));
             strategy.setMinInvestmentAmount("10000");
-            strategy.setStrategyStatusCode("ACTIVE");
+//            strategy.setStrategyStatusCode("ACTIVE");
             strategy.setIsPosted("Y");
             strategy.setIsGranted("Y");
             strategy.setWriterId("Writer_" + i);
@@ -115,7 +115,6 @@ class StrategyControllerTest {
             StrategyIACEntity strategyIAC = new StrategyIACEntity();
             strategyIAC.setStrategyEntity(strategy);
             strategyIAC.setInvestmentAssetClassesEntity(assetClass);
-            strategyIAC.setIsActive("Y");
             strategyIAC.setWritedBy("Writer_" + i);
             strategyIACRepository.save(strategyIAC);
         }

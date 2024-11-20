@@ -31,13 +31,12 @@ public class StrategyEntity extends Auditable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long strategyId; // 전략 ID
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_type_id", nullable = false)
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
-    @Column(name = "strategy_status_code", nullable = false)
-    private String strategyStatusCode; // 전략상태코드(공통 코드)
+//    @Column(name = "strategy_status_code", nullable = false)
+//    private String strategyStatusCode; // 전략상태코드(공통 코드)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_cycle_id", nullable = false)
@@ -47,12 +46,11 @@ public class StrategyEntity extends Auditable {
     private String minInvestmentAmount; //최소운용가능금액
 
     @Column(name = "followers_count", nullable = false)
-    private Long followersCount; // 팔로워수
+    private Long followersCount = 0L; // 팔로워수 default = 0
 
     @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
 
-    //TODO) member ID String 으로 변경
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)
     private String writerId; // 작성자 ID
@@ -63,7 +61,7 @@ public class StrategyEntity extends Auditable {
 
     @Column(name = "is_granted", nullable = false, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N", message = "isGranted 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isGranted; // 승인여부
+    private String isGranted = "N"; // 승인여부 default = N
 
     @CreatedDate
     @Column(name="writed_at", updatable = false, nullable = false)
@@ -96,12 +94,12 @@ public class StrategyEntity extends Auditable {
 //        }
 //    }
 
-    public void setStrategyStatusCode(String newStatus) {
-        // 상태가 INACTIVE로 변경된 경우에만 종료일 설정
-        if (this.strategyStatusCode != null && "STRATEGY_STATUS_INACTIVE".equals(newStatus) &&
-                !"STRATEGY_STATUS_INACTIVE".equals(this.strategyStatusCode)) {
-            this.exitDate = LocalDateTime.now();
-        }
-        this.strategyStatusCode = newStatus; // 상태 업데이트
-    }
+//    public void setStrategyStatusCode(String newStatus) {
+//        // 상태가 INACTIVE로 변경된 경우에만 종료일 설정
+//        if (this.strategyStatusCode != null && "STRATEGY_STATUS_INACTIVE".equals(newStatus) &&
+//                !"STRATEGY_STATUS_INACTIVE".equals(this.strategyStatusCode)) {
+//            this.exitDate = LocalDateTime.now();
+//        }
+//        this.strategyStatusCode = newStatus; // 상태 업데이트
+//    }
 }

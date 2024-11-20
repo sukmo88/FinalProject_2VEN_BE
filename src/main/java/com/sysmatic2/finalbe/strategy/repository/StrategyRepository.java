@@ -15,7 +15,7 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     List<StrategyEntity> findByWriterId(String writerId);
 
     // 전략 상태 코드로 조회
-    List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);
+//    List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);
 
     // 팔로워 수가 특정 값 이상인 전략 조회
     List<StrategyEntity> findByFollowersCountGreaterThanEqual(Long followersCount);
