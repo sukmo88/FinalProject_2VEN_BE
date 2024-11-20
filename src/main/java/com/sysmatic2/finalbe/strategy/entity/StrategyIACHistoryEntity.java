@@ -42,7 +42,7 @@ public class StrategyIACHistoryEntity extends Auditable {
 
     @CreatedDate
     @Column(name = "writed_at", nullable = false)
-    private LocalDateTime writtenAt; //작성일시
+    private LocalDateTime writedAt; //작성일시
 
     @LastModifiedDate
     @Column(name = "updated_at")
