@@ -1,75 +1,160 @@
 package com.sysmatic2.finalbe.cs.controller;
 
-import com.sysmatic2.finalbe.cs.dto.ConsultationMessageDTO;
-import com.sysmatic2.finalbe.cs.dto.ConsultationHistoryDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sysmatic2.finalbe.cs.NoOpSecurityConfig;
+import com.sysmatic2.finalbe.cs.dto.*;
 import com.sysmatic2.finalbe.cs.service.ConsultationService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Collections;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@ActiveProfiles("test")
+@WebMvcTest(ConsultationController.class)
+@Import(NoOpSecurityConfig.class) // Security 비활성화
 class ConsultationControllerTest {
 
+  @Autowired
   private MockMvc mockMvc;
 
-  @Mock
+  @MockBean
   private ConsultationService consultationService;
 
-  @InjectMocks
-  private ConsultationController consultationController;
+  @Autowired
+  private ObjectMapper objectMapper;
 
-  @Test
-  void testSendMessage() throws Exception {
-    ConsultationMessageDTO messageDTO = new ConsultationMessageDTO();
-    messageDTO.setSenderId(1L);
-    messageDTO.setReceiverId(2L);
-    messageDTO.setStrategyId(1L);
-    messageDTO.setTitle("Test Title");
+  private ConsultationMessageDto messageDto;
+  private ConsultationSummaryDto summaryDto;
 
-    mockMvc = MockMvcBuilders.standaloneSetup(consultationController).build();
+  @BeforeEach
+  void setUp() {
+    // Mock Message DTO
+    messageDto = new ConsultationMessageDto();
+    messageDto.setId(1L);
+    messageDto.setContent("Test Message");
+    messageDto.setSenderNickname("Investor");
+    messageDto.setSentAt(LocalDateTime.now());
+    messageDto.setIsRead(false);
 
-    mockMvc.perform(post("/api/consultations/send")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"senderId\":1,\"receiverId\":2,\"strategyId\":1,\"title\":\"Test Title\",\"content\":\"Test Content\"}"))
-            .andExpect(status().isOk());
-
-    verify(consultationService, times(1)).saveMessage(any(ConsultationMessageDTO.class));
+    // Mock Summary DTO
+    summaryDto = new ConsultationSummaryDto();
+    summaryDto.setId(1L);
+    summaryDto.setConsultationTitle("Test Consultation");
+    summaryDto.setInvestorNickname("Investor");
+    summaryDto.setTraderNickname("Trader");
+    summaryDto.setCreatedAt(LocalDateTime.now());
+    summaryDto.setIsRead(false);
   }
 
   @Test
-  void testGetMessageHistory() throws Exception {
-    ConsultationHistoryDTO historyDTO = new ConsultationHistoryDTO();
-    historyDTO.setMessageId(1L);
-    historyDTO.setTitle("Test Title");
+  void createConsultation_ShouldReturnConsultation() throws Exception {
+    ConsultationDto consultationDto = new ConsultationDto();
+    consultationDto.setId(1L);
+    consultationDto.setConsultationTitle("Test Consultation");
 
-    when(consultationService.getMessageHistory(1L)).thenReturn(List.of(historyDTO));
+    Mockito.when(consultationService.createConsultation(
+                    anyString(), anyString(), anyLong(), anyString(), anyString()))
+            .thenReturn(consultationDto);
 
-    mockMvc = MockMvcBuilders.standaloneSetup(consultationController).build();
-
-    mockMvc.perform(get("/api/consultations/history/1"))
+    mockMvc.perform(post("/api/consultations")
+                    .param("investorId", "investor-001")
+                    .param("traderId", "trader-001")
+                    .param("strategyId", "1")
+                    .param("consultationTitle", "Test Consultation")
+                    .param("content", "Test Content"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].title").value("Test Title"));
-
-    verify(consultationService, times(1)).getMessageHistory(1L);
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.consultationTitle").value("Test Consultation"));
   }
 
   @Test
-  void testUpdateReadStatus() throws Exception {
-    mockMvc = MockMvcBuilders.standaloneSetup(consultationController).build();
+  void sendMessage_ShouldReturnMessage() throws Exception {
+    SendMessageDto sendMessageDto = new SendMessageDto();
+    sendMessageDto.setThreadId(1L);
+    sendMessageDto.setContent("Test Message");
 
-    mockMvc.perform(put("/api/consultations/read/1"))
-            .andExpect(status().isOk());
+    Mockito.when(consultationService.sendMessage(
+                    anyString(), any(SendMessageDto.class)))
+            .thenReturn(messageDto);
 
-    verify(consultationService, times(1)).updateReadStatus(1L);
+    mockMvc.perform(post("/api/consultations/messages")
+                    .param("senderId", "investor-001")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(sendMessageDto)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1))
+            .andExpect(jsonPath("$.content").value("Test Message"))
+            .andExpect(jsonPath("$.senderNickname").value("Investor"))
+            .andExpect(jsonPath("$.isRead").value(false));
+  }
+
+  @Test
+  void getUserMessages_ShouldReturnPageOfMessages() throws Exception {
+    Page<ConsultationMessageDto> page = new PageImpl<>(
+            Collections.singletonList(messageDto),
+            PageRequest.of(0, 10),
+            1);
+
+    Mockito.when(consultationService.getUserMessages(
+                    eq("investor-001"), eq(true), any(PageRequest.class)))
+            .thenReturn(page);
+
+    mockMvc.perform(get("/api/consultations/messages")
+                    .param("userId", "investor-001")
+                    .param("sent", "true")
+                    .param("page", "0")
+                    .param("size", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content[0].content").value("Test Message"));
+  }
+
+  @Test
+  void searchMessagesByKeyword_ShouldReturnPageOfMessages() throws Exception {
+    Page<ConsultationMessageDto> page = new PageImpl<>(
+            Collections.singletonList(messageDto),
+            PageRequest.of(0, 10),
+            1);
+
+    Mockito.when(consultationService.searchMessagesByKeyword(
+                    eq("Test"), any(PageRequest.class)))
+            .thenReturn(page);
+
+    mockMvc.perform(get("/api/consultations/messages/search")
+                    .param("keyword", "Test")
+                    .param("page", "0")
+                    .param("size", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content").isArray())
+            .andExpect(jsonPath("$.content[0].content").value("Test Message"));
+  }
+
+  @Test
+  void getUserConsultations_ShouldReturnSummaryList() throws Exception {
+    Mockito.when(consultationService.getUserConsultations(
+                    eq("investor-001")))
+            .thenReturn(Collections.singletonList(summaryDto));
+
+    mockMvc.perform(get("/api/consultations/summary")
+                    .param("userId", "investor-001"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].consultationTitle").value("Test Consultation"));
   }
 }

@@ -20,9 +20,9 @@ public class UserFAQDto implements FAQResponse {
 
     private LocalDateTime postedAt;
 
-    private FAQCategory faqCategory;
+    private Long faqCategory;
 
-    public UserFAQDto(Long id, String question, String answer, FAQCategory faqCategory) {
+    public UserFAQDto(Long id, String question, String answer, Long faqCategory) {
         this.id = id;
         this.question = question;
         this.answer = answer;

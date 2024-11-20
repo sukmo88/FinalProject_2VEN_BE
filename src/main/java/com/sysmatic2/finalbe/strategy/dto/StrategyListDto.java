@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 public class StrategyListDto {
+    private Long strategyId; // 전략 ID
     private String tradingTypeIcon; // 매매유형 아이콘
     private String tradingCycleIcon; // 주기 아이콘
     private List<String> investmentAssetClassesIcons; // 투자자산 분류 아이콘 리스트

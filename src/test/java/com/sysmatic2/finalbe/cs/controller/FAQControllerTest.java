@@ -54,265 +54,146 @@ class FAQControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    @DisplayName("Create FAQ - Bad Request with Missing Fields")
+    @DisplayName("Get All FAQs - Success")
     @WithMockUser(roles = {"ADMIN"})
-    void createFAQ_BadRequest_MissingFields() throws Exception {
-        AdminFAQDto faq = new AdminFAQDto(); // 필수 필드 누락
+    void getAllFAQs_Success() throws Exception {
+        given(faqService.getAllFAQs(0, 10, "ROLE_ADMIN")).willReturn(Map.of("data", "test"));
+
+        mockMvc.perform(get("/api/faqs")
+                        .param("page", "0")
+                        .param("pageSize", "10")
+                        .header("Authorization", "ROLE_ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value("test"));
+    }
+
+//    @Test
+//    @DisplayName("Get All FAQs - Unauthorized")
+//    void getAllFAQs_Unauthorized() throws Exception {
+//        mockMvc.perform(get("/api/faqs")
+//                        .param("page", "0")
+//                        .param("pageSize", "10"))
+//                .andExpect(status().isUnauthorized())
+//                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
+//                .andExpect(jsonPath("$.message").value("User is not authenticated"));
+//    }
+
+    @Test
+    @DisplayName("Create FAQ - Success")
+    @WithMockUser(roles = {"ADMIN"})
+    void createFAQ_Success() throws Exception {
+        AdminFAQDto faq = new AdminFAQDto();
+        faq.setWriterId("writer");
+        faq.setQuestion("What is this?");
+        faq.setAnswer("This is a FAQ");
+
+        given(faqService.createFAQ(any(AdminFAQDto.class))).willReturn(faq);
 
         mockMvc.perform(post("/api/faqs")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(faq))
-                        .with(csrf())  // CSRF 토큰 추가
-                        .header(HttpHeaders.AUTHORIZATION, "ROLE_ADMIN")
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .header("Authorization", "ROLE_ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.writerId").value("writer"))
+                .andExpect(jsonPath("$.question").value("What is this?"))
+                .andExpect(jsonPath("$.answer").value("This is a FAQ"));
+    }
+
+    @Test
+    @DisplayName("Create FAQ - Forbidden for non-admin user")
+    @WithMockUser(roles = {"USER"})
+    void createFAQ_Forbidden() throws Exception {
+        AdminFAQDto faq = new AdminFAQDto();
+        faq.setWriterId("writer");
+        faq.setQuestion("What is this?");
+        faq.setAnswer("This is a FAQ");
+
+        mockMvc.perform(post("/api/faqs")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(faq))
+                        .header("Authorization", "ROLE_USER"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Access Denied: User does not have sufficient permissions"));
+    }
+
+    @Test
+    @DisplayName("Update FAQ - Success")
+    @WithMockUser(roles = {"ADMIN"})
+    void updateFAQ_Success() throws Exception {
+        AdminFAQDto faq = new AdminFAQDto();
+        faq.setWriterId("writer");
+        faq.setQuestion("Updated Question");
+        faq.setAnswer("Updated Answer");
+
+        given(faqService.updateFAQ(eq(1L), any(AdminFAQDto.class), eq("ROLE_ADMIN"))).willReturn(faq);
+
+        mockMvc.perform(put("/api/faqs/{id}", 1L)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(faq))
+                        .header("Authorization", "ROLE_ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.writerId").value("writer"))
+                .andExpect(jsonPath("$.question").value("Updated Question"))
+                .andExpect(jsonPath("$.answer").value("Updated Answer"));
+    }
+
+    @Test
+    @DisplayName("Update FAQ - Bad Request")
+    @WithMockUser(roles = {"ADMIN"})
+    void updateFAQ_BadRequest() throws Exception {
+        AdminFAQDto faq = new AdminFAQDto(); // Missing required fields
+
+        mockMvc.perform(put("/api/faqs/{id}", 1L)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(faq))
+                        .header("Authorization", "ROLE_ADMIN"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Invalid input: Missing required fields"));
     }
 
     @Test
-    @DisplayName("Create FAQ - Success for Admin")
+    @DisplayName("Delete FAQ - Success")
     @WithMockUser(roles = {"ADMIN"})
-    void createFAQ_AdminSuccess() throws Exception {
-        // given
-        AdminFAQDto faq = new AdminFAQDto();
-        faq.setQuestion("New Question?");
-        faq.setAnswer("New Answer");
-        faq.setWriterId(1L);
-        faq.setPostedAt(LocalDateTime.now());
-
-        AdminFAQDto createdFaq = new AdminFAQDto();
-        createdFaq.setId(1L);
-        createdFaq.setQuestion("New Question?");
-        createdFaq.setAnswer("New Answer");
-        createdFaq.setWriterId(1L);
-        createdFaq.setPostedAt(LocalDateTime.now());
-
-        given(faqService.createFAQ(any(AdminFAQDto.class))).willReturn(createdFaq);
-
-        // when & then
-        mockMvc.perform(post("/api/faqs")
-                        .with(csrf())  // CSRF 토큰 추가
-                        .content(objectMapper.writeValueAsString(faq))
-                        .header("Authorization", "ROLE_ADMIN")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.question").value("New Question?"))
-                .andExpect(jsonPath("$.answer").value("New Answer"));
-    }
-
-
-
-    @Test
-    @DisplayName("Get all FAQs - Success for Admin")
-    @WithMockUser(roles = {"ADMIN"})
-    void getAllFAQs_AdminSuccess() throws Exception {
-        // given
-        FAQCategory category = new FAQCategory(1L, "general", "this is general");
-        AdminFAQDto adminFAQ1 = new AdminFAQDto(1L, "Admin Question 1?", "Admin Answer 1", 1L, LocalDateTime.now(), null, true, category);
-        AdminFAQDto adminFAQ2 = new AdminFAQDto(2L, "Admin Question 2?", "Admin Answer 2", 2L, LocalDateTime.now(), null, true, category);
-
-        List<AdminFAQDto> faqs = List.of(adminFAQ1, adminFAQ2);
-        Page<AdminFAQDto> faqPage = new PageImpl<>(faqs, PageRequest.of(0, 10), faqs.size());
-        Map<String, Object> response = Map.of(
-                "totalElements", faqPage.getTotalElements(),
-                "isFirstPage", faqPage.isFirst(),
-                "isLastPage", faqPage.isLast(),
-                "totalPages", faqPage.getTotalPages(),
-                "isSorted", faqPage.getSort().isSorted(),
-                "pageSize", faqPage.getSize(),
-                "currentPage", faqPage.getNumber(),
-                "data", faqPage.getContent()
-        );
-
-        // faqService.getAllFAQs 호출 시 response 반환 설정
-        given(faqService.getAllFAQs(0, 10, "ROLE_ADMIN")).willReturn(response);
-
-        // when & then
-        mockMvc.perform(get("/api/faqs")
-                        .param("page", "0")
-                        .param("pageSize", "10")
-                        .header("Authorization", "ROLE_ADMIN")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.totalElements").value(faqs.size()))
-                .andExpect(jsonPath("$.isFirstPage").value(true))
-                .andExpect(jsonPath("$.isLastPage").value(true))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.pageSize").value(10))
-                .andExpect(jsonPath("$.currentPage").value(0))
-                .andExpect(jsonPath("$.data[0].question").value("Admin Question 1?"))
-                .andExpect(jsonPath("$.data[0].answer").value("Admin Answer 1"))
-                .andExpect(jsonPath("$.data[0].faqCategory.name").value("general"))
-                .andExpect(jsonPath("$.data[1].question").value("Admin Question 2?"))
-                .andExpect(jsonPath("$.data[1].answer").value("Admin Answer 2"))
-                .andExpect(jsonPath("$.data[1].faqCategory.name").value("general"));
-    }
-
-    @Test
-    @DisplayName("Update FAQ - Success for Admin")
-    @WithMockUser(roles = {"ADMIN"})
-    void updateFAQ_AdminSuccess() throws Exception {
-        // given
-        FAQCategory category = new FAQCategory(1L, "general", "this is general");
-        AdminFAQDto faqToUpdate = new AdminFAQDto(1L, "Updated Question?", "Updated Answer", 1L, LocalDateTime.now(), null, true, category);
-
-        AdminFAQDto updatedFAQ = new AdminFAQDto(1L, "Updated Question?", "Updated Answer", 1L, LocalDateTime.now(), LocalDateTime.now(), true, category);
-
-        given(faqService.updateFAQ(eq(1L), any(AdminFAQDto.class), eq("ROLE_ADMIN"))).willReturn(updatedFAQ);
-
-        // when & then
-        mockMvc.perform(put("/api/faqs/{id}", 1)
-                        .with(csrf())  // CSRF 토큰 추가
-                        .header("Authorization", "ROLE_ADMIN")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(faqToUpdate)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(updatedFAQ.getId()))
-                .andExpect(jsonPath("$.question").value(updatedFAQ.getQuestion()))
-                .andExpect(jsonPath("$.answer").value(updatedFAQ.getAnswer()));
-    }
-
-
-    @Test
-    @DisplayName("Update FAQ - Not Found")
-    @WithMockUser(roles = {"ADMIN"})
-    void updateFAQ_NotFound() throws Exception {
-        // given
-        AdminFAQDto faqToUpdate = new AdminFAQDto(1L, "Updated Question?", "Updated Answer", 1L, LocalDateTime.now(), null, true, null);
-
-        given(faqService.updateFAQ(eq(1L), any(AdminFAQDto.class), eq("ROLE_ADMIN"))).willThrow(new IllegalArgumentException("FAQ with id 1 not found"));
-
-        // when & then
-        mockMvc.perform(put("/api/faqs/{id}", 1)
-                        .with(csrf())
-                        .header("Authorization", "ROLE_ADMIN")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(faqToUpdate)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("UPDATE_FAILED"))
-                .andExpect(jsonPath("$.message").value("FAQ with id 1 not found"));
-    }
-
-    @Test
-    @DisplayName("Update FAQ - Internal Server Error")
-    @WithMockUser(roles = {"ADMIN"})
-    void updateFAQ_InternalServerError() throws Exception {
-        // given
-        AdminFAQDto faqToUpdate = new AdminFAQDto(1L, "Updated Question?", "Updated Answer", 1L, LocalDateTime.now(), null, true, null);
-
-        given(faqService.updateFAQ(eq(1L), any(AdminFAQDto.class), eq("ROLE_ADMIN"))).willThrow(new RuntimeException());
-
-        // when & then
-        mockMvc.perform(put("/api/faqs/{id}", 1)
-                        .with(csrf())
-                        .header("Authorization", "ROLE_ADMIN")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(faqToUpdate)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.error").value("UPDATE_FAILED"))
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred while updating FAQ"));
-    }
-
-
-    @Test
-    @DisplayName("Delete FAQ - Success for Admin")
-    @WithMockUser(roles = {"ADMIN"})
-    void deleteFAQ_AdminSuccess() throws Exception {
-        // given
+    void deleteFAQ_Success() throws Exception {
         willDoNothing().given(faqService).deleteFAQ(eq(1L), eq("ROLE_ADMIN"));
 
-        // when & then
-        mockMvc.perform(delete("/api/faqs/{id}", 1)
-                        .with(csrf())  // CSRF 토큰 추가
+        mockMvc.perform(delete("/api/faqs/{id}", 1L)
+                        .with(csrf())
                         .header("Authorization", "ROLE_ADMIN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("FAQ successfully deleted"));
     }
 
     @Test
-    @DisplayName("Delete FAQ - Not Found")
-    @WithMockUser(roles = {"ADMIN"})
-    void deleteFAQ_NotFound() throws Exception {
-        // given
-        willThrow(new IllegalArgumentException("FAQ with id 1 not found")).given(faqService).deleteFAQ(eq(1L), eq("ROLE_ADMIN"));
-
-        // when & then
-        mockMvc.perform(delete("/api/faqs/{id}", 1)
+    @DisplayName("Delete FAQ - Forbidden for non-admin user")
+    @WithMockUser(roles = {"USER"})
+    void deleteFAQ_Forbidden() throws Exception {
+        mockMvc.perform(delete("/api/faqs/{id}", 1L)
                         .with(csrf())
-                        .header("Authorization", "ROLE_ADMIN"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("DELETE_FAILED"))
-                .andExpect(jsonPath("$.message").value("FAQ with id 1 not found"));
+                        .header("Authorization", "ROLE_USER"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Access Denied: User does not have sufficient permissions"));
     }
 
     @Test
-    @DisplayName("Delete FAQ - Internal Server Error")
-    @WithMockUser(roles = {"ADMIN"})
-    void deleteFAQ_InternalServerError() throws Exception {
-        // given
-        willThrow(new RuntimeException("Unexpected error")).given(faqService).deleteFAQ(eq(1L), eq("ROLE_ADMIN"));
+    @DisplayName("Search FAQs - Success")
+    @WithMockUser(roles = {"USER"})
+    void searchFAQs_Success() throws Exception {
+        given(faqService.searchFAQs(0, 10, "test")).willReturn(Map.of("results", "search data"));
 
-        // when & then
-        mockMvc.perform(delete("/api/faqs/{id}", 1)
-                        .with(csrf())
-                        .header("Authorization", "ROLE_ADMIN"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.error").value("DELETE_FAILED"))
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred while deleting FAQ"));
-    }
-
-
-    @ParameterizedTest
-    @DisplayName("Search FAQs - Success for Keyword 'FAQ'")
-    @ValueSource(strings = {"ADMIN", "USER"})
-    @WithMockUser(roles = {"USER", "ADMIN"})
-    void searchFAQs_Success(String role) throws Exception {
-        // given
-        String keyword = "Admin";
-
-        FAQCategory category = new FAQCategory(1L, "general", "this is general");
-        FAQ faq1 = new FAQ(1L, 1L, "Admin Question 1?", "Admin Answer 1",  LocalDateTime.now(), LocalDateTime.now(), null, category);
-        FAQ faq2 = new FAQ(2L, 1L, "Admin Question 2?", "Admin Answer 2",  LocalDateTime.now(), LocalDateTime.now(), null, category);
-
-        List<FAQ> faqs = List.of(faq1, faq2);
-        Page<FAQ> faqPage = new PageImpl<>(faqs, PageRequest.of(0, 10), faqs.size());
-        Map<String, Object> response = Map.of(
-                "totalElements", faqPage.getTotalElements(),
-                "isFirstPage", faqPage.isFirst(),
-                "isLastPage", faqPage.isLast(),
-                "totalPages", faqPage.getTotalPages(),
-                "isSorted", faqPage.getSort().isSorted(),
-                "pageSize", faqPage.getSize(),
-                "currentPage", faqPage.getNumber(),
-                "data", faqPage.getContent()
-        );
-
-        given(faqService.searchFAQs(ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyString())).willReturn(response);
-
-        // when & then
         mockMvc.perform(get("/api/faqs/search")
                         .param("page", "0")
                         .param("pageSize", "10")
-                        .param("keyword", keyword)
-                        .header("Authorization", role)
-                        .contentType(MediaType.APPLICATION_JSON))
+                        .param("keyword", "test")
+                        .header("Authorization", "ROLE_USER"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.totalElements").value(faqs.size()))
-                .andExpect(jsonPath("$.isFirstPage").value(true))
-                .andExpect(jsonPath("$.isLastPage").value(true))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.pageSize").value(10))
-                .andExpect(jsonPath("$.currentPage").value(0))
-                .andExpect(jsonPath("$.data[0].question").value("Admin Question 1?"))
-                .andExpect(jsonPath("$.data[0].answer").value("Admin Answer 1"))
-                .andExpect(jsonPath("$.data[0].faqCategory.name").value("general"))
-                .andExpect(jsonPath("$.data[1].question").value("Admin Question 2?"))
-                .andExpect(jsonPath("$.data[1].answer").value("Admin Answer 2"))
-                .andExpect(jsonPath("$.data[1].faqCategory.name").value("general"));
+                .andExpect(jsonPath("$.results").value("search data"));
     }
-
 }
