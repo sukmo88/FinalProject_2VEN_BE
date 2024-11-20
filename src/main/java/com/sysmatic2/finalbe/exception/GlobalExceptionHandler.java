@@ -10,6 +10,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mail.MailException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -40,6 +41,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 500: 이메일 전송 실패
+    @ExceptionHandler(MailException.class)
+    public ResponseEntity<Object> handleMailException(MailException ex) {
+        logger.error("Mail send failed: ", ex);
+        // 발생 예외에 따라 세분화 필요?
+        return ResponseUtils.buildErrorResponse(
+                "MAIL_SEND_FAILED",
+                ex.getClass().getSimpleName(),
+                "메일 전송에 실패했습니다.",
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
     // 400: 잘못된 데이터 타입
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
@@ -53,7 +67,7 @@ public class GlobalExceptionHandler {
     }
 
     // 400: 유효성 검사 실패
-    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class})
+    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class, ConfirmPasswordMismatchException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -70,12 +84,29 @@ public class GlobalExceptionHandler {
                 String message = violation.getMessage();
                 fieldErrors.put(field, message);
             });
+        } else if (ex instanceof ConfirmPasswordMismatchException) {
+            ConfirmPasswordMismatchException confirmEx = (ConfirmPasswordMismatchException) ex;
+            String field = "confirmPassword";
+            String message = confirmEx.getMessage();
+            fieldErrors.put(field, message);
         }
 
         return ResponseUtils.buildFieldErrorResponse(
                 fieldErrors,
                 ex.getClass().getSimpleName(),
                 "유효성 검사에 실패했습니다.",
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    // 400: 이메일 인증 실패
+    @ExceptionHandler(EmailVerificationFailedException.class)
+    public ResponseEntity<Object> handleEmailVerificationFailedException(EmailVerificationFailedException e) {
+        logger.warn("Email Verification failed: {}", e.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "EMAIL_VERIFICATION_FAILED",
+                e.getClass().getSimpleName(),
+                e.getMessage(),
                 HttpStatus.BAD_REQUEST
         );
     }
@@ -105,7 +136,7 @@ public class GlobalExceptionHandler {
     }
 
     // 404: 데이터 없음
-    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class, TradingCycleNotFoundException.class, EmptyResultDataAccessException.class})
+    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class, TradingCycleNotFoundException.class, EmptyResultDataAccessException.class, InvestmentAssetClassesNotFoundException.class})
     public ResponseEntity<Object> handleNotFoundExceptions(Exception ex) {
         logger.warn("Data not found: {}", ex.getMessage());
         return ResponseUtils.buildErrorResponse(

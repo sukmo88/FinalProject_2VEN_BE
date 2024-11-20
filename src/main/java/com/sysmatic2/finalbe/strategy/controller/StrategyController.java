@@ -107,4 +107,13 @@ public class StrategyController {
         responseMap.put("msg", "DELETE_SUCCESS");
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
+
+    //6. 전략 수정
+//    @PutMapping(value = "/{id}", produces = "application/json")
+//    public ResponseEntity<Map> deleteStrategy(@PathVariable("id") Long id, @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
+//        strategyService.updateStrategy(id, strategyPayloadDto);
+//        Map<String, String> responseMap = new HashMap<>();
+//        responseMap.put("msg", "UPDATE_SUCCESS");
+//        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+//    }
 }

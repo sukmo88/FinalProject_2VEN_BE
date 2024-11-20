@@ -28,9 +28,6 @@ public class StrategyHistoryEntity extends Auditable {
     @Column(name = "trading_type_id", nullable = false)
     private Integer tradingTypeId; //매매 유형 ID
 
-    @Column(name = "strategy_status_code", nullable = false)
-    private String strategyStatusCode; //전략 상태 공통코드(운용중/운용종료)
-
     @Column(name = "trading_cycle", nullable = false)
     private Integer tradingCycle; //전략 주기
 

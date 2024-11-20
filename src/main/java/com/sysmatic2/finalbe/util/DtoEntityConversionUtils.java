@@ -4,9 +4,13 @@ import com.sysmatic2.finalbe.admin.dto.*;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
+import com.sysmatic2.finalbe.member.dto.SignupDTO;
+import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -189,5 +193,28 @@ public class DtoEntityConversionUtils {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    // 회원
+    /**
+     * SignupDTO를 MemberEntity로 변환하는 메서드.
+     *
+     * @param  변환할 SignupDTO
+     * @return 변환된 MemberEntity로
+     */
+    public static MemberEntity convertToMemberEntity(SignupDTO signupDTO, PasswordEncoder passwordEncoder) {
+        MemberEntity member = new MemberEntity();
+
+        member.setMemberId(RandomKeyGenerator.createUUID());
+        member.setMemberGradeCode("MEMBER_GRADE_" + signupDTO.getMemberType());
+        member.setMemberStatusCode("MEMBER_STATUS_ACTIVE");
+        member.setEmail(signupDTO.getEmail());
+        member.setPassword(passwordEncoder.encode(signupDTO.getPassword()));
+        member.setNickname(signupDTO.getNickname());
+        member.setPhoneNumber(signupDTO.getPhoneNumber());
+        member.setSignupAt(LocalDateTime.now());
+        member.setIsAgreedMarketingAd(signupDTO.getMarketingOptional() ? 'Y' : 'N');
+
+        return member;
     }
 }
