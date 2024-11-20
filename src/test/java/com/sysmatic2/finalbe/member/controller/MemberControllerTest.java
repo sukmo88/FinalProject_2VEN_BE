@@ -86,7 +86,7 @@ class MemberControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest()) // 형식 검증 실패: 400 Bad Request
                 .andExpect(jsonPath("$.errorType").value("ConstraintViolationException"))
-                .andExpect(jsonPath("$.errors['checkNickname.nickname']").value("닉네임은 2~10자 이내의 문자여야 합니다."))
+                .andExpect(jsonPath("$.errors['checkNickname.nickname']").value("닉네임은 2~10자 이내의 문자(한글, 영어, 숫자)여야 합니다."))
                 .andExpect(jsonPath("$.message").value("유효성 검사에 실패했습니다."));
     }
 
