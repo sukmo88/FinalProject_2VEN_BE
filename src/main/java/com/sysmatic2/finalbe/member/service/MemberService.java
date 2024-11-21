@@ -54,6 +54,7 @@ public class MemberService {
         MemberEntity member = memberRepository.findByEmail(email)
                 .orElse(null);
         Map<String,Object> response = new HashMap<>();
+
         if(member == null) {
             //이메일로 사용자를 찾지 못했을 경우(404)
             response.put("status","error");
@@ -70,8 +71,7 @@ public class MemberService {
             return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
         }
 
-        if (!member.getPassword().equals(password)) {
-            // 비밀번호가 일치하지 않는 경우 (401 로그인 실패)
+        if (!passwordEncoder.matches(password, member.getPassword())) {            // 비밀번호가 일치하지 않는 경우 (401 로그인 실패)
             response.put("status", "error");
             response.put("message", "아이디 또는 비밀번호가 일치하지 않습니다.");
             response.put("errorCode", "INVALID_PASSWORD");
@@ -82,6 +82,7 @@ public class MemberService {
         response.put("status", "success");
         response.put("message", "로그인에 성공했습니다.");
         Map<String, Object> data = new HashMap<>();
+        data.put("member_id",member.getMemberId());
         data.put("email", member.getEmail());
         data.put("nickname", member.getNickname());
         data.put("role", member.getMemberGradeCode());
