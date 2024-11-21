@@ -1,5 +1,7 @@
 package com.sysmatic2.finalbe.attachment.service;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import lombok.RequiredArgsConstructor;
@@ -29,25 +31,40 @@ public class S3ClientService {
      * Presigned URL 생성
      */
     public String generatePresignedUrl(String fileName, String displayName) {
-        // Presigned URL 만료 시간 설정
-        Date expiration = new Date();
-        long expTimeMillis = System.currentTimeMillis() + 1000 * 60 * 15; // 15분
-        expiration.setTime(expTimeMillis);
+        // 유효성 검사
+        if (fileName == null || fileName.isEmpty()) {
+            throw new IllegalArgumentException("File name cannot be null or empty");
+        }
+        if (displayName == null || displayName.isEmpty()) {
+            throw new IllegalArgumentException("Display name cannot be null or empty");
+        }
+
+        // 만료 시간 상수 정의
+        final long PRESIGNED_URL_EXPIRATION_TIME_MILLIS = 1000 * 60 * 15; // 15분
+        Date expiration = new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRATION_TIME_MILLIS);
 
         // ResponseHeaderOverrides 설정 (다운로드 파일 이름 지정)
         ResponseHeaderOverrides responseHeaders = new ResponseHeaderOverrides()
                 .withContentDisposition("attachment; filename=\"" + displayName + "\"");
 
-        // Presigned URL 요청 생성
-        GeneratePresignedUrlRequest presignedUrlRequest = new GeneratePresignedUrlRequest(bucket, fileName)
-                .withMethod(HttpMethod.GET)
-                .withExpiration(expiration)
-                .withResponseHeaders(responseHeaders);
+        try {
+            // Presigned URL 요청 생성
+            GeneratePresignedUrlRequest presignedUrlRequest = new GeneratePresignedUrlRequest(bucket, fileName)
+                    .withMethod(HttpMethod.GET)
+                    .withExpiration(expiration)
+                    .withResponseHeaders(responseHeaders);
 
-        // Presigned URL 생성
-        URL presignedUrl = amazonS3.generatePresignedUrl(presignedUrlRequest);
+            // Presigned URL 생성
+            URL presignedUrl = amazonS3.generatePresignedUrl(presignedUrlRequest);
 
-        return presignedUrl.toString();
+            return presignedUrl.toString();
+        } catch (AmazonServiceException e) {
+            // AWS S3 서비스의 오류 처리
+            throw new RuntimeException("Error generating presigned URL: " + e.getErrorMessage(), e);
+        } catch (SdkClientException e) {
+            // 네트워크 오류 또는 클라이언트 오류 처리
+            throw new RuntimeException("Error generating presigned URL due to SDK client exception", e);
+        }
     }
 
     /**

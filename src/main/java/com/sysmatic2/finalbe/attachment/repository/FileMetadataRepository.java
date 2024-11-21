@@ -12,5 +12,7 @@ public interface FileMetadataRepository extends JpaRepository<FileMetadata, Long
     Optional<FileMetadata> findByFileName(String fileName);
     List<FileMetadata> findByFileCategoryAndUploaderId(String fileCategory, String uploaderId);
     Boolean existsByIdAndFileCategoryAndUploaderId(Long id, String fileCategory, String uploaderId);
+    Optional<FileMetadata> findByFileNameAndUploaderIdAndFileCategory(String fileName, String uploaderId, String fileCategory);
+
 
 }

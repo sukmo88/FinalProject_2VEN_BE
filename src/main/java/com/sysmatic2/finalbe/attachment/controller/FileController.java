@@ -59,12 +59,17 @@ public class FileController {
         // DB에서 파일 메타데이터 조회
         FileMetadata metadata = fileService.getFileMetadata(fileId);
 
-        // Presigned URL 생성
-        String presignedUrl = fileService.generatePresignedUrl(metadata.getFileName());
+        // Presigned URL 생성 (uploaderId, category 포함)
+        String presignedUrl = fileService.generatePresignedUrl(
+                metadata.getFileName(),
+                metadata.getUploaderId(),
+                metadata.getFileCategory()
+        );
 
         // Presigned URL 반환
         return ResponseEntity.ok(presignedUrl);
     }
+
 
 
     @GetMapping("/{fileId}")
