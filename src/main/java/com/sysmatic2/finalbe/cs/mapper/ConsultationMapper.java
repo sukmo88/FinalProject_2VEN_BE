@@ -4,15 +4,18 @@ import com.sysmatic2.finalbe.cs.dto.*;
 import com.sysmatic2.finalbe.cs.entity.ConsultationEntity;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
-import java.time.LocalDateTime;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
+/**
+ * 상담 매퍼
+ */
 @Component
 public class ConsultationMapper {
 
   /**
-   * Converts ConsultationEntity to ConsultationDetailResponseDto.
-   * This includes full details for a single consultation.
+   * ConsultationEntity를 ConsultationDetailResponseDto로 변환
    */
   public ConsultationDetailResponseDto toDetailResponseDto(ConsultationEntity entity) {
     return ConsultationDetailResponseDto.builder()
@@ -21,37 +24,39 @@ public class ConsultationMapper {
             .investorName(entity.getInvestor().getNickname())
             .traderId(entity.getTrader().getMemberId())
             .traderName(entity.getTrader().getNickname())
-            .strategyName(entity.getStrategyName() != null ? entity.getStrategyName().getStrategyTitle() : null) // Strategy name
+            .strategyId(entity.getStrategy().getStrategyId())
+            .strategyName(entity.getStrategy().getStrategyTitle())
             .investmentAmount(entity.getInvestmentAmount())
-            .investmentDate(entity.getInvestmentDate()) // Keep LocalDateTime as is
+            .investmentDate(entity.getInvestmentDate())
             .title(entity.getTitle())
             .content(entity.getContent())
-            .status(entity.getStatus()) // Keep ConsultationStatus enum as is
+            .status(entity.getStatus())
             .createdAt(entity.getCreatedAt())
             .updatedAt(entity.getUpdatedAt())
             .build();
   }
 
   /**
-   * Converts ConsultationEntity to ConsultationListResponseDto.
-   * This is optimized for paginated or summarized results.
+   * ConsultationEntity를 ConsultationListResponseDto로 변환
    */
   public ConsultationListResponseDto toListResponseDto(ConsultationEntity entity) {
     return ConsultationListResponseDto.builder()
             .id(entity.getId())
             .investorName(entity.getInvestor().getNickname())
+            .investorProfileUrl(entity.getInvestor().getProfilePath())
             .traderName(entity.getTrader().getNickname())
-            .strategyName(entity.getStrategyName() != null ? entity.getStrategyName().getStrategyTitle() : null) // Strategy name
-            .investmentDate(entity.getInvestmentDate()) // Keep LocalDateTime as is
+            .traderProfileUrl(entity.getTrader().getProfilePath())
+            .strategyId(entity.getStrategy().getStrategyId())
+            .strategyName(entity.getStrategy().getStrategyTitle())
+            .investmentDate(entity.getInvestmentDate())
             .title(entity.getTitle())
-            .status(entity.getStatus()) // Keep ConsultationStatus enum as is
+            .status(entity.getStatus())
             .createdAt(entity.getCreatedAt())
             .build();
   }
 
   /**
-   * Converts ConsultationCreateDto to ConsultationEntity.
-   * Assumes investor, trader, and strategy are fetched from the database.
+   * ConsultationCreateDto를 ConsultationEntity로 변환
    */
   public ConsultationEntity toEntityFromCreateDto(ConsultationCreateDto dto,
                                                   MemberEntity investor,
@@ -60,7 +65,7 @@ public class ConsultationMapper {
     return ConsultationEntity.builder()
             .investor(investor)
             .trader(trader)
-            .strategyName(strategy) // Use the fetched StrategyEntity
+            .strategy(strategy)
             .investmentAmount(dto.getInvestmentAmount())
             .investmentDate(dto.getInvestmentDate())
             .title(dto.getTitle())
@@ -72,8 +77,7 @@ public class ConsultationMapper {
   }
 
   /**
-   * Updates an existing ConsultationEntity using ConsultationUpdateDto.
-   * Assumes strategy is fetched from the database if provided.
+   * ConsultationUpdateDto를 기존 ConsultationEntity에 반영
    */
   public ConsultationEntity updateEntityFromDto(ConsultationEntity entity,
                                                 ConsultationUpdateDto dto,
@@ -85,9 +89,9 @@ public class ConsultationMapper {
       entity.setContent(dto.getContent());
     }
     if (strategy != null) {
-      entity.setStrategyName(strategy); // Use the fetched StrategyEntity
+      entity.setStrategy(strategy);
     }
-    if (dto.getInvestmentAmount() > 0) {
+    if (dto.getInvestmentAmount() != null && dto.getInvestmentAmount() > 0) {
       entity.setInvestmentAmount(dto.getInvestmentAmount());
     }
     if (dto.getInvestmentDate() != null) {
@@ -96,7 +100,6 @@ public class ConsultationMapper {
     if (dto.getStatus() != null) {
       entity.setStatus(dto.getStatus());
     }
-    entity.setUpdatedAt(LocalDateTime.now());
     return entity;
   }
 }

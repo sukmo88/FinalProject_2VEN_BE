@@ -4,6 +4,9 @@ import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -18,6 +21,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class ConsultationEntity {
 
   @Id
@@ -37,7 +41,7 @@ public class ConsultationEntity {
   // 투자 전략
   @ManyToOne
   @JoinColumn(name = "strategy_id", nullable = true)
-  private StrategyEntity strategyName;
+  private StrategyEntity strategy;
 
   // 투자 금액
   @Column(nullable = false)
@@ -61,10 +65,12 @@ public class ConsultationEntity {
   private ConsultationStatus status;
 
   // 생성일
-  @Column(nullable = false)
+  @CreatedDate
+  @Column(nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
   // 수정일
+  @LastModifiedDate
   @Column(nullable = false)
   private LocalDateTime updatedAt;
 
