@@ -137,9 +137,12 @@ public class MemberController {
 
     // 사이드바 프로필 조회
     @GetMapping("/{memberId}/sidebar-profile")
-    public ResponseEntity<Map<String, String>> asdfasdfasdf(
-
-    )
+    public ResponseEntity<Map<String, String>> getSidebarProfile(@PathVariable String memberId) {
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "사이드바 프로필 조회에 성공하였습니다."
+        ));
+    }
 
     //개인정보상세조회
     @GetMapping("/details")
