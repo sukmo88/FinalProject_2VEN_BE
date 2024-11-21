@@ -7,17 +7,20 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 
 public class CustomUserDetails implements UserDetails {
 
-    private final MemberEntity member;
+    //private final MemberEntity member;
+    private final Optional<MemberEntity> member;
 
-    public CustomUserDetails(MemberEntity member) {
+    public CustomUserDetails(Optional<MemberEntity> member) {
         this.member = member;
     }
 
     public String getMemberId() {
-        return member.getMemberId();
+        //return member.getMemberId();
+        return member.map(MemberEntity::getMemberId).orElseThrow(()->new IllegalArgumentException("Member not found"));
     }
 
     @Override
@@ -27,7 +30,7 @@ public class CustomUserDetails implements UserDetails {
         authorities.add(new GrantedAuthority() {
             @Override
             public String getAuthority() {
-                String memberGradeCode = member.getMemberGradeCode();
+                String memberGradeCode = member.map(MemberEntity::getMemberGradeCode).orElse("MEMBER_USER");
                 return memberGradeCode.replaceFirst("^MEMBER_", "");
             }
         });
@@ -37,12 +40,12 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return member.getPassword();
+        return member.map(MemberEntity::getPassword).orElseThrow(()->new IllegalArgumentException("Password not found"));
     }
 
     @Override
     public String getUsername() {
-        return member.getEmail();
+        return member.map(MemberEntity::getEmail).orElseThrow(()->new IllegalArgumentException("email not found"));
     }
 
     @Override

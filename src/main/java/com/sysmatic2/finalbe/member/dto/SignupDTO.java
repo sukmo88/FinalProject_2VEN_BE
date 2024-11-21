@@ -24,26 +24,26 @@ public class SignupDTO {
     @NotNull(message = "이메일은 필수 입력 값입니다.")
     private String email;
 
-    // 비밀번호 형식 : 영문 숫자를 포함한 8~10자
+    // 비밀번호 형식 : 영문, 숫자, 특수문자를 포함한 8자 이상
     @Pattern(
-            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,10}$",
-            message = "비밀번호는 공백 없이 영문과 숫자를 하나 이상씩 포함한 6~10자의 문자여야 합니다."
+            regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+            message = "비밀번호는 공백 없이 영문, 숫자, 특수문자를 하나 이상 포함한 8자 이상의 문자여야 합니다."
     )
-    @NotNull(message = "비밀번호는 필수 입력 값입니다.")
+    @NotNull(message = "비밀번호 확인은 필수 입력 값입니다.")
     private String password;
 
-    // 비밀번호 형식 : 영문 숫자를 포함한 8~10자
+    // 비밀번호 형식 : 영문, 숫자, 특수문자를 포함한 8자 이상
     @Pattern(
-            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,10}$",
-            message = "비밀번호는 공백 없이 영문과 숫자를 하나 이상씩 포함한 6~10자의 문자여야 합니다."
+            regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+            message = "비밀번호는 공백 없이 영문, 숫자, 특수문자를 하나 이상 포함한 8자 이상의 문자여야 합니다."
     )
     @NotNull(message = "비밀번호 확인은 필수 입력 값입니다.")
     private String confirmPassword;
 
-    // nickname 형식 : 2~10자의 문자열 (특수문자 X)
+    // nickname 형식 : 2~10자의 문자열 (특수문자 X, 한글 포함)
     @Pattern(
-            regexp = "^[A-Za-z\\d]{2,10}$",
-            message = "닉네임은 2~10자 이내의 문자여야 합니다."
+            regexp = "^[A-Za-z\\d가-힣]{2,10}$",
+            message = "닉네임은 2~10자 이내의 문자(한글, 영어, 숫자)여야 합니다."
     )
     @NotNull(message = "닉네임은 필수 입력 값입니다.")
     private String nickname;
