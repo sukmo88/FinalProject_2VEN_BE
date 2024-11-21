@@ -32,9 +32,9 @@ public class StrategyIACEntity extends Auditable {
     @JoinColumn(name="investment_asset_classes_id", nullable = false)
     private InvestmentAssetClassesEntity investmentAssetClassesEntity; //투자자산분류 ID
 
-    @Column(name="is_active", nullable = false, columnDefinition = "CHAR(1)")
-    @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isActive = "Y"; //사용유무 default Y
+//    @Column(name="is_active", nullable = false, columnDefinition = "CHAR(1)")
+//    @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
+//    private String isActive = "Y"; //사용유무 default Y
 
     @CreatedBy
     @Column(name="writer_id", nullable = false)

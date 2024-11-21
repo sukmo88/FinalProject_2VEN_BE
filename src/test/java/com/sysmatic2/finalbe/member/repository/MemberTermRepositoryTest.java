@@ -43,12 +43,13 @@ class MemberTermRepositoryTest {
 
         // 테스트용 MemberEntity 생성 및 저장
         testMember = new MemberEntity();
+        testMember.setMemberId("DTyoDAB7RBmr0NT-2gMtMg");
         testMember.setMemberGradeCode("MEMBER_ROLE_ADMIN");
         testMember.setMemberStatusCode("MEMBER_STATUS_ACTIVE");
         testMember.setEmail("test@example.com");
         testMember.setPassword("password");
         testMember.setNickname("testuser");
-        testMember.setPhoneNumber("123-456-7890");
+        testMember.setPhoneNumber("1234567890");
         testMember = memberRepository.save(testMember);
 
         // 테스트용 TermEntity 생성 및 저장
@@ -65,6 +66,7 @@ class MemberTermRepositoryTest {
     @DisplayName("MemberTerm Create 테스트")
     void testCreateMemberTerm() {
         MemberTermEntity memberTerm = new MemberTermEntity();
+        testMember.setMemberId("DTyoDAB7RBmr0NT-2gMtMg");
         memberTerm.setMember(testMember);
         memberTerm.setTerm(testTerm);
         memberTerm.setIsTermAgreed("Y");
@@ -80,6 +82,7 @@ class MemberTermRepositoryTest {
     void testReadMemberTerm() {
         // 데이터 생성
         MemberTermEntity memberTerm = new MemberTermEntity();
+        testMember.setMemberId("DTyoDAB7RBmr0NT-2gMtMg");
         memberTerm.setMember(testMember);
         memberTerm.setTerm(testTerm);
         memberTerm.setIsTermAgreed("Y");
@@ -97,6 +100,7 @@ class MemberTermRepositoryTest {
     void testUpdateMemberTerm() {
         // 데이터 생성
         MemberTermEntity memberTerm = new MemberTermEntity();
+        testMember.setMemberId("DTyoDAB7RBmr0NT-2gMtMg");
         memberTerm.setMember(testMember);
         memberTerm.setTerm(testTerm);
         memberTerm.setIsTermAgreed("Y");
@@ -115,6 +119,7 @@ class MemberTermRepositoryTest {
     void testDeleteMemberTerm() {
         // 데이터 생성
         MemberTermEntity memberTerm = new MemberTermEntity();
+        testMember.setMemberId("DTyoDAB7RBmr0NT-2gMtMg");
         memberTerm.setMember(testMember);
         memberTerm.setTerm(testTerm);
         memberTerm.setIsTermAgreed("Y");

@@ -60,7 +60,7 @@ public class MemberController {
     @PostMapping("/signup")
     public ResponseEntity<Map<String, String>> signup(@Valid @RequestBody SignupDTO signupDTO, HttpServletRequest req) {
 
-        // session 에서 이메일 인증 성공 여부 확인 (-> 세션을 Redis에 저장하도록 변경 필요!!!)
+        // session 에서 이메일 인증 성공 여부 확인
 
         // 인증 X -> 예외 발생
         HttpSession session = req.getSession(false);
@@ -85,8 +85,8 @@ public class MemberController {
     @GetMapping("/check-nickname")
     public ResponseEntity<Map<String, String>> checkNickname(
             @Pattern(
-                regexp = "^[A-Za-z\\d]{2,10}$",
-                message = "닉네임은 2~10자 이내의 문자여야 합니다."
+            regexp = "^[A-Za-z\\d가-힣]{2,10}$",
+            message = "닉네임은 2~10자 이내의 문자(한글, 영어, 숫자)여야 합니다."
             )
             String nickname) {
 
