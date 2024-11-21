@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
     }
 
     // 400: 유효성 검사 실패
-    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class, ConfirmPasswordMismatchException.class})
+    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class, ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -89,6 +89,11 @@ public class GlobalExceptionHandler {
             String field = "confirmPassword";
             String message = confirmEx.getMessage();
             fieldErrors.put(field, message);
+        } else if (ex instanceof InvestmentAssetClassesNotActiveException) {
+            InvestmentAssetClassesNotActiveException constraintEx = (InvestmentAssetClassesNotActiveException) ex;
+            String field = "investmentAssetClasses";
+            String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
         }
 
         return ResponseUtils.buildFieldErrorResponse(
@@ -107,6 +112,34 @@ public class GlobalExceptionHandler {
                 "EMAIL_VERIFICATION_FAILED",
                 e.getClass().getSimpleName(),
                 e.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    // 400: 잘못된 파라미터 (타입 및 누락)
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Object> handleBadRequestExceptions(Exception ex) {
+        logger.warn("Bad request parameter: {}", ex.getMessage());
+
+        String message;
+        if (ex instanceof MissingServletRequestParameterException) {
+            MissingServletRequestParameterException missingEx = (MissingServletRequestParameterException) ex;
+            message = String.format("필수 요청 파라미터 '%s'가 누락되었습니다. 기대하는 타입: %s",
+                    missingEx.getParameterName(), missingEx.getParameterType());
+        } else if (ex instanceof MethodArgumentTypeMismatchException) {
+            MethodArgumentTypeMismatchException mismatchEx = (MethodArgumentTypeMismatchException) ex;
+            message = String.format("파라미터 '%s'의 값 '%s'이(가) 잘못되었습니다. 기대되는 타입: %s",
+                    mismatchEx.getName(),
+                    mismatchEx.getValue(),
+                    mismatchEx.getRequiredType() != null ? mismatchEx.getRequiredType().getSimpleName() : "알 수 없음");
+        } else {
+            message = "잘못된 요청입니다.";
+        }
+
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                message,
                 HttpStatus.BAD_REQUEST
         );
     }
@@ -136,7 +169,7 @@ public class GlobalExceptionHandler {
     }
 
     // 404: 데이터 없음
-    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class, TradingCycleNotFoundException.class, EmptyResultDataAccessException.class})
+    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class, TradingCycleNotFoundException.class, EmptyResultDataAccessException.class, InvestmentAssetClassesNotFoundException.class, ConsultationNotFoundException.class, TraderNotFoundException.class, InvestorNotFoundException.class, StrategyNotFoundException.class})
     public ResponseEntity<Object> handleNotFoundExceptions(Exception ex) {
         logger.warn("Data not found: {}", ex.getMessage());
         return ResponseUtils.buildErrorResponse(
@@ -179,31 +212,8 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 400: 잘못된 파라미터 (타입 및 누락)
-    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
-    public ResponseEntity<Object> handleBadRequestExceptions(Exception ex) {
-        logger.warn("Bad request parameter: {}", ex.getMessage());
 
-        String message;
-        if (ex instanceof MissingServletRequestParameterException) {
-            MissingServletRequestParameterException missingEx = (MissingServletRequestParameterException) ex;
-            message = String.format("필수 요청 파라미터 '%s'가 누락되었습니다. 기대하는 타입: %s",
-                    missingEx.getParameterName(), missingEx.getParameterType());
-        } else if (ex instanceof MethodArgumentTypeMismatchException) {
-            MethodArgumentTypeMismatchException mismatchEx = (MethodArgumentTypeMismatchException) ex;
-            message = String.format("파라미터 '%s'의 값 '%s'이(가) 잘못되었습니다. 기대되는 타입: %s",
-                    mismatchEx.getName(),
-                    mismatchEx.getValue(),
-                    mismatchEx.getRequiredType() != null ? mismatchEx.getRequiredType().getSimpleName() : "알 수 없음");
-        } else {
-            message = "잘못된 요청입니다.";
-        }
 
-        return ResponseUtils.buildErrorResponse(
-                "BAD_REQUEST",
-                ex.getClass().getSimpleName(),
-                message,
-                HttpStatus.BAD_REQUEST
-        );
-    }
+
+
 }
