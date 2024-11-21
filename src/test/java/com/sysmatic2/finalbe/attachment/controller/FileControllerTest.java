@@ -83,21 +83,29 @@ class FileControllerTest {
         // Arrange
         Long fileId = 1L;
         String mockFileName = "test-file.png";
+        String mockUploaderId = "user123";
+        String mockFileCategory = "images";
         String mockPresignedUrl = "https://s3-bucket/test-file.png?presigned=true";
 
-        // Mocking file metadata and presigned URL generation
+        // Mocking file metadata
         FileMetadata mockMetadata = new FileMetadata();
+        mockMetadata.setId(fileId);
         mockMetadata.setFileName(mockFileName);
+        mockMetadata.setUploaderId(mockUploaderId);
+        mockMetadata.setFileCategory(mockFileCategory);
 
+        // Mocking service behavior
         Mockito.when(fileService.getFileMetadata(fileId)).thenReturn(mockMetadata);
-        Mockito.when(fileService.generatePresignedUrl(mockFileName)).thenReturn(mockPresignedUrl);
+        Mockito.when(fileService.generatePresignedUrl(mockFileName, mockUploaderId, mockFileCategory))
+                .thenReturn(mockPresignedUrl);
 
         // Act & Assert
-        mockMvc.perform(get("/api/files/download/{id}", fileId) // 컨트롤러 경로와 매핑된 {id} 사용
+        mockMvc.perform(get("/api/files/download/{fileId}", fileId) // Updated to match controller's @PathVariable name
                         .with(csrf()))
                 .andExpect(status().isOk()) // Expect HTTP 200 OK
                 .andExpect(content().string(mockPresignedUrl)); // Expect the presigned URL in the response body
     }
+
 
 
     @Test

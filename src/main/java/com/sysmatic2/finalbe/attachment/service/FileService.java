@@ -22,13 +22,18 @@ public class FileService {
     private final FileMetadataRepository fileMetadataRepository;
 
     /* AWS S3에서 Presigned URL을 생성 메서드 */
-    public String generatePresignedUrl(String fileName) {
+    public String generatePresignedUrl(String fileName, String uploaderId, String category) {
         // 파일 메타데이터 조회
-        FileMetadata metadata = fileMetadataRepository.findByFileName(fileName)
-                .orElseThrow(() -> new IllegalArgumentException("File not found: " + fileName));
+        FileMetadata metadata = fileMetadataRepository.findByFileNameAndUploaderIdAndFileCategory(fileName, uploaderId, category)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("File not found: fileName=%s, uploaderId=%s, category=%s", fileName, uploaderId, category)
+                ));
 
-        // S3 Presigned URL 생성 (displayName 포함)
-        return s3ClientService.generatePresignedUrl(metadata.getFileName(), metadata.getDisplayName());
+        // S3 키 생성 (업로드 시 사용된 방식과 동일하게 생성)
+        String s3Key = s3ClientService.generateS3Key(metadata.getUploaderId(), metadata.getFileCategory(), metadata.getFileName());
+
+        // S3 Presigned URL 생성
+        return s3ClientService.generatePresignedUrl(s3Key, metadata.getDisplayName());
     }
 
 

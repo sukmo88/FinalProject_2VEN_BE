@@ -32,33 +32,64 @@ class FileServiceTest {
     void testGeneratePresignedUrl_success() {
         // Arrange
         String fileName = "test-file.png";
+        String uploaderId = "user123";
+        String fileCategory = "images";
+        String displayName = "Test File";
+        String s3Key = "user123/images/test-file.png";
+        String presignedUrl = "https://s3.presigned-url.com/test-file.png";
+
         FileMetadata mockMetadata = new FileMetadata();
         mockMetadata.setFileName(fileName);
-        mockMetadata.setDisplayName("Test File");
+        mockMetadata.setDisplayName(displayName);
+        mockMetadata.setUploaderId(uploaderId);
+        mockMetadata.setFileCategory(fileCategory);
 
-        when(fileMetadataRepository.findByFileName(fileName)).thenReturn(Optional.of(mockMetadata));
-        when(s3ClientService.generatePresignedUrl(fileName, "Test File")).thenReturn("https://s3.presigned-url.com/test-file.png");
+        // Mock repository and S3 client behavior
+        when(fileMetadataRepository.findByFileNameAndUploaderIdAndFileCategory(fileName, uploaderId, fileCategory))
+                .thenReturn(Optional.of(mockMetadata)); // Mock metadata repository
+        when(s3ClientService.generateS3Key(uploaderId, fileCategory, fileName))
+                .thenReturn(s3Key); // Mock S3 key generation
+        when(s3ClientService.generatePresignedUrl(s3Key, displayName))
+                .thenReturn(presignedUrl); // Mock Presigned URL generation
 
         // Act
-        String result = fileService.generatePresignedUrl(fileName);
+        String result = fileService.generatePresignedUrl(fileName, uploaderId, fileCategory);
 
         // Assert
-        assertThat(result).isEqualTo("https://s3.presigned-url.com/test-file.png");
-        verify(fileMetadataRepository, times(1)).findByFileName(fileName);
-        verify(s3ClientService, times(1)).generatePresignedUrl(fileName, "Test File");
+        assertThat(result).isEqualTo(presignedUrl); // Validate the returned URL
+        verify(fileMetadataRepository, times(1))
+                .findByFileNameAndUploaderIdAndFileCategory(fileName, uploaderId, fileCategory);
+        verify(s3ClientService, times(1)).generateS3Key(uploaderId, fileCategory, fileName);
+        verify(s3ClientService, times(1)).generatePresignedUrl(s3Key, displayName);
     }
+
+
+
 
     @Test
     void testGeneratePresignedUrl_fileNotFound() {
         // Arrange
         String fileName = "non-existent-file.png";
-        when(fileMetadataRepository.findByFileName(fileName)).thenReturn(Optional.empty());
+        String uploaderId = "user123";
+        String fileCategory = "images";
+
+        // Mock repository behavior for "not found"
+        when(fileMetadataRepository.findByFileNameAndUploaderIdAndFileCategory(fileName, uploaderId, fileCategory))
+                .thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> fileService.generatePresignedUrl(fileName));
-        verify(fileMetadataRepository, times(1)).findByFileName(fileName);
+        assertThrows(IllegalArgumentException.class,
+                () -> fileService.generatePresignedUrl(fileName, uploaderId, fileCategory));
+
+        // Verify repository interaction
+        verify(fileMetadataRepository, times(1))
+                .findByFileNameAndUploaderIdAndFileCategory(fileName, uploaderId, fileCategory);
+
+        // Verify S3ClientService is not called
         verifyNoInteractions(s3ClientService);
     }
+
+
 
     @Test
     void testUploadFile_success() throws Exception {
