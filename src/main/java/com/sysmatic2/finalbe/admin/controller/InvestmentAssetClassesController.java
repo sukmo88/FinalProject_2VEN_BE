@@ -84,23 +84,7 @@ public class InvestmentAssetClassesController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 
-    //3. 투자자산분류 삭제
-//    @DeleteMapping(value="/inv-asset-classes/{id}")
-//    @ApiResponse(responseCode="200", description = "Delete Investment Asset Classes by Id")
-//    @ApiResponse(responseCode="400", description = "Wrong Request URL")
-//    @ApiResponse(responseCode="401", description = "Unauthorized")
-//    @ApiResponse(responseCode="404", description = "NOT EXIST")
-//    @ApiResponse(responseCode="405", description = "Wrong Request Method")
-//    @ApiResponse(responseCode="500", description = "Other Errors")
-//    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") Integer id) throws Exception {
-//        iacService.delete(id);
-//        Map<String, String> responseMap = new HashMap<>();
-//        responseMap.put("msg", "DELETE_SUCCESS");
-//
-//        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
-//    }
-
-    //3-1. 투자자산분류 soft delete
+    //3-1. 투자자산분류 삭제
     @DeleteMapping(value="/inv-asset-classes/{id}")
     @ApiResponse(responseCode="200", description = "Delete Investment Asset Classes by Id")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
@@ -110,7 +94,7 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") @Positive Integer id) throws Exception {
         //TODO) 관리자 판별
-        iacService.softDelete(id);
+        iacService.delete(id);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
 
