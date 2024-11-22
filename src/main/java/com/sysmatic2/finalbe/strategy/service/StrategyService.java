@@ -21,11 +21,13 @@ import com.sysmatic2.finalbe.strategy.entity.StrategyIACHistoryEntity;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.HandlerMapping;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -38,6 +40,7 @@ import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
 @Service
 @RequiredArgsConstructor
 public class StrategyService {
+    private final MemberRepository memberRepository;
     private final InvestmentAssetClassesRepository investmentAssetClassesRepository;
     private final TradingCycleRepository tradingCycleRepository;
     private final TradingTypeRepository tradingTypeRepository;
@@ -46,7 +49,7 @@ public class StrategyService {
     private final StrategyIACRepository strategyIACRepository;
     private final StrategyIACHistoryRepository strategyIACHistoryRepository;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
-    private final MemberRepository memberRepository;
+    private final HandlerMapping resourceHandlerMapping;
 
     //1. 전략 생성
     /**
@@ -529,24 +532,41 @@ public class StrategyService {
      * 2) 전략 내역에 운용 종료 로그를 기록한다.
      *
      */
-//    public void terminateStrategy(Long strategyId) {
-//        //1.전략 수정
-//        //id 값으로 해당 전략엔티티를 가져온다.
-//        StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(() ->
-//                new NoSuchElementException("종료하려는 전략이 존재하지 않습니다."));
-//
-//        //운용종료 상태코드, 운용종료일시 설정
-//        strategyEntity.setStrategyStatusCode("STRATEGY_OPERATION_TERMINATED");
-//        strategyEntity.setExitDate(LocalDateTime.now());
-//        //저장
-//        strategyRepo.save(strategyEntity);
-//
-//        //2. 전략 수정 이력
-//        StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
-//
-//
-//
-//    }
+    public Map<String, Long> terminateStrategy(Long strategyId, String adminId) {
+        MemberEntity admin = memberRepository.findById(adminId)
+                .orElseThrow(() -> new NoSuchElementException("해당 id의 관리자가 존재하지 않습니다."));
+
+        //1.전략 수정
+        //id 값으로 해당 전략엔티티를 가져온다.
+        StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(() ->
+                new NoSuchElementException("종료하려는 전략이 존재하지 않습니다."));
+
+        //만약 운용종료상태이면 이미 종료되었다면 예외 반환
+        if(strategyEntity.getStrategyStatusCode().equals("STRATEGY_OPERATION_TERMINATED")) {
+            throw new StrategyAlreadyTerminatedException("전략이 이미 운용종료된 상태입니다.");
+        }
+
+        //수정시작일시 설정
+        LocalDateTime changeStartDatetime = LocalDateTime.now();
+
+        //운용종료 상태코드, 운용종료일시 설정
+        strategyEntity.setStrategyStatusCode("STRATEGY_OPERATION_TERMINATED");
+        strategyEntity.setExitDate(LocalDateTime.now());
+        //수정자, 수정일시 설정
+        strategyEntity.setUpdaterId(admin.getMemberId());
+        strategyEntity.setUpdatedAt(LocalDateTime.now());
+        //저장
+        strategyRepo.save(strategyEntity);
+
+        //2. 전략 수정 이력
+        StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity(strategyEntity, "STRATEGY_STATUS_TERMINATED", changeStartDatetime);
+        strategyHistoryRepo.save(strategyHistoryEntity);
+
+        //3. 반환값 생성
+        Map<String, Long> responseMap = new HashMap<>();
+        responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
+        return responseMap;
+    }
 
     //7. 전략 승인 요청
     /**
@@ -558,7 +578,7 @@ public class StrategyService {
      */
     @Transactional
     public Map<String, Long> approvalRequest(Long strategyId, String applicantId){
-        MemberEntity applicantEntity = memberRepository.getReferenceById(applicantId);
+        MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow();
 
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));

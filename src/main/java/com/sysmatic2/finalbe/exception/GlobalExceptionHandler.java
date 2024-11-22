@@ -93,7 +93,7 @@ public class GlobalExceptionHandler {
     // 400: 유효성 검사 실패
     @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class,
             ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class,
-            StrategyAlreadyApprovedException.class})
+            StrategyAlreadyApprovedException.class, StrategyAlreadyTerminatedException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -122,6 +122,11 @@ public class GlobalExceptionHandler {
             fieldErrors.put(field, message);
         } else if (ex instanceof StrategyAlreadyApprovedException) {
             StrategyAlreadyApprovedException constraintEx = (StrategyAlreadyApprovedException) ex;
+            String field = "strategy";
+            String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
+        } else if (ex instanceof StrategyAlreadyTerminatedException) {
+            StrategyAlreadyTerminatedException constraintEx = (StrategyAlreadyTerminatedException) ex;
             String field = "strategy";
             String message = constraintEx.getMessage();
             fieldErrors.put(field, message);

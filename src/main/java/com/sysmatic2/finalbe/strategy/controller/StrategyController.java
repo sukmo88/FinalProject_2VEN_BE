@@ -143,4 +143,17 @@ public class StrategyController {
         responseMap.put("data", dataMap);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
+
+    //9. 전략 운용 종료(PATCH)
+    @PatchMapping(value="/{id}/termination", produces = "application/json")
+    public ResponseEntity<Map> terminateStrategy(@PathVariable("id") Long id) throws Exception{
+        //TODO) 접속한 사람의 토큰 확인하기
+        String applicantId = "71-88RZ_QQ65hMGknyWKLA";
+
+        Map<String, Long> dataMap = strategyService.terminateStrategy(id, applicantId);
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("msg", "TERMINATE_SUCCESS");
+        responseMap.put("data", dataMap);
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+    }
 }
