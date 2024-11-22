@@ -74,4 +74,16 @@ public class ConsultationEntity {
   @Column(nullable = false)
   private LocalDateTime updatedAt;
 
+  // 트레이더의 답변 내용
+  @Column(columnDefinition = "TEXT")
+  private String replyContent;
+
+  // 답변 날짜
+  private LocalDateTime answerDate;
+
+  // 답변 생성일
+  private LocalDateTime replyCreatedAt;
+
+  // 답변 수정일
+  private LocalDateTime replyUpdatedAt;
 }

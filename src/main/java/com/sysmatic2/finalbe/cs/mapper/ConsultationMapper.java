@@ -1,21 +1,45 @@
 package com.sysmatic2.finalbe.cs.mapper;
 
-import com.sysmatic2.finalbe.cs.dto.*;
+import com.sysmatic2.finalbe.cs.dto.ConsultationCreateDto;
+import com.sysmatic2.finalbe.cs.dto.ConsultationDetailResponseDto;
+import com.sysmatic2.finalbe.cs.dto.ConsultationListResponseDto;
+import com.sysmatic2.finalbe.cs.dto.ConsultationUpdateDto;
 import com.sysmatic2.finalbe.cs.entity.ConsultationEntity;
-import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * 상담 매퍼
+ * 상담 매퍼 클래스
  */
 @Component
 public class ConsultationMapper {
 
   /**
-   * ConsultationEntity를 ConsultationDetailResponseDto로 변환
+   * Create DTO를 기반으로 엔티티 생성
+   */
+  public ConsultationEntity toEntityFromCreateDto(ConsultationCreateDto dto,
+                                                  com.sysmatic2.finalbe.member.entity.MemberEntity investor,
+                                                  com.sysmatic2.finalbe.member.entity.MemberEntity trader,
+                                                  com.sysmatic2.finalbe.strategy.entity.StrategyEntity strategy) {
+    ConsultationEntity entity = new ConsultationEntity();
+    entity.setInvestor(investor);
+    entity.setTrader(trader);
+    entity.setStrategy(strategy);
+    entity.setInvestmentAmount(dto.getInvestmentAmount());
+    entity.setInvestmentDate(dto.getInvestmentDate());
+    entity.setTitle(dto.getTitle());
+    entity.setContent(dto.getContent());
+    entity.setStatus(dto.getStatus());
+    entity.setCreatedAt(java.time.LocalDateTime.now());
+    entity.setUpdatedAt(java.time.LocalDateTime.now());
+    return entity;
+  }
+
+  /**
+   * 엔티티를 상세 응답 DTO로 변환
    */
   public ConsultationDetailResponseDto toDetailResponseDto(ConsultationEntity entity) {
     return ConsultationDetailResponseDto.builder()
@@ -33,20 +57,21 @@ public class ConsultationMapper {
             .status(entity.getStatus())
             .createdAt(entity.getCreatedAt())
             .updatedAt(entity.getUpdatedAt())
+            .replyContent(entity.getReplyContent())
+            .answerDate(entity.getAnswerDate())
+            .replyCreatedAt(entity.getReplyCreatedAt())
+            .replyUpdatedAt(entity.getReplyUpdatedAt())
             .build();
   }
 
   /**
-   * ConsultationEntity를 ConsultationListResponseDto로 변환
+   * 엔티티를 리스트 응답 DTO로 변환
    */
   public ConsultationListResponseDto toListResponseDto(ConsultationEntity entity) {
     return ConsultationListResponseDto.builder()
             .id(entity.getId())
             .investorName(entity.getInvestor().getNickname())
-            .investorProfileUrl(entity.getInvestor().getProfilePath())
             .traderName(entity.getTrader().getNickname())
-            .traderProfileUrl(entity.getTrader().getProfilePath())
-            .strategyId(entity.getStrategy().getStrategyId())
             .strategyName(entity.getStrategy().getStrategyTitle())
             .investmentDate(entity.getInvestmentDate())
             .title(entity.getTitle())
@@ -56,50 +81,25 @@ public class ConsultationMapper {
   }
 
   /**
-   * ConsultationCreateDto를 ConsultationEntity로 변환
+   * 리스트 엔티티를 리스트 DTO로 변환
    */
-  public ConsultationEntity toEntityFromCreateDto(ConsultationCreateDto dto,
-                                                  MemberEntity investor,
-                                                  MemberEntity trader,
-                                                  StrategyEntity strategy) {
-    return ConsultationEntity.builder()
-            .investor(investor)
-            .trader(trader)
-            .strategy(strategy)
-            .investmentAmount(dto.getInvestmentAmount())
-            .investmentDate(dto.getInvestmentDate())
-            .title(dto.getTitle())
-            .content(dto.getContent())
-            .status(dto.getStatus())
-            .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
-            .build();
+  public List<ConsultationListResponseDto> toListResponseDtos(List<ConsultationEntity> entities) {
+    return entities.stream()
+            .map(this::toListResponseDto)
+            .collect(Collectors.toList());
   }
 
   /**
-   * ConsultationUpdateDto를 기존 ConsultationEntity에 반영
+   * 업데이트 DTO를 기반으로 엔티티 업데이트
    */
-  public ConsultationEntity updateEntityFromDto(ConsultationEntity entity,
-                                                ConsultationUpdateDto dto,
-                                                StrategyEntity strategy) {
-    if (dto.getTitle() != null) {
-      entity.setTitle(dto.getTitle());
-    }
-    if (dto.getContent() != null) {
-      entity.setContent(dto.getContent());
-    }
-    if (strategy != null) {
-      entity.setStrategy(strategy);
-    }
-    if (dto.getInvestmentAmount() != null && dto.getInvestmentAmount() > 0) {
-      entity.setInvestmentAmount(dto.getInvestmentAmount());
-    }
-    if (dto.getInvestmentDate() != null) {
-      entity.setInvestmentDate(dto.getInvestmentDate());
-    }
-    if (dto.getStatus() != null) {
-      entity.setStatus(dto.getStatus());
-    }
+  public ConsultationEntity updateEntityFromDto(ConsultationEntity entity, ConsultationUpdateDto dto, StrategyEntity strategy) {
+    entity.setTitle(dto.getTitle());
+    entity.setContent(dto.getContent());
+    entity.setStrategy(strategy);
+    entity.setInvestmentAmount(dto.getInvestmentAmount());
+    entity.setInvestmentDate(dto.getInvestmentDate());
+    entity.setStatus(dto.getStatus());
+    entity.setUpdatedAt(java.time.LocalDateTime.now());
     return entity;
   }
 }
