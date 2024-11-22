@@ -18,13 +18,16 @@ import java.time.LocalDateTime;
 public class DailyStrategicStatisticsHistoryEntity extends Auditable {
 
     @Id
-    @Column(name = "strategy_id", nullable = false)
-    private Long strategyId; // 전략 ID
+    @ManyToOne
+    @JoinColumn(name = "strategy_id", nullable = false)
+    @MapsId("strategyId")
+    private StrategyEntity strategyId; // 전략 ID
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "daily_strategic_statistics_id", nullable = false)
-    private Long dailyStrategicStatisticsId; // 전략 일간 통계 ID
+    @ManyToOne
+    @JoinColumn(name = "daily_strategic_statistics_id", nullable = false)
+    @MapsId("dailyStrategicStatisticsId")
+    private DailyStrategicStatisticsEntity dailyStrategicStatisticsId; // 전략 일간 통계 ID
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
