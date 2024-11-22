@@ -31,7 +31,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final JWTUtil jwtUtil;
 
     private final ObjectMapper objectMapper = new ObjectMapper(); // JSON 파싱 도구
-    private String bodyId;
+    private String bodyEmail;
     private String bodyPassword;
 
     public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil) {
@@ -58,21 +58,21 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             // 요청 바디에서 JSON 읽기
             reader = request.getReader();
             loginDto = objectMapper.readValue(reader, LoginDto.class);
-            bodyId = loginDto.getId();
+            bodyEmail = loginDto.getEmail();
             bodyPassword = loginDto.getPassword();
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse request body", e);
         }
 
         // JSON Body에서 ID와 Password 추출
-        if (loginDto == null || loginDto.getId() == null || loginDto.getPassword() == null) {
+        if (loginDto == null || loginDto.getEmail() == null || loginDto.getPassword() == null) {
             throw new RuntimeException("Missing username or password in request body");
         }
 
         // UsernamePasswordAuthenticationToken 생성
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
-                        loginDto.getId(),
+                        loginDto.getEmail(),
                         loginDto.getPassword()
                 );
 
