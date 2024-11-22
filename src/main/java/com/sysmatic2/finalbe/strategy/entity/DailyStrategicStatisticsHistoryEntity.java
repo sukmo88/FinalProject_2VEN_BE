@@ -9,7 +9,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@IdClass(DailyStrategicStatisticsHistoryId.class)
 @Table(name = "daily_strategic_statistics_history")
 @Getter
 @ToString
@@ -18,18 +17,17 @@ import java.time.LocalDateTime;
 public class DailyStrategicStatisticsHistoryEntity extends Auditable {
 
     @Id
-    @Column(name = "strategy_id", nullable = false)
-    private Long strategyId; // 전략 ID
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "daily_strategic_statistics_id", nullable = false)
-    private Long dailyStrategicStatisticsId; // 전략 일간 통계 ID
-
-    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "daily_strategic_statistics_history_id", nullable = false)
     private Long dailyStrategicStatisticsHistoryId; // 전략 일간 통계 이력 ID
+
+    @ManyToOne
+    @JoinColumn(name = "strategy_id", nullable = false)
+    private StrategyEntity strategyId; // 전략 FK
+
+    @ManyToOne
+    @JoinColumn(name = "daily_strategic_statistics_id", nullable = false)
+    private DailyStrategicStatisticsEntity dailyStrategicStatistics; // 일간 통계 FK
 
     @Column(name = "date", nullable = false)
     private LocalDate date; // 일자

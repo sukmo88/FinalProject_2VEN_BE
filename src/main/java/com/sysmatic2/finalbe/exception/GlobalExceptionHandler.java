@@ -29,8 +29,32 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // 400: 커스텀 예외 처리 - ReplyNotFoundException
+    @ExceptionHandler(ReplyNotFoundException.class)
+    public ResponseEntity<Object> handleReplyNotFoundException(ReplyNotFoundException ex) {
+        logger.warn("ReplyNotFoundException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    // 400: 커스텀 예외 처리 - ConsultationAlreadyCompletedException
+    @ExceptionHandler(ConsultationAlreadyCompletedException.class)
+    public ResponseEntity<Object> handleConsultationAlreadyCompletedException(ConsultationAlreadyCompletedException ex) {
+        logger.warn("ConsultationAlreadyCompletedException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
     // 500: 일반적인 예외 처리
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler({Exception.class})
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
         logger.error("Unhandled exception occurred: ", ex);
         return ResponseUtils.buildErrorResponse(

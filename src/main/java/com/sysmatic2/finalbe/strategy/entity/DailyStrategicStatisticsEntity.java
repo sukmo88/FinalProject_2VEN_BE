@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@IdClass(DailyStrategicStatisticsId.class)
 @Table(name = "daily_strategic_statistics")
 @Getter
 @ToString
@@ -16,15 +15,13 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class DailyStrategicStatisticsEntity extends Auditable {
     @Id
-    @ManyToOne
-    @JoinColumn(name = "strategy_id", nullable = false)
-    @MapsId("strategyId") // 복합키의 strategyId와 매핑
-    private StrategyEntity strategyId; // 전략 ID
-
-    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "daily_strategic_statistics_id", nullable = false)
     private Long dailyStrategicStatisticsId; // 전략 일간 통계 ID
+
+    @ManyToOne
+    @JoinColumn(name = "strategy_id", nullable = false)
+    private StrategyEntity strategyId; // 전략 FK
 
     @Column(name = "date", nullable = false)
     private LocalDate date; // 일자
