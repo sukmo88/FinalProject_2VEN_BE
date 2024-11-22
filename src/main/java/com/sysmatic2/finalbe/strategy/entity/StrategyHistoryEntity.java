@@ -94,6 +94,7 @@ public class StrategyHistoryEntity extends Auditable {
         this.writedAt = strategyEntity.getWritedAt();
         this.isPosted = strategyEntity.getIsPosted();
         this.isApproved = strategyEntity.getIsApproved();
+        this.updaterId = strategyEntity.getUpdaterId();
         this.updatedAt = strategyEntity.getUpdatedAt();
         this.exitDate = strategyEntity.getExitDate();
         this.changeStartDate = startDatetime;
