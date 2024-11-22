@@ -16,10 +16,11 @@ public class CorsConfig {
         // 모든 Origin 허용
         configuration.addAllowedOriginPattern("*"); // "*"는 모든 Origin 허용
         //configuration.setAllowedOrigins(Arrays.asList("http://localhost:4173", "https://2ven.shop")); // 허용할 Origin
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE")); // 허용할 HTTP 메서드
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // 허용할 HTTP 메서드
         //configuration.setAllowedHeaders(Arrays.asList("*")); // 허용할 헤더
         // 모든 헤더 허용
         configuration.addAllowedHeader("*");
+        configuration.addExposedHeader("Authorization");
         configuration.setAllowCredentials(true); // 인증 정보 포함 허용 (JWT 같은 토큰)
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
