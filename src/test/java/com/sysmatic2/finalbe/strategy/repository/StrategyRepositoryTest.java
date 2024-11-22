@@ -80,7 +80,7 @@ class StrategyRepositoryTest {
             strategy.setMinInvestmentAmount("10000");
 //            strategy.setStrategyStatusCode("ACTIVE");
             strategy.setIsPosted("Y");
-            strategy.setIsGranted("Y");
+            strategy.setIsApproved("Y");
             strategy.setWriterId("Writer_" + i);
             strategy.setTradingCycleEntity(tradingCycleRepository.findById((i % 2) + 1).orElseThrow());
             strategy.setTradingTypeEntity(tradingTypeRepository.findById((i % 3) + 1).orElseThrow());

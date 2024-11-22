@@ -17,7 +17,7 @@ import java.util.List;
 @ToString
 public class FollowingStrategyFolderEntity extends Auditable {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "following_strategy_folder_id")
     private Long followingStrategyFolderId;
 

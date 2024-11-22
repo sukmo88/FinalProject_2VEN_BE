@@ -2,7 +2,9 @@ package com.sysmatic2.finalbe.member.service;
 
 import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
+import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.SignupDTO;
+import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
@@ -13,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -90,6 +93,16 @@ public class MemberService {
         response.put("data", data);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    public SimpleProfileDTO getSimpleProfile(String memberId) {
+        Optional<SimpleProfileDTO> simpleProfileByMemberId = memberRepository.findSimpleProfileByMemberId(memberId);
+
+        if(simpleProfileByMemberId.isEmpty()) {
+            throw new MemberNotFoundException("존재하지 않는 회원입니다.");
+        }
+
+        return simpleProfileByMemberId.get();
     }
 
 }

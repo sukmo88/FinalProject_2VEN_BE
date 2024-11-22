@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
+import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
@@ -28,6 +29,7 @@ import java.util.Map;
 @Tag(name = "Strategy Controller", description = "전략 컨트롤러")
 public class StrategyController {
     private final StrategyService strategyService;
+    private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
 
     // 1. 전략 생성페이지(GET)
     @GetMapping("/registration-form")
@@ -125,6 +127,32 @@ public class StrategyController {
         Map<String, Long> dataMap = strategyService.updateStrategy(id, strategyPayloadDto);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "UPDATE_SUCCESS");
+        responseMap.put("data", dataMap);
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+    }
+
+    //8. 전략 승인 요청(POST)
+    @PostMapping(value = "/{id}/approval-request", produces = "application/json")
+    public ResponseEntity<Map> requestStrategyApproval(@PathVariable("id") Long id) throws Exception{
+        //TODO) 접속한 사람의 토큰 확인하기
+        String applicantId = "71-88RZ_QQ65hMGknyWKLA";
+
+        Map<String, Long> dataMap = strategyService.approvalRequest(id, applicantId);
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("msg", "CREATE_SUCCESS");
+        responseMap.put("data", dataMap);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
+    }
+
+    //9. 전략 운용 종료(PATCH)
+    @PatchMapping(value="/{id}/termination", produces = "application/json")
+    public ResponseEntity<Map> terminateStrategy(@PathVariable("id") Long id) throws Exception{
+        //TODO) 접속한 사람의 토큰 확인하기
+        String applicantId = "71-88RZ_QQ65hMGknyWKLA";
+
+        Map<String, Long> dataMap = strategyService.terminateStrategy(id, applicantId);
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("msg", "TERMINATE_SUCCESS");
         responseMap.put("data", dataMap);
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }

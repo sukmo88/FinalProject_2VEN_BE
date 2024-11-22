@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @ToString
 public class TermEntity extends Auditable {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "term_id")
     private Integer termId;
 
