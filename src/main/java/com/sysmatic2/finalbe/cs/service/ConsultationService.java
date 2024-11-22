@@ -1,18 +1,16 @@
 package com.sysmatic2.finalbe.cs.service;
 
-import com.sysmatic2.finalbe.cs.dto.ConsultationCreateDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationDetailResponseDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationListResponseDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationUpdateDto;
-import com.sysmatic2.finalbe.cs.dto.PaginatedResponseDto;
+import com.sysmatic2.finalbe.cs.dto.*;
 import com.sysmatic2.finalbe.cs.entity.ConsultationEntity;
 import com.sysmatic2.finalbe.cs.entity.ConsultationStatus;
-import com.sysmatic2.finalbe.exception.ConsultationNotFoundException;
-import com.sysmatic2.finalbe.exception.TraderNotFoundException;
-import com.sysmatic2.finalbe.exception.InvestorNotFoundException;
-import com.sysmatic2.finalbe.exception.StrategyNotFoundException;
 import com.sysmatic2.finalbe.cs.mapper.ConsultationMapper;
 import com.sysmatic2.finalbe.cs.repository.ConsultationRepository;
+import com.sysmatic2.finalbe.exception.ConsultationAlreadyCompletedException;
+import com.sysmatic2.finalbe.exception.ConsultationNotFoundException;
+import com.sysmatic2.finalbe.exception.InvestorNotFoundException;
+import com.sysmatic2.finalbe.exception.ReplyNotFoundException;
+import com.sysmatic2.finalbe.exception.StrategyNotFoundException;
+import com.sysmatic2.finalbe.exception.TraderNotFoundException;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
@@ -27,7 +25,6 @@ import java.time.LocalDateTime;
 @Service
 public class ConsultationService {
 
-  private static final int PAGE_SIZE = 10; // 기본 페이징 크기 설정
   private final ConsultationRepository consultationRepository;
   private final MemberRepository memberRepository;
   private final StrategyRepository strategyRepository;
@@ -47,31 +44,26 @@ public class ConsultationService {
    * 상담 생성
    */
   @Transactional
-  public ConsultationDetailResponseDto createConsultation(ConsultationCreateDto dto) {
+  public ConsultationDetailResponseDto createConsultation(ConsultationCreateDto createDto) {
     // 투자자 조회
-    MemberEntity investor = memberRepository.findById(dto.getInvestorId())
-            .orElseThrow(() -> new InvestorNotFoundException("투자자를 찾을 수 없습니다: " + dto.getInvestorId()));
+    MemberEntity investor = memberRepository.findById(createDto.getInvestorId())
+            .orElseThrow(() -> new InvestorNotFoundException("투자자를 찾을 수 없습니다: " + createDto.getInvestorId()));
 
     // 트레이더 조회
-    MemberEntity trader = memberRepository.findById(dto.getTraderId())
-            .orElseThrow(() -> new TraderNotFoundException("트레이더를 찾을 수 없습니다: " + dto.getTraderId()));
+    MemberEntity trader = memberRepository.findById(createDto.getTraderId())
+            .orElseThrow(() -> new TraderNotFoundException("트레이더를 찾을 수 없습니다: " + createDto.getTraderId()));
 
-    // 전략 조회 (필수)
-    StrategyEntity strategy = strategyRepository.findById(dto.getStrategyId())
-            .orElseThrow(() -> new StrategyNotFoundException("전략을 찾을 수 없습니다: " + dto.getStrategyId()));
+    // 전략 조회
+    StrategyEntity strategy = strategyRepository.findById(createDto.getStrategyId())
+            .orElseThrow(() -> new StrategyNotFoundException("전략을 찾을 수 없습니다: " + createDto.getStrategyId()));
 
-    // DTO의 strategyName과 실제 전략 이름 일치 여부 검증
-    if (!strategy.getStrategyTitle().equals(dto.getStrategyName())) {
-      throw new IllegalArgumentException("전략 ID와 전략 이름이 일치하지 않습니다.");
-    }
+    // DTO를 엔티티로 변환
+    ConsultationEntity consultationEntity = consultationMapper.toEntityFromCreateDto(createDto, investor, trader, strategy);
 
-    // ConsultationEntity 생성
-    ConsultationEntity entity = consultationMapper.toEntityFromCreateDto(dto, investor, trader, strategy);
-    entity.setCreatedAt(LocalDateTime.now());
-    entity.setUpdatedAt(LocalDateTime.now());
+    // 상담 저장
+    ConsultationEntity savedEntity = consultationRepository.save(consultationEntity);
 
-    // 저장 및 DTO 변환
-    ConsultationEntity savedEntity = consultationRepository.save(entity);
+    // 엔티티를 상세 DTO로 변환하여 반환
     return consultationMapper.toDetailResponseDto(savedEntity);
   }
 
@@ -80,66 +72,55 @@ public class ConsultationService {
    */
   @Transactional(readOnly = true)
   public ConsultationDetailResponseDto getConsultationById(Long id) {
-    ConsultationEntity entity = consultationRepository.findById(id)
+    ConsultationEntity consultation = consultationRepository.findById(id)
             .orElseThrow(() -> new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id));
-    return consultationMapper.toDetailResponseDto(entity);
+
+    return consultationMapper.toDetailResponseDto(consultation);
   }
 
   /**
-   * 상담 목록 조회 (투자자, 트레이더 필터링)
+   * 상담 목록 조회
    */
   @Transactional(readOnly = true)
   public PaginatedResponseDto<ConsultationListResponseDto> getConsultations(String investorId, String traderId, int page) {
-    PageRequest pageable = PageRequest.of(page, PAGE_SIZE);
-    Page<ConsultationEntity> consultations;
+    Page<ConsultationEntity> consultationsPage;
 
     if (investorId != null && !investorId.isEmpty()) {
-      consultations = consultationRepository.findAllByInvestor_MemberId(investorId, pageable);
+      consultationsPage = consultationRepository.findAllByInvestor_MemberId(investorId, PageRequest.of(page, 10));
     } else if (traderId != null && !traderId.isEmpty()) {
-      consultations = consultationRepository.findAllByTrader_MemberId(traderId, pageable);
+      consultationsPage = consultationRepository.findAllByTrader_MemberId(traderId, PageRequest.of(page, 10));
     } else {
-      consultations = consultationRepository.findAll(pageable);
+      consultationsPage = consultationRepository.findAll(PageRequest.of(page, 10));
     }
 
-    Page<ConsultationListResponseDto> consultationPage = consultations.map(consultationMapper::toListResponseDto);
-
-    PaginatedResponseDto<ConsultationListResponseDto> response = PaginatedResponseDto.<ConsultationListResponseDto>builder()
-            .content(consultationPage.getContent())
-            .page(consultationPage.getNumber())
-            .size(consultationPage.getSize())
-            .totalElements(consultationPage.getTotalElements())
-            .totalPages(consultationPage.getTotalPages())
-            .build();
-
-    return response;
+    return new PaginatedResponseDto<>(
+            consultationMapper.toListResponseDtos(consultationsPage.getContent()),
+            consultationsPage.getNumber(),
+            consultationsPage.getSize(),
+            consultationsPage.getTotalElements(),
+            consultationsPage.getTotalPages()
+    );
   }
 
   /**
    * 상담 업데이트
    */
   @Transactional
-  public ConsultationDetailResponseDto updateConsultation(Long id, ConsultationUpdateDto dto) {
+  public ConsultationDetailResponseDto updateConsultation(Long id, ConsultationUpdateDto updateDto) {
     ConsultationEntity existingEntity = consultationRepository.findById(id)
             .orElseThrow(() -> new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id));
 
-    // 전략 업데이트 (선택적)
-    StrategyEntity strategy = null;
-    if (dto.getStrategyId() != null) {
-      strategy = strategyRepository.findById(dto.getStrategyId())
-              .orElseThrow(() -> new StrategyNotFoundException("전략을 찾을 수 없습니다: " + dto.getStrategyId()));
+    // 전략 조회
+    StrategyEntity strategy = strategyRepository.findById(updateDto.getStrategyId())
+            .orElseThrow(() -> new StrategyNotFoundException("전략을 찾을 수 없습니다: " + updateDto.getStrategyId()));
 
-      // DTO의 strategyName과 실제 전략 이름 일치 여부 검증
-      if (!strategy.getStrategyTitle().equals(dto.getStrategyName())) {
-        throw new IllegalArgumentException("전략 ID와 전략 이름이 일치하지 않습니다.");
-      }
-    }
+    // DTO를 기반으로 엔티티 업데이트
+    ConsultationEntity updatedEntity = consultationMapper.updateEntityFromDto(existingEntity, updateDto, strategy);
 
-    // ConsultationEntity 업데이트
-    consultationMapper.updateEntityFromDto(existingEntity, dto, strategy);
-    existingEntity.setUpdatedAt(LocalDateTime.now());
-
-    // 저장 및 DTO 변환
+    // 상담 저장
     ConsultationEntity savedEntity = consultationRepository.save(existingEntity);
+
+    // 엔티티를 상세 DTO로 변환하여 반환
     return consultationMapper.toDetailResponseDto(savedEntity);
   }
 
@@ -152,5 +133,89 @@ public class ConsultationService {
       throw new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id);
     }
     consultationRepository.deleteById(id);
+  }
+
+  /**
+   * 상담에 답변하기
+   */
+  @Transactional
+  public ConsultationDetailResponseDto replyToConsultation(Long id, String replyContent) {
+    ConsultationEntity existingEntity = consultationRepository.findById(id)
+            .orElseThrow(() -> new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id));
+
+    // 이미 답변이 완료된 상담인지 확인
+    if (existingEntity.getStatus() == ConsultationStatus.COMPLETED) {
+      throw new ConsultationAlreadyCompletedException("이미 답변이 완료된 상담입니다.");
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+
+    // 답변 내용 설정 및 상태 변경
+    existingEntity.setReplyContent(replyContent);
+    existingEntity.setStatus(ConsultationStatus.COMPLETED);
+    existingEntity.setAnswerDate(now);
+
+    if (existingEntity.getReplyCreatedAt() == null) {
+      existingEntity.setReplyCreatedAt(now);
+    } else {
+      existingEntity.setReplyUpdatedAt(now);
+    }
+
+    existingEntity.setUpdatedAt(now);
+
+    // 상담 저장
+    ConsultationEntity savedEntity = consultationRepository.save(existingEntity);
+
+    // 엔티티를 상세 DTO로 변환하여 반환
+    return consultationMapper.toDetailResponseDto(savedEntity);
+  }
+
+  /**
+   * 상담에 답변 수정
+   */
+  @Transactional
+  public ConsultationDetailResponseDto updateReply(Long id, String replyContent) {
+    ConsultationEntity existingEntity = consultationRepository.findById(id)
+            .orElseThrow(() -> new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id));
+
+    // 답변이 존재하는지 확인
+    if (existingEntity.getStatus() != ConsultationStatus.COMPLETED || existingEntity.getReplyContent() == null) {
+      throw new ReplyNotFoundException("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다.");
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+
+    // 답변 내용 수정 및 수정일 업데이트
+    existingEntity.setReplyContent(replyContent);
+    existingEntity.setReplyUpdatedAt(now);
+    existingEntity.setUpdatedAt(now);
+
+    ConsultationEntity savedEntity = consultationRepository.save(existingEntity);
+    return consultationMapper.toDetailResponseDto(savedEntity);
+  }
+
+  /**
+   * 상담에 답변 삭제
+   */
+  @Transactional
+  public ConsultationDetailResponseDto deleteReply(Long id) {
+    ConsultationEntity existingEntity = consultationRepository.findById(id)
+            .orElseThrow(() -> new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id));
+
+    // 답변이 존재하는지 확인
+    if (existingEntity.getStatus() != ConsultationStatus.COMPLETED || existingEntity.getReplyContent() == null) {
+      throw new ReplyNotFoundException("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다.");
+    }
+
+    // 답변 삭제 및 상태 변경
+    existingEntity.setReplyContent(null);
+    existingEntity.setAnswerDate(null);
+    existingEntity.setReplyUpdatedAt(null);
+    existingEntity.setReplyCreatedAt(null);
+    existingEntity.setStatus(ConsultationStatus.PENDING);
+    existingEntity.setUpdatedAt(LocalDateTime.now());
+
+    ConsultationEntity savedEntity = consultationRepository.save(existingEntity);
+    return consultationMapper.toDetailResponseDto(savedEntity);
   }
 }

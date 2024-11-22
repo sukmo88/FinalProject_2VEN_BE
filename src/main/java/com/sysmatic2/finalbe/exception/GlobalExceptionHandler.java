@@ -29,8 +29,32 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // 400: 커스텀 예외 처리 - ReplyNotFoundException
+    @ExceptionHandler(ReplyNotFoundException.class)
+    public ResponseEntity<Object> handleReplyNotFoundException(ReplyNotFoundException ex) {
+        logger.warn("ReplyNotFoundException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    // 400: 커스텀 예외 처리 - ConsultationAlreadyCompletedException
+    @ExceptionHandler(ConsultationAlreadyCompletedException.class)
+    public ResponseEntity<Object> handleConsultationAlreadyCompletedException(ConsultationAlreadyCompletedException ex) {
+        logger.warn("ConsultationAlreadyCompletedException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
     // 500: 일반적인 예외 처리
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler({Exception.class})
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
         logger.error("Unhandled exception occurred: ", ex);
         return ResponseUtils.buildErrorResponse(
@@ -67,7 +91,9 @@ public class GlobalExceptionHandler {
     }
 
     // 400: 유효성 검사 실패
-    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class, ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class})
+    @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class,
+            ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class,
+            StrategyAlreadyApprovedException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -92,6 +118,11 @@ public class GlobalExceptionHandler {
         } else if (ex instanceof InvestmentAssetClassesNotActiveException) {
             InvestmentAssetClassesNotActiveException constraintEx = (InvestmentAssetClassesNotActiveException) ex;
             String field = "investmentAssetClasses";
+            String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
+        } else if (ex instanceof StrategyAlreadyApprovedException) {
+            StrategyAlreadyApprovedException constraintEx = (StrategyAlreadyApprovedException) ex;
+            String field = "strategy";
             String message = constraintEx.getMessage();
             fieldErrors.put(field, message);
         }

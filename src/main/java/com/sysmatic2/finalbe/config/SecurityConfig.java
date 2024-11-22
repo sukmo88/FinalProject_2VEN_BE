@@ -24,11 +24,13 @@ public class SecurityConfig {
     //AuthenticationManager가 인자로 받을 AuthenticationConfiguraion 객체 생성자 주입
     private final AuthenticationConfiguration authenticationConfiguration;
     private final JWTUtil jwtUtil;
+    private final CorsConfig corsConfig;
 
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil) {
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil,CorsConfig corsConfig) {
 
         this.authenticationConfiguration = authenticationConfiguration;
         this.jwtUtil = jwtUtil;
+        this.corsConfig = corsConfig;
     }
 
     //AuthenticationManager Bean 등록
@@ -64,7 +66,9 @@ public class SecurityConfig {
                 .requiresChannel(channel -> channel
                         .anyRequest().requiresSecure() // HTTPS 강제 설정
                 )
-                .csrf(csrf -> csrf.disable()); // CSRF 보호 비활성화
+                .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
+                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource())); // CORS 설정 추가
+
 
         http
                 .formLogin((auth) -> auth.disable()); //From 로그인 방식 disable
@@ -106,7 +110,8 @@ public class SecurityConfig {
 //                        .requestMatchers("/api/auth/").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                .csrf(csrf -> csrf.disable()); // CSRF 보호 비활성화
+                .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
+                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource())); // CORS 설정 추가
 
         http
                 .formLogin((auth) -> auth.disable()); //From 로그인 방식 disable

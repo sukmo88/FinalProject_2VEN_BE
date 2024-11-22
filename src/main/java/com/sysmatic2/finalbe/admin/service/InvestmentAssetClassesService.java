@@ -4,6 +4,9 @@ import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
+import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
+import com.sysmatic2.finalbe.strategy.repository.StrategyIACRepository;
+import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
@@ -22,6 +26,8 @@ import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
 @RequiredArgsConstructor
 public class InvestmentAssetClassesService {
     private final InvestmentAssetClassesRepository iacRepository;
+    private final StrategyService strategyService;
+    private final StrategyIACRepository strategyIACRepository;
 
     //1. 투자자산 분류 전체목록 메서드 페이지네이션, 소팅 적용
     @Transactional(readOnly = true)
@@ -107,47 +113,28 @@ public class InvestmentAssetClassesService {
     }
 
     //3. 투자자산 분류 삭제
-    //id 값 받으면 해당 id 데이터 삭제
-//    public void delete(Integer id) throws Exception{
-//        //TODO) 관리자 판별
-//        //id로 찾아보고
-//        Optional<InvestmentAssetClassesEntity> optionalIac = iacRepository.findById(id);
-//        InvestmentAssetClassesEntity iacEntity;
-//
-//        if(optionalIac.isPresent()){
-//            //있으면 엔티티 객체에 저장 - 추후 프론트에 넘길지
-//            iacEntity = optionalIac.get();
-//        } else {
-//            //없으면 에러
-//            throw new NoSuchElementException();
-//        }
-//        //deleteById()
-//        iacRepository.deleteById(id);
-//    }
-
-    //TODO) 다중삭제, 관련된 전략들 실제 삭제되도록
-    //3-1. 투자자산 분류 삭제(soft delete)
-    //해당 id값의 투자자산 분류 사용유무 N으로 변경
+    //TODO) 다중삭제 - 관계테이블만 삭제되도록 변경
     @Transactional
-    public void softDelete(Integer id) throws Exception{
+    public void delete(Integer id) throws Exception{
         //id로 존재 확인
-        Optional<InvestmentAssetClassesEntity> optionalIac = iacRepository.findById(id);
-        InvestmentAssetClassesEntity iacEntity;
+        InvestmentAssetClassesEntity iacEntity = iacRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException());
 
-        if(optionalIac.isPresent()){
-            iacEntity = optionalIac.get();
-        } else {
-            throw new NoSuchElementException();
+        //관계테이블에서 해당 iacEntity와 관련된 모든 데이터를 찾는다.
+        List<StrategyIACEntity> relatedStrategyIACs = strategyIACRepository.findByInvestmentAssetClassesEntity(iacEntity);
+
+        //관련된 모든 전략 삭제
+        //가져온 엔티티에서 id를 가져와 set으로 만든다.
+        Set<Long> strategyIdsToDelete = relatedStrategyIACs.stream()
+                .map(strategyIACEntity -> strategyIACEntity.getStrategyEntity().getStrategyId())
+                .collect(Collectors.toSet());
+
+        for(Long strategyId : strategyIdsToDelete){
+            strategyService.deleteStrategy(strategyId);
         }
 
-        //IsActive N으로 변경, 시스템 컬럼 수정
-        iacEntity.setIsActive("N");
-        //TODO)수정자 정보
-        iacEntity.setModifiedBy("100");
-        iacEntity.setModifiedAt(LocalDateTime.now());
-
-        //변경 엔티티 저장
-        iacRepository.save(iacEntity);
+        //투자자산 분류 삭제
+        iacRepository.delete(iacEntity);
     }
 
     //4. 투자자산 분류 수정

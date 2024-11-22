@@ -57,7 +57,7 @@ class StrategyDeleteMockTest {
         mockStrategyEntity.setStrategyTitle("Test Strategy");
         mockStrategyEntity.setWriterId("test_writer");
         mockStrategyEntity.setIsPosted("Y");
-        mockStrategyEntity.setIsGranted("N");
+        mockStrategyEntity.setIsApproved("N");
         mockStrategyEntity.setWritedAt(LocalDateTime.now().minusDays(10));
         mockStrategyEntity.setStrategyOverview("This is a test strategy.");
         mockStrategyEntity.setUpdaterId("updater_test");

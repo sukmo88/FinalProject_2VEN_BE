@@ -35,8 +35,8 @@ public class StrategyEntity extends Auditable {
     @JoinColumn(name = "trading_type_id", nullable = false)
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
-//    @Column(name = "strategy_status_code", nullable = false)
-//    private String strategyStatusCode; // 전략상태코드(공통 코드)
+    @Column(name = "strategy_status_code", nullable = false)
+    private String strategyStatusCode; // 전략상태코드(공통 코드) - 운용중/운용종료
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_cycle_id", nullable = false)
@@ -59,9 +59,9 @@ public class StrategyEntity extends Auditable {
     @Pattern(regexp = "Y|N", message = "isPosted 필드는 'Y' 또는 'N'만 허용됩니다.")
     private String isPosted; // 공개여부
 
-    @Column(name = "is_granted", nullable = false, columnDefinition = "CHAR(1)")
-    @Pattern(regexp = "Y|N", message = "isGranted 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isGranted = "N"; // 승인여부 default = N
+    @Column(name = "is_approved", nullable = false, columnDefinition = "CHAR(1)")
+    @Pattern(regexp = "Y|N", message = "isApproved 필드는 'Y' 또는 'N'만 허용됩니다.")
+    private String isApproved = "N"; // 승인여부 default = N
 
     @CreatedDate
     @Column(name="writed_at", updatable = false, nullable = false)

@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.util;
 
 import com.sysmatic2.finalbe.admin.dto.*;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
+import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.member.dto.SignupDTO;
@@ -172,7 +173,7 @@ public class DtoEntityConversionUtils {
         responseDto.setFollowersCount(strategyEntity.getFollowersCount());
         responseDto.setWritedAt(strategyEntity.getWritedAt());
         responseDto.setIsPosted(strategyEntity.getIsPosted());
-        responseDto.setIsGranted(strategyEntity.getIsGranted());
+        responseDto.setIsApproved(strategyEntity.getIsApproved());
 
         return responseDto;
     }
@@ -217,4 +218,29 @@ public class DtoEntityConversionUtils {
 
         return member;
     }
+
+    //관리자
+    /**
+     * StrategyApprovalRequestsEntity ApprovalRequestRepsponseDto로 변환하는 메서드.
+     *
+     * @param strategyApprovalRequestsEntity
+     * @return ApprovalRequestRepsponseDto
+     *
+     */
+    public static ApprovalRequestResponseDto convertToApprovalDto(StrategyApprovalRequestsEntity requestsEntity){
+        ApprovalRequestResponseDto responseDto = new ApprovalRequestResponseDto();
+
+        responseDto.setStrategyApprovalRequestId(requestsEntity.getStrategyApprovalRequestsId());
+        responseDto.setRequestDatetime(requestsEntity.getRequestDatetime());
+        responseDto.setIsApproved(requestsEntity.getStrategy().getIsApproved());
+        responseDto.setStrategyId(requestsEntity.getStrategy().getStrategyId());
+        responseDto.setStrategyTitle(requestsEntity.getStrategy().getStrategyTitle());
+        responseDto.setIsPosted(requestsEntity.getStrategy().getIsPosted());
+        responseDto.setStrategyStatus(requestsEntity.getStrategy().getStrategyStatusCode());
+        responseDto.setTradingTypeIcon(requestsEntity.getStrategy().getTradingTypeEntity().getTradingTypeIcon());
+        responseDto.setTradingCycleIcon(requestsEntity.getStrategy().getTradingCycleEntity().getTradingCycleIcon());
+
+        return responseDto;
+    }
+
 }

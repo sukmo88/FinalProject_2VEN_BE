@@ -1,16 +1,14 @@
 package com.sysmatic2.finalbe.cs.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sysmatic2.finalbe.cs.dto.ConsultationCreateDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationDetailResponseDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationListResponseDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationUpdateDto;
-import com.sysmatic2.finalbe.cs.dto.PaginatedResponseDto;
+import com.sysmatic2.finalbe.cs.dto.*;
 import com.sysmatic2.finalbe.cs.entity.ConsultationStatus;
+import com.sysmatic2.finalbe.exception.ConsultationAlreadyCompletedException;
 import com.sysmatic2.finalbe.exception.ConsultationNotFoundException;
 import com.sysmatic2.finalbe.cs.service.ConsultationService;
 import com.sysmatic2.finalbe.cs.mapper.ConsultationMapper;
 import com.sysmatic2.finalbe.exception.GlobalExceptionHandler;
+import com.sysmatic2.finalbe.exception.ReplyNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -298,6 +296,277 @@ class ConsultationControllerTest {
 
     mockMvc.perform(delete("/api/consultations/{id}", nonExistentId))
             .andDo(print()) // 실제 응답 확인을 위해 추가
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."))
+            .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+            .andExpect(jsonPath("$.errorType").value("ConsultationNotFoundException"));
+  }
+
+  /**
+   * 답변 생성 테스트 - 성공
+   */
+  @Test
+  void replyToConsultation_답변_성공() throws Exception {
+    // Given
+    Long consultationId = 100L;
+    ConsultationReplyDto replyDto = ConsultationReplyDto.builder()
+            .replyContent("성장 전략에 대해 아래와 같이 답변드립니다.")
+            .build();
+
+    ConsultationDetailResponseDto updatedDto = ConsultationDetailResponseDto.builder()
+            .id(100L)
+            .investorId("inv123")
+            .investorName("투자자닉네임")
+            .traderId("trd456")
+            .traderName("트레이더닉네임")
+            .strategyId(1L)
+            .strategyName("성장 전략")
+            .investmentAmount(5000.0)
+            .investmentDate(LocalDateTime.now())
+            .title("투자 문의")
+            .content("성장 전략에 대해 더 알고 싶습니다.")
+            .status(ConsultationStatus.COMPLETED)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .replyContent("성장 전략에 대해 아래와 같이 답변드립니다.")
+            .answerDate(LocalDateTime.now())
+            .replyCreatedAt(LocalDateTime.now())
+            .replyUpdatedAt(null) // 처음 답변이므로
+            .build();
+
+    when(consultationService.replyToConsultation(eq(consultationId), anyString())).thenReturn(updatedDto);
+
+    // When & Then
+    mockMvc.perform(post("/api/consultations/{id}/reply", consultationId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(replyDto)))
+            .andDo(print()) // 실제 응답 확인을 위해 추가
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(100L))
+            .andExpect(jsonPath("$.strategyId").value(1L))
+            .andExpect(jsonPath("$.strategyName").value("성장 전략"))
+            .andExpect(jsonPath("$.title").value("투자 문의"))
+            .andExpect(jsonPath("$.content").value("성장 전략에 대해 더 알고 싶습니다."))
+            .andExpect(jsonPath("$.status").value("COMPLETED"))
+            .andExpect(jsonPath("$.investorName").value("투자자닉네임"))
+            .andExpect(jsonPath("$.traderName").value("트레이더닉네임"))
+            .andExpect(jsonPath("$.answerDate").exists())
+            .andExpect(jsonPath("$.replyContent").value("성장 전략에 대해 아래와 같이 답변드립니다."))
+            .andExpect(jsonPath("$.replyCreatedAt").exists())
+            .andExpect(jsonPath("$.replyUpdatedAt").doesNotExist());
+  }
+
+  /**
+   * 답변 생성 테스트 - 이미 완료된 상담
+   */
+  @Test
+  void replyToConsultation_이미_완료된_상담() throws Exception {
+    // Given
+    Long consultationId = 100L;
+    ConsultationReplyDto replyDto = ConsultationReplyDto.builder()
+            .replyContent("추가 답변 내용")
+            .build();
+
+    when(consultationService.replyToConsultation(eq(consultationId), anyString()))
+            .thenThrow(new ConsultationAlreadyCompletedException("이미 답변이 완료된 상담입니다."));
+
+    // When & Then
+    mockMvc.perform(post("/api/consultations/{id}/reply", consultationId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(replyDto)))
+            .andDo(print()) // 실제 응답 확인을 위해 추가
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("이미 답변이 완료된 상담입니다."))
+            .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
+            .andExpect(jsonPath("$.errorType").value("ConsultationAlreadyCompletedException"));
+  }
+
+  /**
+   * 답변 생성 테스트 - 상담 존재하지 않음
+   */
+  @Test
+  void replyToConsultation_존재하지_않음() throws Exception {
+    // Given
+    Long consultationId = 999L;
+    ConsultationReplyDto replyDto = ConsultationReplyDto.builder()
+            .replyContent("답변 내용")
+            .build();
+
+    when(consultationService.replyToConsultation(eq(consultationId), anyString()))
+            .thenThrow(new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + consultationId));
+
+    // When & Then
+    mockMvc.perform(post("/api/consultations/{id}/reply", consultationId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(replyDto)))
+            .andDo(print()) // 실제 응답 확인을 위해 추가
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."))
+            .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+            .andExpect(jsonPath("$.errorType").value("ConsultationNotFoundException"));
+  }
+
+  /**
+   * 답변 수정 테스트 - 성공
+   */
+  @Test
+  void updateReply_답변_수정_성공() throws Exception {
+    // Given
+    Long consultationId = 100L;
+    ConsultationReplyDto replyDto = ConsultationReplyDto.builder()
+            .replyContent("수정된 답변 내용")
+            .build();
+
+    ConsultationDetailResponseDto updatedDto = ConsultationDetailResponseDto.builder()
+            .id(100L)
+            .investorId("inv123")
+            .investorName("투자자닉네임")
+            .traderId("trd456")
+            .traderName("트레이더닉네임")
+            .strategyId(1L)
+            .strategyName("성장 전략")
+            .investmentAmount(5000.0)
+            .investmentDate(LocalDateTime.now())
+            .title("투자 문의")
+            .content("성장 전략에 대해 더 알고 싶습니다.")
+            .status(ConsultationStatus.COMPLETED)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .replyContent("수정된 답변 내용")
+            .answerDate(LocalDateTime.now())
+            .replyCreatedAt(LocalDateTime.now())
+            .replyUpdatedAt(LocalDateTime.now())
+            .build();
+
+    when(consultationService.updateReply(eq(consultationId), anyString())).thenReturn(updatedDto);
+
+    // When & Then
+    mockMvc.perform(put("/api/consultations/{id}/reply", consultationId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(replyDto)))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.replyContent").value("수정된 답변 내용"))
+            .andExpect(jsonPath("$.replyUpdatedAt").exists());
+  }
+
+  /**
+   * 답변 수정 테스트 - 답변이 존재하지 않음
+   */
+  @Test
+  void updateReply_답변_수정_답변_존재하지_않음() throws Exception {
+    // Given
+    Long consultationId = 100L;
+    ConsultationReplyDto replyDto = ConsultationReplyDto.builder()
+            .replyContent("수정된 답변 내용")
+            .build();
+
+    when(consultationService.updateReply(eq(consultationId), anyString()))
+            .thenThrow(new ReplyNotFoundException("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다."));
+
+    // When & Then
+    mockMvc.perform(put("/api/consultations/{id}/reply", consultationId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(replyDto)))
+            .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다."))
+            .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
+            .andExpect(jsonPath("$.errorType").value("ReplyNotFoundException"));
+  }
+
+  /**
+   * 답변 수정 테스트 - 상담 존재하지 않음
+   */
+  @Test
+  void updateReply_답변_수정_존재하지_않음() throws Exception {
+    // Given
+    Long consultationId = 999L;
+    ConsultationReplyDto replyDto = ConsultationReplyDto.builder()
+            .replyContent("수정된 답변 내용")
+            .build();
+
+    when(consultationService.updateReply(eq(consultationId), anyString()))
+            .thenThrow(new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + consultationId));
+
+    // When & Then
+    mockMvc.perform(put("/api/consultations/{id}/reply", consultationId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(replyDto)))
+            .andDo(print())
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."))
+            .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+            .andExpect(jsonPath("$.errorType").value("ConsultationNotFoundException"));
+  }
+
+  /**
+   * 답변 삭제 테스트 - 성공
+   */
+  @Test
+  void deleteReply_답변_삭제_성공() throws Exception {
+    Long consultationId = 100L;
+
+    ConsultationDetailResponseDto updatedDto = ConsultationDetailResponseDto.builder()
+            .id(100L)
+            .investorId("inv123")
+            .investorName("투자자닉네임")
+            .traderId("trd456")
+            .traderName("트레이더닉네임")
+            .strategyId(1L)
+            .strategyName("성장 전략")
+            .investmentAmount(5000.0)
+            .investmentDate(LocalDateTime.now())
+            .title("투자 문의")
+            .content("성장 전략에 대해 더 알고 싶습니다.")
+            .status(ConsultationStatus.PENDING)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .replyContent(null)
+            .answerDate(null)
+            .replyCreatedAt(null)
+            .replyUpdatedAt(null)
+            .build();
+
+    when(consultationService.deleteReply(consultationId)).thenReturn(updatedDto);
+
+    mockMvc.perform(delete("/api/consultations/{id}/reply", consultationId))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.replyContent").doesNotExist())
+            .andExpect(jsonPath("$.status").value("PENDING"));
+  }
+
+  /**
+   * 답변 삭제 테스트 - 답변이 존재하지 않음
+   */
+  @Test
+  void deleteReply_답변_삭제_답변_존재하지_않음() throws Exception {
+    Long consultationId = 100L;
+
+    when(consultationService.deleteReply(consultationId))
+            .thenThrow(new ReplyNotFoundException("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다."));
+
+    mockMvc.perform(delete("/api/consultations/{id}/reply", consultationId))
+            .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다."))
+            .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
+            .andExpect(jsonPath("$.errorType").value("ReplyNotFoundException"));
+  }
+
+  /**
+   * 답변 삭제 테스트 - 상담 존재하지 않음
+   */
+  @Test
+  void deleteReply_답변_삭제_존재하지_않음() throws Exception {
+    Long consultationId = 999L;
+
+    when(consultationService.deleteReply(consultationId))
+            .thenThrow(new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + consultationId));
+
+    mockMvc.perform(delete("/api/consultations/{id}/reply", consultationId))
+            .andDo(print())
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."))
             .andExpect(jsonPath("$.error").value("NOT_FOUND"))

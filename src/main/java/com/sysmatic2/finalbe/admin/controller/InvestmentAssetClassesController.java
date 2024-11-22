@@ -17,7 +17,7 @@ import java.util.*;
 
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admin/inv-asset-classes")
 @RequiredArgsConstructor
 @Tag(name = "Admin InvestmentAssetClasses Controller", description = "관리자가 투자자산 분류를 관리하는 컨트롤러")
 @Validated
@@ -25,7 +25,7 @@ public class InvestmentAssetClassesController {
     private final InvestmentAssetClassesService iacService;
 
     //1. 투자자산분류 목록 - pagination
-    @GetMapping(value="/inv-asset-classes", produces="application/json")
+    @GetMapping(value="/", produces="application/json")
     @ApiResponse(responseCode="200", description = "List of Investment Asset Classes")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
     @ApiResponse(responseCode="401", description = "Unauthorized")
@@ -40,7 +40,7 @@ public class InvestmentAssetClassesController {
     }
 
     //1-1. 투자자산분류 상세
-    @GetMapping(value="/inv-asset-classes/{id}", produces="application/json")
+    @GetMapping(value="/{id}", produces="application/json")
     @ApiResponse(responseCode="200", description = "Return Investment Asset Classes find by Id")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
     @ApiResponse(responseCode="401", description = "Unauthorized")
@@ -57,7 +57,7 @@ public class InvestmentAssetClassesController {
     }
 
     //1-2. 투자자산 분류 is_active Y 리스트(테스트)
-    @GetMapping(value="/inv-asset-classes/isactive")
+    @GetMapping(value="/isactive")
     public ResponseEntity<Map> getIACActive() throws Exception {
         List<InvestmentAssetClassesDto> iasResult = iacService.getActiveList();
         Map<String, Object> responseMap = new HashMap<>();
@@ -66,7 +66,7 @@ public class InvestmentAssetClassesController {
     }
 
     //2. 투자자산분류 등록
-    @PostMapping(value="/inv-asset-classes", consumes = "application/json", produces="application/json")
+    @PostMapping(value="/", consumes = "application/json", produces="application/json")
     @ApiResponse(responseCode="201", description = "Register inv asset classes")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
     @ApiResponse(responseCode="401", description = "Unauthorized")
@@ -84,24 +84,8 @@ public class InvestmentAssetClassesController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 
-    //3. 투자자산분류 삭제
-//    @DeleteMapping(value="/inv-asset-classes/{id}")
-//    @ApiResponse(responseCode="200", description = "Delete Investment Asset Classes by Id")
-//    @ApiResponse(responseCode="400", description = "Wrong Request URL")
-//    @ApiResponse(responseCode="401", description = "Unauthorized")
-//    @ApiResponse(responseCode="404", description = "NOT EXIST")
-//    @ApiResponse(responseCode="405", description = "Wrong Request Method")
-//    @ApiResponse(responseCode="500", description = "Other Errors")
-//    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") Integer id) throws Exception {
-//        iacService.delete(id);
-//        Map<String, String> responseMap = new HashMap<>();
-//        responseMap.put("msg", "DELETE_SUCCESS");
-//
-//        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
-//    }
-
-    //3-1. 투자자산분류 soft delete
-    @DeleteMapping(value="/inv-asset-classes/{id}")
+    //3-1. 투자자산분류 삭제
+    @DeleteMapping(value="/{id}")
     @ApiResponse(responseCode="200", description = "Delete Investment Asset Classes by Id")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
     @ApiResponse(responseCode="401", description = "Unauthorized")
@@ -110,7 +94,7 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") @Positive Integer id) throws Exception {
         //TODO) 관리자 판별
-        iacService.softDelete(id);
+        iacService.delete(id);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
 
@@ -118,7 +102,7 @@ public class InvestmentAssetClassesController {
     }
 
     //4. 투자자산분류 수정
-    @PutMapping(value="/inv-asset-classes/{id}")
+    @PutMapping(value="/{id}")
     @ApiResponse(responseCode="200", description = "Delete Investment Asset Classes by Id")
     @ApiResponse(responseCode="400", description = "Wrong Request URL")
     @ApiResponse(responseCode="401", description = "Unauthorized")
