@@ -1,18 +1,17 @@
 package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.exception.EmailVerificationFailedException;
+import com.sysmatic2.finalbe.member.dto.EmailVerificationDTO;
 import com.sysmatic2.finalbe.member.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import lombok.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -35,11 +34,8 @@ public class AuthController {
     //인증번호 검증 api(관리자 포함)
     @PostMapping("/check-verification-code")
     public ResponseEntity<Map<String, String>> checkVerificationCode(
-            @Pattern(
-                    regexp = "^\\d{6}$",
-                    message = "인증번호는 6자리 숫자여야 합니다."
-            )
-            String verificationCode, HttpServletRequest req) {
+            @Valid @RequestBody
+            EmailVerificationDTO emailVerificationDTO, HttpServletRequest req) {
 
         HttpSession session = req.getSession(false);
 
@@ -52,7 +48,7 @@ public class AuthController {
         LocalDateTime expiryTime = (LocalDateTime) session.getAttribute("expiryTime");
 
         // 인증번호 검증 메소드 호출
-        authService.validateVerificationCode(verificationCode, savedVerificationCode, expiryTime);
+        authService.validateVerificationCode(emailVerificationDTO.getVerificationCode(), savedVerificationCode, expiryTime);
 
         // 세션에 인증 성공 정보 추가
         session.setAttribute("verified", true);
