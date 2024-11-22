@@ -16,8 +16,10 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class DailyStrategicStatisticsEntity extends Auditable {
     @Id
-    @Column(name = "strategy_id", nullable = false)
-    private Long strategyId; // 전략 ID
+    @ManyToOne
+    @JoinColumn(name = "strategy_id", nullable = false)
+    @MapsId("strategyId") // 복합키의 strategyId와 매핑
+    private StrategyEntity strategyId; // 전략 ID
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
