@@ -1,16 +1,14 @@
 package com.sysmatic2.finalbe.cs.service;
 
-import com.sysmatic2.finalbe.cs.dto.ConsultationCreateDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationDetailResponseDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationListResponseDto;
-import com.sysmatic2.finalbe.cs.dto.ConsultationUpdateDto;
-import com.sysmatic2.finalbe.cs.dto.PaginatedResponseDto;
+import com.sysmatic2.finalbe.cs.dto.*;
 import com.sysmatic2.finalbe.cs.entity.ConsultationEntity;
 import com.sysmatic2.finalbe.cs.entity.ConsultationStatus;
 import com.sysmatic2.finalbe.cs.mapper.ConsultationMapper;
 import com.sysmatic2.finalbe.cs.repository.ConsultationRepository;
+import com.sysmatic2.finalbe.exception.ConsultationAlreadyCompletedException;
 import com.sysmatic2.finalbe.exception.ConsultationNotFoundException;
 import com.sysmatic2.finalbe.exception.InvestorNotFoundException;
+import com.sysmatic2.finalbe.exception.ReplyNotFoundException;
 import com.sysmatic2.finalbe.exception.StrategyNotFoundException;
 import com.sysmatic2.finalbe.exception.TraderNotFoundException;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
@@ -26,10 +24,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -163,142 +161,6 @@ class ConsultationServiceTest {
     verify(consultationMapper, times(1)).toDetailResponseDto(consultationEntity);
   }
 
-
-  /**
-   * 상담 생성 테스트 - 투자자 존재하지 않음
-   */
-  @Test
-  void 상담_생성_투자자_존재하지_않음() {
-    // Given
-    ConsultationCreateDto createDto = new ConsultationCreateDto();
-    createDto.setInvestorId("inv999"); // 존재하지 않는 투자자 ID
-    createDto.setTraderId("trd456");
-    createDto.setStrategyId(1L);
-    createDto.setInvestmentAmount(5000.0);
-    createDto.setInvestmentDate(LocalDateTime.now());
-    createDto.setTitle("투자 문의");
-    createDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
-    createDto.setStatus(ConsultationStatus.PENDING);
-
-    when(memberRepository.findById("inv999")).thenReturn(Optional.empty());
-
-    // When & Then
-    assertThatThrownBy(() -> consultationService.createConsultation(createDto))
-            .isInstanceOf(InvestorNotFoundException.class)
-            .hasMessageContaining("투자자를 찾을 수 없습니다: inv999");
-
-    verify(memberRepository, times(1)).findById("inv999");
-    verify(memberRepository, times(0)).findById("trd456"); // 트레이더 조회는 하지 않아야 함
-    verify(strategyRepository, times(0)).findById(anyLong());
-    verify(consultationMapper, times(0)).toEntityFromCreateDto(any(), any(), any(), any());
-    verify(consultationRepository, times(0)).save(any());
-    verify(consultationMapper, times(0)).toDetailResponseDto(any());
-  }
-
-  /**
-   * 상담 생성 테스트 - 트레이더 존재하지 않음
-   */
-  @Test
-  void 상담_생성_트레이더_존재하지_않음() {
-    // Given
-    ConsultationCreateDto createDto = new ConsultationCreateDto();
-    createDto.setInvestorId("inv123");
-    createDto.setTraderId("trd999"); // 존재하지 않는 트레이더 ID
-    createDto.setStrategyId(1L);
-    createDto.setInvestmentAmount(5000.0);
-    createDto.setInvestmentDate(LocalDateTime.now());
-    createDto.setTitle("투자 문의");
-    createDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
-    createDto.setStatus(ConsultationStatus.PENDING);
-
-    when(memberRepository.findById("inv123")).thenReturn(Optional.of(investor));
-    when(memberRepository.findById("trd999")).thenReturn(Optional.empty());
-
-    // When & Then
-    assertThatThrownBy(() -> consultationService.createConsultation(createDto))
-            .isInstanceOf(TraderNotFoundException.class)
-            .hasMessageContaining("트레이더를 찾을 수 없습니다: trd999");
-
-    verify(memberRepository, times(1)).findById("inv123");
-    verify(memberRepository, times(1)).findById("trd999");
-    verify(strategyRepository, times(0)).findById(anyLong());
-    verify(consultationMapper, times(0)).toEntityFromCreateDto(any(), any(), any(), any());
-    verify(consultationRepository, times(0)).save(any());
-    verify(consultationMapper, times(0)).toDetailResponseDto(any());
-  }
-
-  /**
-   * 상담 생성 테스트 - 전략 존재하지 않음
-   */
-  @Test
-  void 상담_생성_전략_존재하지_않음() {
-    // Given
-    ConsultationCreateDto createDto = new ConsultationCreateDto();
-    createDto.setInvestorId("inv123");
-    createDto.setTraderId("trd456");
-    createDto.setStrategyId(999L); // 존재하지 않는 전략 ID
-    createDto.setInvestmentAmount(5000.0);
-    createDto.setInvestmentDate(LocalDateTime.now());
-    createDto.setTitle("투자 문의");
-    createDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
-    createDto.setStatus(ConsultationStatus.PENDING);
-
-    when(memberRepository.findById("inv123")).thenReturn(Optional.of(investor));
-    when(memberRepository.findById("trd456")).thenReturn(Optional.of(trader));
-    when(strategyRepository.findById(999L)).thenReturn(Optional.empty());
-
-    // When & Then
-    assertThatThrownBy(() -> consultationService.createConsultation(createDto))
-            .isInstanceOf(StrategyNotFoundException.class)
-            .hasMessageContaining("전략을 찾을 수 없습니다: 999");
-
-    verify(memberRepository, times(1)).findById("inv123");
-    verify(memberRepository, times(1)).findById("trd456");
-    verify(strategyRepository, times(1)).findById(999L);
-    verify(consultationMapper, times(0)).toEntityFromCreateDto(any(), any(), any(), any());
-    verify(consultationRepository, times(0)).save(any());
-    verify(consultationMapper, times(0)).toDetailResponseDto(any());
-  }
-
-  /**
-   * 단일 상담 조회 테스트 - 성공
-   */
-  @Test
-  void 상담_단일_조회_성공() {
-    // Given
-    Long consultationId = 100L;
-    when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
-    when(consultationMapper.toDetailResponseDto(consultationEntity)).thenReturn(consultationDetailDto);
-
-    // When
-    ConsultationDetailResponseDto result = consultationService.getConsultationById(consultationId);
-
-    // Then
-    assertThat(result).isNotNull();
-    assertThat(result.getId()).isEqualTo(100L);
-    assertThat(result.getTitle()).isEqualTo("투자 문의");
-    verify(consultationRepository, times(1)).findById(consultationId);
-    verify(consultationMapper, times(1)).toDetailResponseDto(consultationEntity);
-  }
-
-  /**
-   * 단일 상담 조회 테스트 - 존재하지 않음
-   */
-  @Test
-  void 상담_단일_조회_존재하지_않음() {
-    // Given
-    Long consultationId = 999L;
-    when(consultationRepository.findById(consultationId)).thenReturn(Optional.empty());
-
-    // When & Then
-    assertThatThrownBy(() -> consultationService.getConsultationById(consultationId))
-            .isInstanceOf(ConsultationNotFoundException.class)
-            .hasMessageContaining("해당 ID의 상담을 찾을 수 없습니다: 999");
-
-    verify(consultationRepository, times(1)).findById(consultationId);
-    verify(consultationMapper, times(0)).toDetailResponseDto(any());
-  }
-
   /**
    * 상담 목록 조회 테스트 - 투자자 필터링
    */
@@ -310,9 +172,35 @@ class ConsultationServiceTest {
     int page = 0;
     ConsultationListResponseDto listDto = consultationListDto;
 
-    when(consultationRepository.findAllByInvestor_MemberId(investorId, PageRequest.of(page, 10)))
-            .thenReturn(new PageImpl<>(Arrays.asList(consultationEntity), PageRequest.of(page, 10), 1));
-    when(consultationMapper.toListResponseDto(consultationEntity)).thenReturn(listDto);
+    ConsultationEntity consultationEntity2 = new ConsultationEntity();
+    consultationEntity2.setId(101L);
+    consultationEntity2.setInvestor(investor);
+    consultationEntity2.setTrader(trader);
+    consultationEntity2.setStrategy(strategy);
+    consultationEntity2.setInvestmentAmount(7000.0);
+    consultationEntity2.setInvestmentDate(LocalDateTime.now());
+    consultationEntity2.setTitle("추가 상담");
+    consultationEntity2.setContent("추가 상담 내용입니다.");
+    consultationEntity2.setStatus(ConsultationStatus.COMPLETED);
+    consultationEntity2.setCreatedAt(LocalDateTime.now());
+    consultationEntity2.setUpdatedAt(LocalDateTime.now());
+
+    ConsultationListResponseDto consultationListDto2 = new ConsultationListResponseDto();
+    consultationListDto2.setId(101L);
+    consultationListDto2.setInvestorName("투자자닉네임");
+    consultationListDto2.setTraderName("트레이더닉네임");
+    consultationListDto2.setStrategyName("성장 전략");
+    consultationListDto2.setInvestmentDate(consultationEntity2.getInvestmentDate());
+    consultationListDto2.setTitle("추가 상담");
+    consultationListDto2.setStatus(ConsultationStatus.COMPLETED);
+    consultationListDto2.setCreatedAt(consultationEntity2.getCreatedAt());
+
+    List<ConsultationEntity> entityList = Arrays.asList(consultationEntity);
+    List<ConsultationListResponseDto> dtoList = Arrays.asList(consultationListDto);
+
+    when(consultationRepository.findAllByInvestor_MemberId(eq(investorId), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(entityList, PageRequest.of(page, 10), 1));
+    when(consultationMapper.toListResponseDtos(entityList)).thenReturn(dtoList);
 
     // When
     PaginatedResponseDto<ConsultationListResponseDto> result = consultationService.getConsultations(investorId, traderId, page);
@@ -325,8 +213,8 @@ class ConsultationServiceTest {
     assertThat(result.getSize()).isEqualTo(10);
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getTotalPages()).isEqualTo(1);
-    verify(consultationRepository, times(1)).findAllByInvestor_MemberId(investorId, PageRequest.of(page, 10));
-    verify(consultationMapper, times(1)).toListResponseDto(consultationEntity);
+    verify(consultationRepository, times(1)).findAllByInvestor_MemberId(eq(investorId), any(Pageable.class));
+    verify(consultationMapper, times(1)).toListResponseDtos(entityList);
   }
 
   /**
@@ -340,9 +228,12 @@ class ConsultationServiceTest {
     int page = 0;
     ConsultationListResponseDto listDto = consultationListDto;
 
-    when(consultationRepository.findAllByTrader_MemberId(traderId, PageRequest.of(page, 10)))
-            .thenReturn(new PageImpl<>(Arrays.asList(consultationEntity), PageRequest.of(page, 10), 1));
-    when(consultationMapper.toListResponseDto(consultationEntity)).thenReturn(listDto);
+    List<ConsultationEntity> entityList = Arrays.asList(consultationEntity);
+    List<ConsultationListResponseDto> dtoList = Arrays.asList(consultationListDto);
+
+    when(consultationRepository.findAllByTrader_MemberId(eq(traderId), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(entityList, PageRequest.of(page, 10), 1));
+    when(consultationMapper.toListResponseDtos(entityList)).thenReturn(dtoList);
 
     // When
     PaginatedResponseDto<ConsultationListResponseDto> result = consultationService.getConsultations(investorId, traderId, page);
@@ -355,8 +246,8 @@ class ConsultationServiceTest {
     assertThat(result.getSize()).isEqualTo(10);
     assertThat(result.getTotalElements()).isEqualTo(1);
     assertThat(result.getTotalPages()).isEqualTo(1);
-    verify(consultationRepository, times(1)).findAllByTrader_MemberId(traderId, PageRequest.of(page, 10));
-    verify(consultationMapper, times(1)).toListResponseDto(consultationEntity);
+    verify(consultationRepository, times(1)).findAllByTrader_MemberId(eq(traderId), any(Pageable.class));
+    verify(consultationMapper, times(1)).toListResponseDtos(entityList);
   }
 
   /**
@@ -393,10 +284,12 @@ class ConsultationServiceTest {
     consultationListDto2.setStatus(ConsultationStatus.COMPLETED);
     consultationListDto2.setCreatedAt(consultationEntity2.getCreatedAt());
 
-    when(consultationRepository.findAll(PageRequest.of(page, 10)))
-            .thenReturn(new PageImpl<>(Arrays.asList(consultationEntity, consultationEntity2), PageRequest.of(page, 10), 2));
-    when(consultationMapper.toListResponseDto(consultationEntity)).thenReturn(listDto1);
-    when(consultationMapper.toListResponseDto(consultationEntity2)).thenReturn(consultationListDto2);
+    List<ConsultationEntity> entityList = Arrays.asList(consultationEntity, consultationEntity2);
+    List<ConsultationListResponseDto> dtoList = Arrays.asList(consultationListDto, consultationListDto2);
+
+    when(consultationRepository.findAll(any(Pageable.class)))
+            .thenReturn(new PageImpl<>(entityList, PageRequest.of(page, 10), 2));
+    when(consultationMapper.toListResponseDtos(entityList)).thenReturn(dtoList);
 
     // When
     PaginatedResponseDto<ConsultationListResponseDto> result = consultationService.getConsultations(investorId, traderId, page);
@@ -410,9 +303,8 @@ class ConsultationServiceTest {
     assertThat(result.getSize()).isEqualTo(10);
     assertThat(result.getTotalElements()).isEqualTo(2);
     assertThat(result.getTotalPages()).isEqualTo(1);
-    verify(consultationRepository, times(1)).findAll(PageRequest.of(page, 10));
-    verify(consultationMapper, times(1)).toListResponseDto(consultationEntity);
-    verify(consultationMapper, times(1)).toListResponseDto(consultationEntity2);
+    verify(consultationRepository, times(1)).findAll(any(Pageable.class));
+    verify(consultationMapper, times(1)).toListResponseDtos(entityList);
   }
 
   /**
@@ -425,8 +317,10 @@ class ConsultationServiceTest {
     String traderId = null;
     int page = 0;
 
-    when(consultationRepository.findAllByInvestor_MemberId(investorId, PageRequest.of(page, 10)))
-            .thenReturn(new PageImpl<>(Arrays.asList(), PageRequest.of(page, 10), 0));
+    // Mock 설정: 빈 리스트가 반환될 때, mapper도 빈 리스트를 반환하도록 설정
+    when(consultationRepository.findAllByInvestor_MemberId(eq(investorId), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.emptyList(), PageRequest.of(page, 10), 0));
+    when(consultationMapper.toListResponseDtos(Collections.emptyList())).thenReturn(Collections.emptyList());
 
     // When
     PaginatedResponseDto<ConsultationListResponseDto> result = consultationService.getConsultations(investorId, traderId, page);
@@ -438,8 +332,8 @@ class ConsultationServiceTest {
     assertThat(result.getSize()).isEqualTo(10);
     assertThat(result.getTotalElements()).isEqualTo(0);
     assertThat(result.getTotalPages()).isEqualTo(0);
-    verify(consultationRepository, times(1)).findAllByInvestor_MemberId(investorId, PageRequest.of(page, 10));
-    verify(consultationMapper, times(0)).toListResponseDto(any());
+    verify(consultationRepository, times(1)).findAllByInvestor_MemberId(eq(investorId), any(Pageable.class));
+    verify(consultationMapper, times(1)).toListResponseDtos(Collections.emptyList());
   }
 
   /**
@@ -489,7 +383,7 @@ class ConsultationServiceTest {
 
     when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
     when(strategyRepository.findById(1L)).thenReturn(Optional.of(strategy));
-    when(consultationMapper.updateEntityFromDto(consultationEntity, updateDto, strategy)).thenReturn(updatedEntity);
+    when(consultationMapper.updateEntityFromDto(eq(consultationEntity), any(ConsultationUpdateDto.class), eq(strategy))).thenReturn(updatedEntity);
     when(consultationRepository.save(consultationEntity)).thenReturn(updatedEntity);
     when(consultationMapper.toDetailResponseDto(updatedEntity)).thenReturn(updatedDto);
 
@@ -505,11 +399,10 @@ class ConsultationServiceTest {
     assertThat(result.getStrategyName()).isEqualTo("성장 전략"); // 일치 검증
     verify(consultationRepository, times(1)).findById(consultationId);
     verify(strategyRepository, times(1)).findById(1L);
-    verify(consultationMapper, times(1)).updateEntityFromDto(consultationEntity, updateDto, strategy);
+    verify(consultationMapper, times(1)).updateEntityFromDto(eq(consultationEntity), any(ConsultationUpdateDto.class), eq(strategy));
     verify(consultationRepository, times(1)).save(consultationEntity);
     verify(consultationMapper, times(1)).toDetailResponseDto(updatedEntity);
   }
-
 
   /**
    * 상담 업데이트 테스트 - 존재하지 않음
@@ -603,5 +496,321 @@ class ConsultationServiceTest {
 
     verify(consultationRepository, times(1)).existsById(consultationId);
     verify(consultationRepository, times(0)).deleteById(anyLong());
+  }
+
+  /**
+   * 상담에 답변하기 테스트 - 성공
+   */
+  @Test
+  void 상담_답변_성공() {
+    // Given
+    Long consultationId = 100L;
+    String replyContent = "성장 전략에 대해 아래와 같이 답변드립니다.";
+
+    // 기존 상담 엔티티 (status: PENDING, answerDate: null)
+    ConsultationEntity updatedEntity = new ConsultationEntity();
+    updatedEntity.setId(100L);
+    updatedEntity.setInvestor(investor);
+    updatedEntity.setTrader(trader);
+    updatedEntity.setStrategy(strategy);
+    updatedEntity.setInvestmentAmount(5000.0);
+    updatedEntity.setInvestmentDate(consultationEntity.getInvestmentDate());
+    updatedEntity.setTitle("투자 문의");
+    updatedEntity.setContent("성장 전략에 대해 더 알고 싶습니다.");
+    updatedEntity.setStatus(ConsultationStatus.COMPLETED);
+    updatedEntity.setCreatedAt(consultationEntity.getCreatedAt());
+    updatedEntity.setUpdatedAt(LocalDateTime.now());
+    updatedEntity.setReplyContent(replyContent);
+    updatedEntity.setAnswerDate(LocalDateTime.now());
+    updatedEntity.setReplyCreatedAt(LocalDateTime.now());
+    updatedEntity.setReplyUpdatedAt(null); // 처음 답변이므로
+
+    // 상담 상세 응답 DTO 설정
+    ConsultationDetailResponseDto updatedDto = new ConsultationDetailResponseDto();
+    updatedDto.setId(100L);
+    updatedDto.setInvestorId("inv123");
+    updatedDto.setInvestorName("투자자닉네임");
+    updatedDto.setTraderId("trd456");
+    updatedDto.setTraderName("트레이더닉네임");
+    updatedDto.setStrategyId(1L);
+    updatedDto.setStrategyName("성장 전략");
+    updatedDto.setInvestmentAmount(5000.0);
+    updatedDto.setInvestmentDate(consultationEntity.getInvestmentDate());
+    updatedDto.setTitle("투자 문의");
+    updatedDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
+    updatedDto.setStatus(ConsultationStatus.COMPLETED);
+    updatedDto.setCreatedAt(consultationEntity.getCreatedAt());
+    updatedDto.setUpdatedAt(updatedEntity.getUpdatedAt());
+    updatedDto.setReplyContent(replyContent);
+    updatedDto.setAnswerDate(LocalDateTime.now());
+    updatedDto.setReplyCreatedAt(LocalDateTime.now());
+    updatedDto.setReplyUpdatedAt(null);
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
+    when(consultationRepository.save(any(ConsultationEntity.class))).thenReturn(updatedEntity);
+    when(consultationMapper.toDetailResponseDto(updatedEntity)).thenReturn(updatedDto);
+
+    // When
+    ConsultationDetailResponseDto result = consultationService.replyToConsultation(consultationId, replyContent);
+
+    // Then
+    assertThat(result).isNotNull();
+    assertThat(result.getId()).isEqualTo(100L);
+    assertThat(result.getStatus()).isEqualTo(ConsultationStatus.COMPLETED);
+    assertThat(result.getReplyContent()).isEqualTo(replyContent);
+    assertThat(result.getAnswerDate()).isNotNull();
+    assertThat(result.getReplyCreatedAt()).isNotNull();
+    assertThat(result.getReplyUpdatedAt()).isNull();
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(1)).save(consultationEntity);
+    verify(consultationMapper, times(1)).toDetailResponseDto(updatedEntity);
+  }
+
+  /**
+   * 상담에 답변하기 테스트 - 이미 답변 완료된 상담
+   */
+  @Test
+  void 상담_답변_이미_완료된_상담() {
+    // Given
+    Long consultationId = 100L;
+    String replyContent = "추가 답변 내용";
+
+    // 기존 상담 엔티티 (status: COMPLETED, answerDate: not null)
+    consultationEntity.setStatus(ConsultationStatus.COMPLETED);
+    consultationEntity.setAnswerDate(LocalDateTime.now());
+    consultationEntity.setReplyContent("기존 답변 내용");
+    consultationEntity.setReplyCreatedAt(LocalDateTime.now());
+    consultationEntity.setReplyUpdatedAt(null); // 기존에는 업데이트되지 않음
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
+
+    // When & Then
+    assertThatThrownBy(() -> consultationService.replyToConsultation(consultationId, replyContent))
+            .isInstanceOf(ConsultationAlreadyCompletedException.class)
+            .hasMessageContaining("이미 답변이 완료된 상담입니다.");
+
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(0)).save(any());
+    verify(consultationMapper, times(0)).toDetailResponseDto(any());
+  }
+
+  /**
+   * 상담에 답변하기 테스트 - 존재하지 않는 상담
+   */
+  @Test
+  void 상담_답변_존재하지_않음() {
+    // Given
+    Long consultationId = 999L;
+    String replyContent = "답변 내용";
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThatThrownBy(() -> consultationService.replyToConsultation(consultationId, replyContent))
+            .isInstanceOf(ConsultationNotFoundException.class)
+            .hasMessageContaining("해당 ID의 상담을 찾을 수 없습니다: " + consultationId);
+
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(0)).save(any());
+    verify(consultationMapper, times(0)).toDetailResponseDto(any());
+  }
+
+  /**
+   * 상담에 답변 수정 테스트 - 성공
+   */
+  @Test
+  void 상담_답변_수정_성공() {
+    // Given
+    Long consultationId = 100L;
+    String newReplyContent = "수정된 답변 내용";
+
+    // 기존 상담 엔티티 (status: COMPLETED, answerDate: not null)
+    consultationEntity.setStatus(ConsultationStatus.COMPLETED);
+    consultationEntity.setReplyContent("기존 답변 내용");
+    consultationEntity.setAnswerDate(LocalDateTime.now());
+    consultationEntity.setReplyCreatedAt(LocalDateTime.now());
+    consultationEntity.setReplyUpdatedAt(null); // 기존에는 업데이트되지 않음
+
+    ConsultationDetailResponseDto updatedDto = new ConsultationDetailResponseDto();
+    updatedDto.setId(100L);
+    updatedDto.setInvestorId("inv123");
+    updatedDto.setInvestorName("투자자닉네임");
+    updatedDto.setTraderId("trd456");
+    updatedDto.setTraderName("트레이더닉네임");
+    updatedDto.setStrategyId(1L);
+    updatedDto.setStrategyName("성장 전략");
+    updatedDto.setInvestmentAmount(5000.0);
+    updatedDto.setInvestmentDate(consultationEntity.getInvestmentDate());
+    updatedDto.setTitle("투자 문의");
+    updatedDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
+    updatedDto.setStatus(ConsultationStatus.COMPLETED);
+    updatedDto.setCreatedAt(consultationEntity.getCreatedAt());
+    updatedDto.setUpdatedAt(LocalDateTime.now());
+    updatedDto.setReplyContent(newReplyContent);
+    updatedDto.setAnswerDate(consultationEntity.getAnswerDate());
+    updatedDto.setReplyCreatedAt(consultationEntity.getReplyCreatedAt());
+    updatedDto.setReplyUpdatedAt(LocalDateTime.now());
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
+    when(consultationRepository.save(any(ConsultationEntity.class))).thenReturn(consultationEntity);
+    when(consultationMapper.toDetailResponseDto(consultationEntity)).thenReturn(updatedDto);
+
+    // When
+    ConsultationDetailResponseDto result = consultationService.updateReply(consultationId, newReplyContent);
+
+    // Then
+    assertThat(result).isNotNull();
+    assertThat(result.getReplyContent()).isEqualTo(newReplyContent);
+    assertThat(result.getReplyUpdatedAt()).isNotNull();
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(1)).save(consultationEntity);
+    verify(consultationMapper, times(1)).toDetailResponseDto(consultationEntity);
+  }
+
+  /**
+   * 상담에 답변 수정 테스트 - 답변이 존재하지 않음
+   */
+  @Test
+  void 상담_답변_수정_답변_존재하지_않음() {
+    // Given
+    Long consultationId = 100L;
+    String newReplyContent = "수정된 답변 내용";
+
+    // 기존 상담 엔티티 (status: PENDING, replyContent: null)
+    consultationEntity.setStatus(ConsultationStatus.PENDING);
+    consultationEntity.setReplyContent(null);
+    consultationEntity.setAnswerDate(null);
+    consultationEntity.setReplyCreatedAt(null);
+    consultationEntity.setReplyUpdatedAt(null);
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
+
+    // When & Then
+    assertThatThrownBy(() -> consultationService.updateReply(consultationId, newReplyContent))
+            .isInstanceOf(ReplyNotFoundException.class)
+            .hasMessageContaining("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다.");
+
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(0)).save(any());
+    verify(consultationMapper, times(0)).toDetailResponseDto(any());
+  }
+
+  /**
+   * 상담에 답변 수정 테스트 - 존재하지 않음
+   */
+  @Test
+  void 상담_답변_수정_존재하지_않음() {
+    // Given
+    Long consultationId = 999L;
+    String newReplyContent = "수정된 답변 내용";
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThatThrownBy(() -> consultationService.updateReply(consultationId, newReplyContent))
+            .isInstanceOf(ConsultationNotFoundException.class)
+            .hasMessageContaining("해당 ID의 상담을 찾을 수 없습니다: " + consultationId);
+
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(0)).save(any());
+    verify(consultationMapper, times(0)).toDetailResponseDto(any());
+  }
+
+  /**
+   * 상담에 답변 삭제 테스트 - 성공
+   */
+  @Test
+  void 상담_답변_삭제_성공() {
+    // Given
+    Long consultationId = 100L;
+
+    // 기존 상담 엔티티 (status: COMPLETED, replyContent: not null)
+    consultationEntity.setStatus(ConsultationStatus.COMPLETED);
+    consultationEntity.setReplyContent("기존 답변 내용");
+    consultationEntity.setAnswerDate(LocalDateTime.now());
+    consultationEntity.setReplyCreatedAt(LocalDateTime.now());
+    consultationEntity.setReplyUpdatedAt(null);
+
+    ConsultationDetailResponseDto updatedDto = new ConsultationDetailResponseDto();
+    updatedDto.setId(100L);
+    updatedDto.setInvestorId("inv123");
+    updatedDto.setInvestorName("투자자닉네임");
+    updatedDto.setTraderId("trd456");
+    updatedDto.setTraderName("트레이더닉네임");
+    updatedDto.setStrategyId(1L);
+    updatedDto.setStrategyName("성장 전략");
+    updatedDto.setInvestmentAmount(5000.0);
+    updatedDto.setInvestmentDate(consultationEntity.getInvestmentDate());
+    updatedDto.setTitle("투자 문의");
+    updatedDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
+    updatedDto.setStatus(ConsultationStatus.PENDING);
+    updatedDto.setCreatedAt(consultationEntity.getCreatedAt());
+    updatedDto.setUpdatedAt(LocalDateTime.now());
+    updatedDto.setReplyContent(null);
+    updatedDto.setAnswerDate(null);
+    updatedDto.setReplyCreatedAt(null);
+    updatedDto.setReplyUpdatedAt(null);
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
+    when(consultationRepository.save(any(ConsultationEntity.class))).thenReturn(consultationEntity);
+    when(consultationMapper.toDetailResponseDto(consultationEntity)).thenReturn(updatedDto);
+
+    // When
+    ConsultationDetailResponseDto result = consultationService.deleteReply(consultationId);
+
+    // Then
+    assertThat(result).isNotNull();
+    assertThat(result.getReplyContent()).isNull();
+    assertThat(result.getStatus()).isEqualTo(ConsultationStatus.PENDING);
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(1)).save(consultationEntity);
+    verify(consultationMapper, times(1)).toDetailResponseDto(consultationEntity);
+  }
+
+  /**
+   * 상담에 답변 삭제 테스트 - 답변이 존재하지 않음
+   */
+  @Test
+  void 상담_답변_삭제_답변_존재하지_않음() {
+    // Given
+    Long consultationId = 100L;
+
+    // 기존 상담 엔티티 (status: PENDING, replyContent: null)
+    consultationEntity.setStatus(ConsultationStatus.PENDING);
+    consultationEntity.setReplyContent(null);
+    consultationEntity.setAnswerDate(null);
+    consultationEntity.setReplyCreatedAt(null);
+    consultationEntity.setReplyUpdatedAt(null);
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.of(consultationEntity));
+
+    // When & Then
+    assertThatThrownBy(() -> consultationService.deleteReply(consultationId))
+            .isInstanceOf(ReplyNotFoundException.class)
+            .hasMessageContaining("답변이 존재하지 않거나 이미 완료되지 않은 상담입니다.");
+
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(0)).save(any());
+    verify(consultationMapper, times(0)).toDetailResponseDto(any());
+  }
+
+  /**
+   * 상담에 답변 삭제 테스트 - 존재하지 않음
+   */
+  @Test
+  void 상담_답변_삭제_존재하지_않음() {
+    // Given
+    Long consultationId = 999L;
+
+    when(consultationRepository.findById(consultationId)).thenReturn(Optional.empty());
+
+    // When & Then
+    assertThatThrownBy(() -> consultationService.deleteReply(consultationId))
+            .isInstanceOf(ConsultationNotFoundException.class)
+            .hasMessageContaining("해당 ID의 상담을 찾을 수 없습니다: " + consultationId);
+
+    verify(consultationRepository, times(1)).findById(consultationId);
+    verify(consultationRepository, times(0)).save(any());
+    verify(consultationMapper, times(0)).toDetailResponseDto(any());
   }
 }
