@@ -56,6 +56,31 @@ public class ConsultationController {
   }
 
   /**
+   * 상담에 답변하기
+   */
+  @PostMapping("/{id}/reply")
+  @ResponseStatus(HttpStatus.OK)
+  public ConsultationDetailResponseDto replyToConsultation(@PathVariable Long id, @Valid @RequestBody ConsultationReplyDto replyDto) {
+    return consultationService.replyToConsultation(id, replyDto.getReplyContent());
+  }
+
+  /**
+   * 상담에 대한 답변 수정
+   */
+  @PutMapping("/{id}/reply")
+  public ConsultationDetailResponseDto updateReply(@PathVariable Long id, @Valid @RequestBody ConsultationReplyDto replyDto) {
+    return consultationService.updateReply(id, replyDto.getReplyContent());
+  }
+
+  /**
+   * 상담에 대한 답변 삭제
+   */
+  @DeleteMapping("/{id}/reply")
+  public ConsultationDetailResponseDto deleteReply(@PathVariable Long id) {
+    return consultationService.deleteReply(id);
+  }
+
+  /**
    * 상담 삭제
    */
   @DeleteMapping("/{id}")
