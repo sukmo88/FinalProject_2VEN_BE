@@ -1,6 +1,8 @@
 package com.sysmatic2.finalbe.member.service;
 
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
+import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -86,5 +88,32 @@ class MemberServiceTest {
 
         // 메소드 제대로 호출되었는지 확인
         verify(memberRepository, times(1)).findByEmail(newEmail);
+    }
+
+    // SimpleProfile 조죄하는 메소드 테스트 - 없으면 예외 발생
+    @Test
+    @DisplayName("memberId로 SimpleProfile 조회해서 없으면 예외 발생")
+    public void getSimpleProfile_simpleProfileNotExists() {
+
+        // 존재하지 않는 id로 찾으면 null 반환하도록 mock 설정
+        String notExistMemberId = "notExistMemberId";
+        when(memberRepository.findSimpleProfileByMemberId(notExistMemberId)).thenReturn(Optional.empty());
+
+        // service 호출 시 member 존재하지 않으므로 예외 발생
+        assertThrows(MemberNotFoundException.class, () -> memberService.getSimpleProfile(notExistMemberId));
+    }
+
+    // SimpleProfile 조죄하는 메소드 테스트 - 있으면 SimpleProfileDTO 반환
+    @Test
+    @DisplayName("memberId로 SimpleProfile 조회해서 있으면 DTO 반환")
+    public void getSimpleProfile_simpleProfileExists() {
+        // memberId로 조회 시 SimpleProfileDTO 반환하도록 mock 설정
+        String existMemberId = "existMemberId";
+        SimpleProfileDTO simpleProfileDTO  = new SimpleProfileDTO();
+        when(memberRepository.findSimpleProfileByMemberId(existMemberId))
+                .thenReturn(Optional.of(simpleProfileDTO));
+
+        // 예외 발생 X, 메서드 1회 호출되었는지 확인
+        assertDoesNotThrow(() ->  memberService.getSimpleProfile(existMemberId));
     }
 }

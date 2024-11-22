@@ -1,6 +1,8 @@
 package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
+import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
@@ -116,5 +118,50 @@ class MemberControllerTest {
     public void testCheckEmail_Failure() throws Exception {
     }
 
+    // 사이드바 프로필 조회 메소드 테스트 - 성공
+    @WithMockUser(username = "testUser", roles = "USER")  // 인증된 사용자를 모의(Mock)
+    @Test
+    public void testGetSidebarProfile_Success() throws Exception {
+
+        String memberId = "validMemberId";
+        String nickname = "nickname";
+        String memberType = "MEMBER_ROLE_TRADER";
+        String introduction = "introduction";
+        String fileId = "fileId";
+
+        SimpleProfileDTO simpleProfileDTO = new SimpleProfileDTO(nickname, memberType, introduction, fileId);
+
+        // 저장된 MemberId로 sidebar profile 조회 시 SimpleProfileDTO 반환하도록 설정
+        doReturn(simpleProfileDTO).when(memberService).getSimpleProfile(memberId);
+
+        // Controller 호출하여 성공 데이터 반환하는지 확인
+        mockMvc.perform(get("/api/members/{memberId}/sidebar-profile", memberId)) // URL에 memberId 전달
+                .andExpect(status().isOk()) // HTTP 200 상태 코드 확인
+                .andExpect(jsonPath("$.status").value("success")) // 성공 상태 확인
+                .andExpect(jsonPath("$.message").value("사이드바 프로필 조회에 성공하였습니다.")) // 메시지 확인
+                .andExpect(jsonPath("$.data.nickname").value(nickname)) // nickname 확인
+                .andExpect(jsonPath("$.data.memberType").value(memberType.replace("MEMBER_ROLE_", ""))) // memberType 확인
+                .andExpect(jsonPath("$.data.introduction").value(introduction)) // introduction 확인
+                .andExpect(jsonPath("$.data.fileId").value(fileId)); // fileId 확인
+
+        // Mock 객체의 메소드 호출 검증
+        verify(memberService, times(1)).getSimpleProfile(memberId);
+    }
+
+    // 사이드바 프로필 조회 메소드 테스트 - 실패
+    @WithMockUser(username = "testUser", roles = "USER")  // 인증된 사용자를 모의(Mock)
+    @Test
+    public void testGetSidebarProfile_Failure() throws Exception {
+        String invalidMemberId = "invalidMemberId";
+
+        // 저장되지 않은 memberId로 sidebar profile 조회 시 예외 발생
+        doThrow(MemberNotFoundException.class).when(memberService).getSimpleProfile(invalidMemberId);
+
+        mockMvc.perform(get("/api/members/{memberId}/sidebar-profile", invalidMemberId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorType").value("MemberNotFoundException"))
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."));
+    }
 
 }

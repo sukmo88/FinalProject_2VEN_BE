@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.exception.EmailVerificationFailedException;
 import com.sysmatic2.finalbe.member.dto.SignupDTO;
+import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.member.service.MemberService;
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
@@ -137,10 +138,14 @@ public class MemberController {
 
     // 사이드바 프로필 조회
     @GetMapping("/{memberId}/sidebar-profile")
-    public ResponseEntity<Map<String, String>> getSidebarProfile(@PathVariable String memberId) {
+    public ResponseEntity<Map<String, ?>> getSidebarProfile(@PathVariable String memberId) {
+
+        SimpleProfileDTO simpleProfile = memberService.getSimpleProfile(memberId);
+
         return ResponseEntity.ok(Map.of(
                 "status", "success",
-                "message", "사이드바 프로필 조회에 성공하였습니다."
+                "message", "사이드바 프로필 조회에 성공하였습니다.",
+                "data", simpleProfile
         ));
     }
 

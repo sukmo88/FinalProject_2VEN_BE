@@ -65,8 +65,8 @@ public class MemberEntity extends Auditable {
     @Column(name = "password_changed_at")
     private LocalDateTime passwordChangedAt;  // 비밀번호 변경일
 
-    @Column(name = "profile_path")
-    private String profilePath;  // 프로필 이미지 링크
+    @Column(name = "file_id")
+    private String fileId;  // 프로필 이미지 링크
 
     @Column(name = "notes")
     private String notes;  // 비고 (탈퇴사유 등 참고사항)

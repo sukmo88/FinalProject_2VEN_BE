@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @ToString
 public class FollowingStrategyEntity extends Auditable {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "following_strategy_id")
     private Long followingStrategyId;
 
