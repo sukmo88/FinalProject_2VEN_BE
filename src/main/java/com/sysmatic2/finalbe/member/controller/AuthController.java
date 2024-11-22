@@ -38,6 +38,7 @@ public class AuthController {
             EmailVerificationDTO emailVerificationDTO, HttpServletRequest req) {
 
         HttpSession session = req.getSession(false);
+        System.out.println("session=" + session);
 
         // 세션, 만료시간, 인증코드 값이 null이면 이메일 인증 불가 (잘못된 접근이라고 예외를 세분화해야 하나?)
         if (session == null || session.getAttribute("expiryTime") == null || session.getAttribute("verificationCode") == null) {

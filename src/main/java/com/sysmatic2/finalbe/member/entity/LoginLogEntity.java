@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @ToString
 public class LoginLogEntity extends Auditable {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="login_log_id")
     private int loginLogId;
 
