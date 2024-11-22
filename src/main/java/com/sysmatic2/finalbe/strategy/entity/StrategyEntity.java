@@ -35,8 +35,8 @@ public class StrategyEntity extends Auditable {
     @JoinColumn(name = "trading_type_id", nullable = false)
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
-//    @Column(name = "strategy_status_code", nullable = false)
-//    private String strategyStatusCode; // 전략상태코드(공통 코드)
+    @Column(name = "strategy_status_code", nullable = false)
+    private String strategyStatusCode; // 전략상태코드(공통 코드)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trading_cycle_id", nullable = false)
