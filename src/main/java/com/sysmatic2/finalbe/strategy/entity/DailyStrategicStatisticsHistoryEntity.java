@@ -9,8 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@IdClass(DailyStrategicStatisticsId.class)
-@Table(name = "daily_strategic_statistics")
+@IdClass(DailyStrategicStatisticsHistoryId.class)
+@Table(name = "daily_strategic_statistics_history")
 @Getter
 @ToString
 @NoArgsConstructor
