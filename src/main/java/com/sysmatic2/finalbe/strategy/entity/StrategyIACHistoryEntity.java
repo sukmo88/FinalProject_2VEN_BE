@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.strategy.entity;
 import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.annotation.CreatedBy;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
+@NoArgsConstructor
 public class StrategyIACHistoryEntity extends Auditable {
     @Id
     @Column(name = "strategy_investment_asset_classes_history_id")
@@ -47,4 +49,15 @@ public class StrategyIACHistoryEntity extends Auditable {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt; //수정일시
+
+    //관계테이블 엔티티를 받으면 이력 엔티티 생성
+    public StrategyIACHistoryEntity(StrategyIACEntity strategyIACEntity, String statusCode){
+        this.strategyId = strategyIACEntity.getStrategyEntity().getStrategyId();
+        this.investmentAssetClassId = strategyIACEntity.getInvestmentAssetClassesEntity().getInvestmentAssetClassesId();
+        this.writerId = strategyIACEntity.getWritedBy();
+        this.updaterId = strategyIACEntity.getUpdatedBy();
+        this.status = statusCode;
+        this.writedAt = strategyIACEntity.getWritedAt();
+        this.updatedAt = LocalDateTime.now();
+    }
 }
