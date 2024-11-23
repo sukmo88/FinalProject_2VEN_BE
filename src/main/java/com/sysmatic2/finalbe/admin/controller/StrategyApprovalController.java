@@ -23,6 +23,7 @@ public class StrategyApprovalController {
     private final StrategyApprovalRequestsService strategyApprovalRequestsService;
 
     //1. 전략 승인 요청 목록 - pagination(page size = 10)
+    //TODO) 관리자만 확인할 수 있다.
     @Operation(summary = "전략 승인 요청 목록")
     @GetMapping(value = "/", produces = "application/json")
     public ResponseEntity<Map> getAllStrategyApprovalRequests(@RequestParam(value = "page", defaultValue = "0")
@@ -37,6 +38,7 @@ public class StrategyApprovalController {
     }
 
     //2. 전략 승인 api
+    //TODO) 관리자만 전략 승인할 수 있다.
     @Operation(summary = "전략 승인 요청 승인")
     @PatchMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map<String, String>> approveStrategy(@PathVariable("id") Long id){
@@ -51,6 +53,7 @@ public class StrategyApprovalController {
     }
 
     //3. 전략 승인 반려 api
+    //TODO) 관리자만 전략 승인 반려할 수 있다.
     @Operation(summary = "전략 승인 요청 반려")
     @PutMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map<String, String>> rejectStrategy(@PathVariable("id") Long id, @RequestBody String rejectionReason){
