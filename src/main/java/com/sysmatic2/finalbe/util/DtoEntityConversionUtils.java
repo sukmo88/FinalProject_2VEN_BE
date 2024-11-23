@@ -168,6 +168,7 @@ public class DtoEntityConversionUtils {
 
         responseDto.setStrategyId(strategyEntity.getStrategyId());
         responseDto.setStrategyTitle(strategyEntity.getStrategyTitle());
+        responseDto.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
         responseDto.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
         responseDto.setStrategyOverview(strategyEntity.getStrategyOverview());
         responseDto.setFollowersCount(strategyEntity.getFollowersCount());

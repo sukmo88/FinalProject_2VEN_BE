@@ -5,6 +5,8 @@ import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
+import com.sysmatic2.finalbe.strategy.entity.StrategyIACHistoryEntity;
+import com.sysmatic2.finalbe.strategy.repository.StrategyIACHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyIACRepository;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
@@ -26,8 +28,8 @@ import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
 @RequiredArgsConstructor
 public class InvestmentAssetClassesService {
     private final InvestmentAssetClassesRepository iacRepository;
-    private final StrategyService strategyService;
     private final StrategyIACRepository strategyIACRepository;
+    private final StrategyIACHistoryRepository strategyIACHistoryRepository;
 
     //1. 투자자산 분류 전체목록 메서드 페이지네이션, 소팅 적용
     @Transactional(readOnly = true)
@@ -113,9 +115,9 @@ public class InvestmentAssetClassesService {
     }
 
     //3. 투자자산 분류 삭제
-    //TODO) 다중삭제 - 관계테이블만 삭제되도록 변경
+    //삭제시 관계테이블의 데이터만 삭제된다.
     @Transactional
-    public void delete(Integer id) throws Exception{
+    public void delete(Integer id, String memberId) throws Exception{
         //id로 존재 확인
         InvestmentAssetClassesEntity iacEntity = iacRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException());
@@ -123,15 +125,16 @@ public class InvestmentAssetClassesService {
         //관계테이블에서 해당 iacEntity와 관련된 모든 데이터를 찾는다.
         List<StrategyIACEntity> relatedStrategyIACs = strategyIACRepository.findByInvestmentAssetClassesEntity(iacEntity);
 
-        //관련된 모든 전략 삭제
-        //가져온 엔티티에서 id를 가져와 set으로 만든다.
-        Set<Long> strategyIdsToDelete = relatedStrategyIACs.stream()
-                .map(strategyIACEntity -> strategyIACEntity.getStrategyEntity().getStrategyId())
-                .collect(Collectors.toSet());
-
-        for(Long strategyId : strategyIdsToDelete){
-            strategyService.deleteStrategy(strategyId);
+        //삭제 이력 테이블에 해당 데이터를 저장한다.
+        for(StrategyIACEntity strategyIACEntity : relatedStrategyIACs){
+            StrategyIACHistoryEntity historyEntity = new StrategyIACHistoryEntity(strategyIACEntity, "STRATEGYIAC_STATUS_DELETED");
+            historyEntity.setUpdatedAt(LocalDateTime.now());
+            historyEntity.setUpdaterId(memberId);
+            strategyIACHistoryRepository.save(historyEntity);
         }
+
+        //관계테이블에서 엔티티 삭제
+        strategyIACRepository.deleteAll(relatedStrategyIACs);
 
         //투자자산 분류 삭제
         iacRepository.delete(iacEntity);
