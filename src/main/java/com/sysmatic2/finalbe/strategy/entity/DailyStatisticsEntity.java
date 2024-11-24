@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "daily_strategic_statistics")
+@Table(name = "daily_statistics")
 @Getter
 @ToString
 @Builder
@@ -17,8 +17,8 @@ import java.time.LocalDate;
 public class DailyStatisticsEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "daily_strategic_statistics_id", nullable = false)
-    private Long dailyStrategicStatisticsId; // 전략 일간 통계 ID
+    @Column(name = "daily_statistics_id", nullable = false)
+    private Long dailyStatisticsId; // 전략 일간 통계 ID
 
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
