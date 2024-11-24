@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @Setter
 @ToString
 public class DailyStatisticsReqDto {
+    private Long strategyId; // 전략 ID
     private LocalDate date; // 일자
     private BigDecimal depWdPrice; // 입출금
     private BigDecimal dailyProfitLoss; // 일손익

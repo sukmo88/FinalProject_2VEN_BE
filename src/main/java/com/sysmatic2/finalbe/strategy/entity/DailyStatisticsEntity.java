@@ -6,28 +6,23 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "daily_strategic_statistics_history")
+@Table(name = "daily_strategic_statistics")
 @Getter
 @ToString
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DailyStrategicStatisticsHistoryEntity extends Auditable {
-
+public class DailyStatisticsEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "daily_strategic_statistics_history_id", nullable = false)
-    private Long dailyStrategicStatisticsHistoryId; // 전략 일간 통계 이력 ID
+    @Column(name = "daily_strategic_statistics_id", nullable = false)
+    private Long dailyStrategicStatisticsId; // 전략 일간 통계 ID
 
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
-    private StrategyEntity strategyId; // 전략 FK
-
-    @ManyToOne
-    @JoinColumn(name = "daily_strategic_statistics_id", nullable = false)
-    private DailyStrategicStatisticsEntity dailyStrategicStatistics; // 일간 통계 FK
+    private StrategyEntity strategyEntity; // 전략 FK
 
     @Column(name = "date", nullable = false)
     private LocalDate date; // 일자
@@ -113,7 +108,7 @@ public class DailyStrategicStatisticsHistoryEntity extends Auditable {
     @Column(name = "cumulative_profit_loss_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal cumulativeProfitLossRate; // 누적손익률(%)
 
-    @Column(name = "max_cumulative_profit_loss", precision = 19, scale = 4)
+    @Column(name = "max_cumulative_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal maxCumulativeProfitLoss; // 최대누적손익
 
     @Column(name = "max_cumulative_profit_loss_rate", nullable = false, precision = 10, scale = 4)
@@ -178,13 +173,4 @@ public class DailyStrategicStatisticsHistoryEntity extends Auditable {
 
     @Column(name = "strategy_operation_days", nullable = false)
     private Integer strategyOperationDays; // 총전략운용일수
-
-    @Column(name = "daily_strategic_statistics_status_code", nullable = false, precision = 10, scale = 4)
-    private String dailyStrategicStatisticsStatusCode; // 일간 통계 상태코드
-
-    @Column(name = "change_start_date", nullable = false)
-    private LocalDateTime changeStartDate; // 변경시작일시
-
-    @Column(name = "change_end_date")
-    private LocalDateTime changeEndDate; // 변경종료일시
 }
