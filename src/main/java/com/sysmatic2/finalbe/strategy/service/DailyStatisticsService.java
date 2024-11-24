@@ -46,15 +46,15 @@ public class DailyStatisticsService {
         BigDecimal previousMaxCumulativeProfitLossRate = previousState.map(DailyStatisticsEntity::getMaxCumulativeProfitLossRate).orElse(BigDecimal.ZERO);
         BigDecimal previousMaxDrawdownAmount = previousState.map(DailyStatisticsEntity::getMaxDrawdownAmount).orElse(BigDecimal.ZERO);
         BigDecimal previousMaxDrawdownRate = previousState.map(DailyStatisticsEntity::getMaxDrawdownRate).orElse(BigDecimal.ZERO);
-        int previousTradingDays = previousState.map(DailyStatisticsEntity::getTradingDays).orElse(0);
-        int previousProfitDays = previousState.map(DailyStatisticsEntity::getTotalProfitDays).orElse(0);
-        int previousLossDays = previousState.map(DailyStatisticsEntity::getTotalLossDays).orElse(0);
+        Integer previousTradingDays = previousState.map(DailyStatisticsEntity::getTradingDays).orElse(0);
+        Integer previousProfitDays = previousState.map(DailyStatisticsEntity::getTotalProfitDays).orElse(0);
+        Integer previousLossDays = previousState.map(DailyStatisticsEntity::getTotalLossDays).orElse(0);
         BigDecimal previousTotalProfit = previousState.map(DailyStatisticsEntity::getTotalProfit).orElse(BigDecimal.ZERO);
         BigDecimal previousTotalLoss = previousState.map(DailyStatisticsEntity::getTotalLoss).orElse(BigDecimal.ZERO);
-        int previousStrategyOperationDays = previousState.map(DailyStatisticsEntity::getStrategyOperationDays).orElse(0);
-        int previousCurrentConsecutivePlDays = previousState.map(DailyStatisticsEntity::getCurrentConsecutivePlDays).orElse(0);
-        int previousMaxConsecutiveProfitDays = previousState.map(DailyStatisticsEntity::getMaxConsecutiveProfitDays).orElse(0);
-        int previousMaxConsecutiveLossDays = previousState.map(DailyStatisticsEntity::getMaxConsecutiveLossDays).orElse(0);
+        Integer previousStrategyOperationDays = previousState.map(DailyStatisticsEntity::getStrategyOperationDays).orElse(0);
+        Integer previousCurrentConsecutivePlDays = previousState.map(DailyStatisticsEntity::getCurrentConsecutivePlDays).orElse(0);
+        Integer previousMaxConsecutiveProfitDays = previousState.map(DailyStatisticsEntity::getMaxConsecutiveProfitDays).orElse(0);
+        Integer previousMaxConsecutiveLossDays = previousState.map(DailyStatisticsEntity::getMaxConsecutiveLossDays).orElse(0);
 
         // 사용자 입력값
         BigDecimal dailyProfitLoss = reqDto.getDailyProfitLoss();
@@ -64,9 +64,9 @@ public class DailyStatisticsService {
         BigDecimal balance = StatisticsCalculator.calculateBalance(previousBalance, dailyProfitLoss, depWdPrice); // 잔고 = 이전 잔고 + 일손익 + 입출금
         BigDecimal principal = StatisticsCalculator.calculatePrincipal(previousPrincipal, depWdPrice); // 원금 = 이전 원금 + 입출금
         BigDecimal cumulativeProfitLoss = StatisticsCalculator.calculateCumulativeProfitLoss(previousCumulativeProfitLoss, dailyProfitLoss); // 누적손익 = 이전 누적손익 + 일손익
-        int tradingDays = StatisticsCalculator.calculateTradingDays(previousTradingDays, dailyProfitLoss); // 거래일수 = 일손익이 0이 아닌 경우 1 증가
-        int totalLossDays = previousLossDays + (dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0 ? 1 : 0); // 손실일수 = 일손익이 음수인 경우 증가
-        int totalProfitDays = previousProfitDays + (dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0 ? 1 : 0); // 이익일수 = 일손익이 양수인 경우 증가
+        Integer tradingDays = StatisticsCalculator.calculateTradingDays(previousTradingDays, dailyProfitLoss); // 거래일수 = 일손익이 0이 아닌 경우 1 증가
+        Integer totalLossDays = previousLossDays + (dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0 ? 1 : 0); // 손실일수 = 일손익이 음수인 경우 증가
+        Integer totalProfitDays = previousProfitDays + (dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0 ? 1 : 0); // 이익일수 = 일손익이 양수인 경우 증가
         BigDecimal totalLoss = previousTotalLoss.add(dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0 ? dailyProfitLoss : BigDecimal.ZERO); // 총손실 = 이전 총손실 + 음수인 일손익
         BigDecimal totalProfit = previousTotalProfit.add(dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0 ? dailyProfitLoss : BigDecimal.ZERO); // 총이익 = 이전 총이익 + 양수인 일손익
         BigDecimal averageLoss = StatisticsCalculator.calculateAverageLoss(totalLoss, totalLossDays); // 평균손실 = 총손실 / 손실일수
@@ -91,7 +91,7 @@ public class DailyStatisticsService {
                 ? averageProfit.divide(averageLoss.abs(), 4, BigDecimal.ROUND_HALF_UP)
                 : BigDecimal.ZERO; // 평균손익비 = 평균이익 / |평균손실|
         BigDecimal unrealizedProfitLoss = StatisticsCalculator.calculateUnrealizedProfitLoss(principal, balance); // 평가손익 = 원금 - 잔고
-        int daysSincePeak = StatisticsCalculator.calculateDaysSincePeak(maxCumulativeProfitLoss, previousMaxCumulativeProfitLoss, previousState.map(DailyStatisticsEntity::getDaysSincePeak).orElse(0)); // 고점 후 경과일 = 현재 고점과 이전 고점 비교
+        Integer daysSincePeak = StatisticsCalculator.calculateDaysSincePeak(maxCumulativeProfitLoss, previousMaxCumulativeProfitLoss, previousState.map(DailyStatisticsEntity::getDaysSincePeak).orElse(0)); // 고점 후 경과일 = 현재 고점과 이전 고점 비교
 
         // 변동계수 및 Sharp Ratio 계산
         List<BigDecimal> dailyProfitLosses = dssp.findDailyProfitLossesByStrategyId(reqDto.getStrategyId());
@@ -113,16 +113,16 @@ public class DailyStatisticsService {
         BigDecimal averageProfitLossRate = principal.compareTo(BigDecimal.ZERO) > 0
                 ? averageProfitLoss.divide(principal, 4, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100))
                 : BigDecimal.ZERO; // 평균손익률 = (평균손익 / 원금) * 100
-        int currentConsecutivePlDays = dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0
+        Integer currentConsecutivePlDays = dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0
                 ? previousCurrentConsecutivePlDays + 1
                 : (dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0 ? previousCurrentConsecutivePlDays - 1 : 0); // 현재 연속 손익일수
-        int maxConsecutiveProfitDays = currentConsecutivePlDays > 0
+        Integer maxConsecutiveProfitDays = currentConsecutivePlDays > 0
                 ? Math.max(previousMaxConsecutiveProfitDays, currentConsecutivePlDays)
                 : previousMaxConsecutiveProfitDays; // 최대 연속 수익일수
-        int maxConsecutiveLossDays = currentConsecutivePlDays < 0
+        Integer maxConsecutiveLossDays = currentConsecutivePlDays < 0
                 ? Math.max(previousMaxConsecutiveLossDays, Math.abs(currentConsecutivePlDays))
                 : previousMaxConsecutiveLossDays; // 최대 연속 손실일수
-        int strategyOperationDays = previousStrategyOperationDays + 1; // 총 전략 운용일수
+        Integer strategyOperationDays = previousStrategyOperationDays + 1; // 총 전략 운용일수
 
         BigDecimal cumulativeProfitLossRateLn = cumulativeProfitLossRate.compareTo(BigDecimal.ZERO) > 0
                 ? BigDecimal.valueOf(Math.log(cumulativeProfitLossRate.doubleValue()))
