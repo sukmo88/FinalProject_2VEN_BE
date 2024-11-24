@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+
 public interface DailyStatisticsRepository extends JpaRepository<DailyStatisticsEntity, Long> {
 
     // 가장 최근 데이터 1개 조회 (Pageable 사용)
@@ -31,4 +32,14 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
             "AND d.date <= :oneYearAgo " +
             "ORDER BY d.date DESC")
     Optional<BigDecimal> findBalanceOneYearAgo(@Param("strategyId") Long strategyId, @Param("oneYearAgo") LocalDate oneYearAgo);
+
+    // 특정 전략의 누적손익 히스토리 조회
+    @Query("SELECT d.date, d.cumulativeProfitLoss FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date ASC")
+    List<Object[]> findCumulativeProfitLossHistory(@Param("strategyId") Long strategyId);
+
+    // 모든 전략의 KP-Ratio 조회
+    @Query("SELECT d.kpRatio FROM DailyStatisticsEntity d WHERE d.kpRatio IS NOT NULL AND d.kpRatio > 0")
+    List<BigDecimal> findAllKpRatios();
 }
