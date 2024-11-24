@@ -1,9 +1,12 @@
 package com.sysmatic2.finalbe.config;
 
+import com.sysmatic2.finalbe.exception.CustomAccessDeniedHandler;
+import com.sysmatic2.finalbe.exception.CustomAuthenticationEntryPoint;
 import com.sysmatic2.finalbe.jwt.JWTFilter;
 import com.sysmatic2.finalbe.jwt.JWTUtil;
 import com.sysmatic2.finalbe.jwt.LoginFilter;
 import com.sysmatic2.finalbe.member.service.MemberService;
+import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,18 +23,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-    //AuthenticationManager가 인자로 받을 AuthenticationConfiguraion 객체 생성자 주입
     private final AuthenticationConfiguration authenticationConfiguration;
     private final JWTUtil jwtUtil;
     private final CorsConfig corsConfig;
 
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil,CorsConfig corsConfig) {
-
-        this.authenticationConfiguration = authenticationConfiguration;
-        this.jwtUtil = jwtUtil;
-        this.corsConfig = corsConfig;
-    }
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     //AuthenticationManager Bean 등록
     @Bean
@@ -85,10 +84,16 @@ public class SecurityConfig {
                 .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration),jwtUtil), UsernamePasswordAuthenticationFilter.class);
 
 
-
         //JWT 사용으로 세션 비활성화 설정
 //        http.sessionManagement((session) -> session
 //                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+
+        // Security filter 관련 에러(AuthenticationException, AccessDeniedException)가 GlobalExceptionHandler에서 처리되도록 설정
+        http.exceptionHandling(e -> e
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler));
+
         return http.build();
     }
 
@@ -104,6 +109,7 @@ public class SecurityConfig {
         http
                 // 모든 요청을 허용하고 HTTPS 강제 설정 없음
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/members/details").authenticated()
                         .requestMatchers("/**").permitAll() // 모든 경로를 허용
 //                        .requestMatchers("/api/members/login").permitAll()
 //                        .requestMatchers("/api/auth/**").hasAuthority("ROLE_ADMIN")
@@ -130,6 +136,11 @@ public class SecurityConfig {
         //JWT 사용으로 세션 비활성화 설정
         http.sessionManagement((session) -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        // Security filter 관련 에러(AuthenticationException, AccessDeniedException)가 GlobalExceptionHandler에서 처리되도록 설정
+        http.exceptionHandling(e -> e
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler));
 
         return http.build();
     }
