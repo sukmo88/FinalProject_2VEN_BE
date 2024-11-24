@@ -2,7 +2,6 @@ package com.sysmatic2.finalbe.exception;
 
 import com.sysmatic2.finalbe.util.ResponseUtils;
 import jakarta.validation.ConstraintViolationException;
-import org.apache.tomcat.websocket.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -11,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mail.MailException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -93,7 +93,8 @@ public class GlobalExceptionHandler {
     // 400: 유효성 검사 실패
     @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class,
             ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class,
-            StrategyAlreadyApprovedException.class})
+            StrategyAlreadyApprovedException.class, StrategyAlreadyTerminatedException.class,
+            StrategyTerminatedException.class, DailyDataNotEnoughException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -122,6 +123,21 @@ public class GlobalExceptionHandler {
             fieldErrors.put(field, message);
         } else if (ex instanceof StrategyAlreadyApprovedException) {
             StrategyAlreadyApprovedException constraintEx = (StrategyAlreadyApprovedException) ex;
+            String field = "strategy";
+            String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
+        } else if (ex instanceof StrategyAlreadyTerminatedException) {
+            StrategyAlreadyTerminatedException constraintEx = (StrategyAlreadyTerminatedException) ex;
+            String field = "strategy";
+            String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
+        } else if (ex instanceof StrategyTerminatedException) {
+            StrategyTerminatedException constraintEx = (StrategyTerminatedException) ex;
+            String field = "strategy";
+            String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
+        } else if (ex instanceof DailyDataNotEnoughException) {
+            DailyDataNotEnoughException constraintEx = (DailyDataNotEnoughException) ex;
             String field = "strategy";
             String message = constraintEx.getMessage();
             fieldErrors.put(field, message);
@@ -242,9 +258,4 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT
         );
     }
-
-
-
-
-
 }

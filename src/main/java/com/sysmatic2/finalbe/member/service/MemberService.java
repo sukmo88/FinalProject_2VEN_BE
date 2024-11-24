@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.member.service;
 import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
 import com.sysmatic2.finalbe.member.dto.SignupDTO;
 import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
@@ -33,6 +34,11 @@ public class MemberService {
         }
 
         MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
+
+        //TODO) fileService 에서 프로필 사진 등록하는 메서드 호출 후 fileId 획득해서 치환하기
+        String fileId = "1234";
+        member.setFileId(fileId);
+
         memberRepository.save(member); // 가입 실패 시 예외 발생
     }
 
@@ -103,6 +109,16 @@ public class MemberService {
         }
 
         return simpleProfileByMemberId.get();
+    }
+
+    public DetailedProfileDTO getDetailedProfile(String memberId) {
+        Optional<DetailedProfileDTO> detailedProfileByMemberId = memberRepository.findDetailedProfileByMemberId(memberId);
+
+        if (detailedProfileByMemberId.isEmpty()) {
+            throw new MemberNotFoundException("존재하지 않는 회원입니다.");
+        }
+
+        return detailedProfileByMemberId.get();
     }
 
 }

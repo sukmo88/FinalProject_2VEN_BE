@@ -4,27 +4,22 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Value;
+import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.Map;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class S3ClientServiceTest {
 
     @Mock
@@ -33,100 +28,171 @@ class S3ClientServiceTest {
     @InjectMocks
     private S3ClientService s3ClientService;
 
-    @Value("${cloud.aws.s3.bucket}")
-    private String bucket = "test-bucket"; // 목 환경용 bucket 값 설정
-
-    @BeforeEach
-    void setup() {
-        // Inject the bucket value manually
-        ReflectionTestUtils.setField(s3ClientService, "bucket", bucket);
-    }
+    private final String bucket = "test-bucket";
+    private final String uploaderId = "test-user";
+    private final String category = "profile";
+    private final String fileName = "test-file.png";
+    private final String uniqueFileName = UUID.randomUUID() + ".png";
 
     @BeforeEach
     void setUp() {
-        amazonS3 = mock(AmazonS3.class);
-        s3ClientService = new S3ClientService(amazonS3);
+        MockitoAnnotations.openMocks(this);
+        ReflectionTestUtils.setField(s3ClientService, "bucket", bucket); // bucket 값을 설정
     }
 
+    /**
+     * 고유한 파일 이름 생성 테스트
+     */
     @Test
-    void testGeneratePresignedUrl() {
-        // Arrange
-        String fileName = "test-file.txt";
-        String displayName = "user-friendly-name.txt";
-        URL mockUrl = Mockito.mock(URL.class);
-        when(mockUrl.toString()).thenReturn("https://test-bucket.s3.amazonaws.com/test-file.txt");
+    void testGenerateUniqueFileName() {
+        String originalFileName = "example.png";
+        String result = s3ClientService.generateUniqueFileName(originalFileName);
 
-        when(amazonS3.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(mockUrl);
-
-        // Act
-        String result = s3ClientService.generatePresignedUrl(fileName, displayName);
-
-        // Assert
-        assertThat(result).isEqualTo(mockUrl.toString());
-        verify(amazonS3, times(1)).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
+        assertThat(result).isNotNull();
+        assertThat(result).endsWith(".png");
     }
 
+    /**
+     * S3 키 생성 테스트
+     */
     @Test
-    void testUploadFile_success() throws Exception {
-        // Arrange
+    void testGenerateS3Key() {
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, fileName);
+
+        assertThat(s3Key).isEqualTo("test-user/profile/test-file.png");
+    }
+
+    /**
+     * 파일 업로드 성공 테스트
+     */
+    @Test
+    void testUploadFile_Success() throws IOException {
         MultipartFile mockFile = mock(MultipartFile.class);
-        String userId = "user123";
-        String category = "images";
-        String fileName = "test-file.png";
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
 
-        when(mockFile.getOriginalFilename()).thenReturn(fileName);
+        // Mock 파일 스트림, 크기, 콘텐츠 타입
+        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test-content".getBytes()));
+        when(mockFile.getSize()).thenReturn(123L);
         when(mockFile.getContentType()).thenReturn("image/png");
-        when(mockFile.getSize()).thenReturn(1024L);
-        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[1024]));
 
-        URL mockUrl = new URL("https://test-bucket.s3.amazonaws.com/user123/images/test-file.png");
-        when(amazonS3.getUrl(anyString(), anyString())).thenReturn(mockUrl);
+        // Mock S3 URL 반환
+        String expectedUrl = "https://test-bucket.s3.amazonaws.com/" + s3Key;
+        when(amazonS3.getUrl(bucket, s3Key)).thenReturn(new java.net.URL(expectedUrl));
 
         // Act
-        Map<String, String> result = s3ClientService.uploadFile(mockFile, userId, category);
+        String result = s3ClientService.uploadFile(mockFile, s3Key);
 
         // Assert
-        assertThat(result.get("fileUrl")).isEqualTo(mockUrl.toString());
-        verify(amazonS3, times(1)).putObject(any(PutObjectRequest.class));
+        assertThat(result).isEqualTo(expectedUrl);
+
+        // ArgumentCaptor를 사용하여 PutObjectRequest를 캡처
+        ArgumentCaptor<PutObjectRequest> captor = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(amazonS3, times(1)).putObject(captor.capture());
+
+        // 캡처된 값 검증
+        PutObjectRequest capturedRequest = captor.getValue();
+        assertThat(capturedRequest.getBucketName()).isEqualTo(bucket);
+        assertThat(capturedRequest.getKey()).isEqualTo(s3Key);
+        assertThat(capturedRequest.getMetadata().getContentType()).isEqualTo("image/png");
     }
 
+    /**
+     * 파일 업로드 실패 테스트
+     */
     @Test
-    void testUploadFile_invalidFile() {
-        // Arrange
+    void testUploadFile_Failure() throws IOException {
         MultipartFile mockFile = mock(MultipartFile.class);
-        when(mockFile.getOriginalFilename()).thenReturn(null);
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
 
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> s3ClientService.uploadFile(mockFile, "user123", "images"));
+        when(mockFile.getInputStream()).thenThrow(new IOException("File read error"));
+
+        assertThrows(RuntimeException.class, () -> s3ClientService.uploadFile(mockFile, s3Key));
+
+        verify(amazonS3, never()).putObject(any(PutObjectRequest.class));
     }
 
+    /**
+     * 이미지 파일 다운로드 성공 테스트
+     */
     @Test
-    void testDeleteFile_success() {
-        // Arrange
-        String fileName = "user123/images/test-file.png";
+    void testDownloadImageFileAsBase64_Success() throws IOException {
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
+        byte[] fileContent = "test-content".getBytes();
 
-        // Act
-        s3ClientService.deleteFile(fileName);
-
-        // Assert
-        verify(amazonS3, times(1)).deleteObject(bucket, fileName);
-    }
-
-    @Test
-    void testDownloadFile_success() throws Exception {
-        // Arrange
-        String fileName = "user123/images/test-file.png";
         S3Object mockS3Object = mock(S3Object.class);
-        S3ObjectInputStream mockInputStream = new S3ObjectInputStream(new ByteArrayInputStream(new byte[1024]), null);
+        S3ObjectInputStream mockInputStream = new S3ObjectInputStream(new ByteArrayInputStream(fileContent), null);
 
         when(mockS3Object.getObjectContent()).thenReturn(mockInputStream);
-        when(amazonS3.getObject(any(GetObjectRequest.class))).thenReturn(mockS3Object);
+        when(amazonS3.getObject(bucket, s3Key)).thenReturn(mockS3Object);
 
-        // Act
-        S3ObjectInputStream result = s3ClientService.downloadFile(fileName);
+        String base64Content = s3ClientService.downloadImageFileAsBase64(s3Key);
 
-        // Assert
-        assertThat(result).isNotNull();
-        verify(amazonS3, times(1)).getObject(any(GetObjectRequest.class));
+        assertThat(base64Content).isEqualTo(Base64.getEncoder().encodeToString(fileContent));
+        verify(amazonS3, times(1)).getObject(bucket, s3Key);
+    }
+
+    /**
+     * 이미지 파일 다운로드 실패 테스트
+     */
+    @Test
+    void testDownloadImageFileAsBase64_S3ObjectNotFound() {
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
+
+        when(amazonS3.getObject(bucket, s3Key)).thenReturn(null);
+
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> s3ClientService.downloadImageFileAsBase64(s3Key));
+
+        assertThat(exception.getMessage()).contains("Failed to access image file in S3");
+        verify(amazonS3, times(1)).getObject(bucket, s3Key);
+    }
+
+    /**
+     * 문서 파일 다운로드 성공 테스트
+     */
+    @Test
+    void testDownloadDocumentFile_Success() throws IOException {
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
+        byte[] fileContent = "test-content".getBytes();
+
+        S3Object mockS3Object = mock(S3Object.class);
+        when(mockS3Object.getObjectContent()).thenReturn(new S3ObjectInputStream(new ByteArrayInputStream(fileContent), null));
+        when(amazonS3.getObject(bucket, s3Key)).thenReturn(mockS3Object);
+
+        byte[] result = s3ClientService.downloadDocumentFile(s3Key);
+
+        assertThat(result).isEqualTo(fileContent);
+        verify(amazonS3, times(1)).getObject(bucket, s3Key);
+    }
+
+    /**
+     * 문서 파일 다운로드 실패 테스트
+     */
+    @Test
+    void testDownloadDocumentFile_S3ObjectNotFound() {
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
+
+        // Mock S3Client to return null for S3Object
+        when(amazonS3.getObject(bucket, s3Key)).thenReturn(null);
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> s3ClientService.downloadDocumentFile(s3Key));
+
+        // Validate the exception message
+        assertThat(exception.getMessage()).contains("Failed to access document file in S3: S3 object is null");
+        verify(amazonS3, times(1)).getObject(bucket, s3Key);
+    }
+
+    /**
+     * 파일 삭제 성공 테스트
+     */
+    @Test
+    void testDeleteFile_Success() {
+        String s3Key = s3ClientService.generateS3Key(uploaderId, category, fileName);
+
+        s3ClientService.deleteFile(s3Key);
+
+        verify(amazonS3, times(1)).deleteObject(bucket, s3Key);
     }
 }

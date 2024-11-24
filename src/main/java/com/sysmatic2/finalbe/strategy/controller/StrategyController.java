@@ -32,10 +32,13 @@ public class StrategyController {
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
 
     // 1. 전략 생성페이지(GET)
+    //TODO) 관리자와 트레이더만 수정할 수 있다.
+    @Operation(summary = "전략 생성페이지 필요 정보")
     @GetMapping("/registration-form")
     @ApiResponse(responseCode = "200", description = "Get Strategy Registration Form")
     public ResponseEntity<Map<String, Object>> getStrategyRegistrationForm() {
-        // 서비스 메서드를 호출하여 StrategyRegistrationDto 생성
+        //TODO) 전략 생성 권한 판별
+        //서비스 메서드를 호출하여 StrategyRegistrationDto 생성
         StrategyRegistrationDto strategyRegistrationDto = strategyService.getStrategyRegistrationForm();
 
         // 타임스탬프 추가
@@ -49,11 +52,15 @@ public class StrategyController {
     }
 
     // 2. 전략 생성(POST)
+    //TODO) 관리자와 트레이더만 수정할 수 있다.
+    @Operation(summary = "전략 생성")
     @PostMapping(produces="application/json")
     public ResponseEntity<Map> createStrategy(@Valid @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
-        //TODO) 관리자 판별
+        //TODO) 접속자 토큰 권한 판별
+        String adminId = "4w_qdODSTqeIAd7fndHLfg";
+
         //데이터 저장
-        Map<String, Long> responseData = strategyService.register(strategyPayloadDto);
+        Map<String, Long> responseData = strategyService.register(strategyPayloadDto, adminId);
 
         //해쉬맵에 성공 메시지 저장
         Map<String, Object> responseMap = new HashMap<>();
@@ -94,6 +101,8 @@ public class StrategyController {
     }
 
     // 4. 전략 상세
+    //TODO) isPosted=N인 경우 관리자와 작성트레이더만 볼 수 있다.
+    @Operation(summary = "전략 상세")
     @GetMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long id) throws Exception{
         StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id);
@@ -104,6 +113,8 @@ public class StrategyController {
     }
 
     // 5. 전략 삭제
+    //TODO) 관리자와 작성 트레이더만 삭제할 수 있다.
+    @Operation(summary = "전략 삭제")
     @DeleteMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> deleteStrategy(@PathVariable("id") Long id) throws Exception{
         strategyService.deleteStrategy(id);
@@ -114,6 +125,8 @@ public class StrategyController {
     }
 
     //6. 전략 수정 페이지(GET)
+    //TODO) 관리자와 작성 트레이더만 수정할 수 있다.
+    @Operation(summary = "전략 수정페이지에 필요한 정보 반환")
     @GetMapping(value = "/update-form/{id}", produces = "application/json")
     public ResponseEntity<Map> updateStrategyForm(@PathVariable("id") Long id) throws Exception{
         Map<String, Object> dataMap = strategyService.getStrategyUpdateForm(id);
@@ -122,6 +135,8 @@ public class StrategyController {
     }
 
     //7. 전략 수정(POST)
+    //TODO) 관리자와 작성 트레이더만 수정할 수 있다.
+    @Operation(summary = "전략 수정")
     @PutMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> updateStrategy(@PathVariable("id") Long id, @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
         Map<String, Long> dataMap = strategyService.updateStrategy(id, strategyPayloadDto);
@@ -132,6 +147,8 @@ public class StrategyController {
     }
 
     //8. 전략 승인 요청(POST)
+    //TODO) 관리자와 작성 트레이더만 요청할 수 있다.
+    @Operation(summary = "전략 승인 요청")
     @PostMapping(value = "/{id}/approval-request", produces = "application/json")
     public ResponseEntity<Map> requestStrategyApproval(@PathVariable("id") Long id) throws Exception{
         //TODO) 접속한 사람의 토큰 확인하기
@@ -142,5 +159,20 @@ public class StrategyController {
         responseMap.put("msg", "CREATE_SUCCESS");
         responseMap.put("data", dataMap);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
+    }
+
+    //9. 전략 운용 종료(PATCH)
+    //TODO) 관리자와 작성 트레이더만 운용종료할 수 있다.
+    @Operation(summary = "전략 운용 종료")
+    @PatchMapping(value="/{id}/termination", produces = "application/json")
+    public ResponseEntity<Map> terminateStrategy(@PathVariable("id") Long id) throws Exception{
+        //TODO) 접속한 사람의 토큰 확인하기
+        String applicantId = "71-88RZ_QQ65hMGknyWKLA";
+
+        Map<String, Long> dataMap = strategyService.terminateStrategy(id, applicantId);
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("msg", "TERMINATE_SUCCESS");
+        responseMap.put("data", dataMap);
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
 }
