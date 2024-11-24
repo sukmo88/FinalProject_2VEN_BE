@@ -104,6 +104,7 @@ public class SecurityConfig {
         http
                 // 모든 요청을 허용하고 HTTPS 강제 설정 없음
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/members/details").authenticated()
                         .requestMatchers("/**").permitAll() // 모든 경로를 허용
 //                        .requestMatchers("/api/members/login").permitAll()
 //                        .requestMatchers("/api/auth/**").hasAuthority("ROLE_ADMIN")
