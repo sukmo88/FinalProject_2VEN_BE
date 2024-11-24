@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.util;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 
 public class StatisticsCalculator {
@@ -244,7 +245,7 @@ public class StatisticsCalculator {
      */
     public static BigDecimal calculateStdDev(List<BigDecimal> values) {
         if (values == null || values.isEmpty()) {
-            throw new IllegalArgumentException("값 리스트는 비어 있을 수 없습니다.");
+            return BigDecimal.ZERO; // 빈 리스트 기본값 처리
         }
 
         // 평균 계산
@@ -290,6 +291,100 @@ public class StatisticsCalculator {
      */
     public static BigDecimal calculateCumulativeWithdraw(BigDecimal previousCumulativeWithdraw, BigDecimal withdrawAmount) {
         return previousCumulativeWithdraw.add(withdrawAmount);
+    }
+
+    /**
+     * 고점 이후 최대 하락 기간 (dd_day)을 계산합니다.
+     *
+     * @param profitLossHistory 전략별 날짜 및 누적손익 기록 리스트
+     *                          (Object 배열로 [0]: LocalDate, [1]: BigDecimal 값 포함)
+     * @return 최대 하락 기간 (일 단위)
+     */
+    public static long calculateMaxDrawdownDays(List<Object[]> profitLossHistory) {
+        long maxDrawdownDays = 0; // 최대 하락 기간
+        BigDecimal peakValue = BigDecimal.ZERO; // 현재 고점 값
+        LocalDate peakDate = null; // 고점이 발생한 날짜
+
+        // 날짜별 손익 데이터를 순회
+        for (Object[] record : profitLossHistory) {
+            LocalDate date = (LocalDate) record[0]; // 날짜
+            BigDecimal value = (BigDecimal) record[1]; // 누적손익 값
+
+            if (value.compareTo(peakValue) > 0) {
+                // 고점 갱신 시
+                peakValue = value; // 새로운 고점 값 저장
+                peakDate = date;  // 고점 날짜 업데이트
+            } else if (peakDate != null) {
+                // 고점 이후 하락 기간 계산
+                long drawdownDays = java.time.temporal.ChronoUnit.DAYS.between(peakDate, date);
+                maxDrawdownDays = Math.max(maxDrawdownDays, drawdownDays); // 최대값 갱신
+            }
+        }
+
+        return maxDrawdownDays;
+    }
+
+    /**
+     * SM-Score를 계산합니다.
+     *
+     * @param kpRatio 현재 시스템의 KP-Ratio
+     * @param allKpRatios 데이터셋 내 모든 시스템의 KP-Ratio 리스트
+     * @return 계산된 SM-Score (0~100 범위)
+     */
+    public static BigDecimal calculateSmScore(BigDecimal kpRatio, List<BigDecimal> allKpRatios) {
+        if (allKpRatios == null || allKpRatios.isEmpty()) {
+            throw new IllegalArgumentException("KP-Ratio 리스트가 비어 있습니다.");
+        }
+
+        // 1. KP-Ratio 평균 계산
+        BigDecimal meanKp = allKpRatios.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(allKpRatios.size()), 4, BigDecimal.ROUND_HALF_UP);
+
+        // 2. KP-Ratio 표준편차 계산
+        BigDecimal variance = allKpRatios.stream()
+                .map(ratio -> ratio.subtract(meanKp).pow(2))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(allKpRatios.size()), 4, BigDecimal.ROUND_HALF_UP);
+        BigDecimal stdDevKp = BigDecimal.valueOf(Math.sqrt(variance.doubleValue()));
+
+        if (stdDevKp.compareTo(BigDecimal.ZERO) == 0) {
+            // 표준편차가 0이면 모든 KP-Ratio 값이 동일 -> SM-Score는 50
+            return BigDecimal.valueOf(50);
+        }
+
+        // 3. Z-Score 계산
+        BigDecimal zScore = kpRatio.subtract(meanKp).divide(stdDevKp, 4, BigDecimal.ROUND_HALF_UP);
+
+        // 4. Z-Score를 누적 확률로 변환
+        double cumulativeProbability = 0.5 * (1 + erf(zScore.doubleValue() / Math.sqrt(2)));
+
+        // 5. 0~100 범위로 변환하여 반환
+        return BigDecimal.valueOf(cumulativeProbability * 100).setScale(2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    /**
+     * 정규분포의 오류 함수 (erf) 계산 메서드.
+     * Z-Score에서 누적 확률을 구할 때 사용합니다.
+     *
+     * @param x 입력값
+     * @return 오류 함수의 계산 결과
+     */
+    private static double erf(double x) {
+        // Numerical approximation of error function
+        double t = 1.0 / (1.0 + 0.5 * Math.abs(x));
+        double tau = t * Math.exp(-x * x
+                - 1.26551223
+                + 1.00002368 * t
+                + 0.37409196 * t * t
+                + 0.09678418 * Math.pow(t, 3)
+                - 0.18628806 * Math.pow(t, 4)
+                + 0.27886807 * Math.pow(t, 5)
+                - 1.13520398 * Math.pow(t, 6)
+                + 1.48851587 * Math.pow(t, 7)
+                - 0.82215223 * Math.pow(t, 8)
+                + 0.17087277 * Math.pow(t, 9));
+        return x >= 0 ? 1 - tau : tau - 1;
     }
 
     //월간 데이터 계산
