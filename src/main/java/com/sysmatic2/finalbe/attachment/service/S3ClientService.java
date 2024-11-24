@@ -1,21 +1,15 @@
 package com.sysmatic2.finalbe.attachment.service;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.HttpMethod;
 
-import java.net.URL;
-import java.util.Date;
-
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Map;
+import java.util.Base64;
 import java.util.UUID;
 
 @Service
@@ -28,113 +22,86 @@ public class S3ClientService {
     private String bucket;
 
     /**
-     * Presigned URL 생성
+     * 고유한 파일 이름 생성
      */
-    public String generatePresignedUrl(String fileName, String displayName) {
-        // 유효성 검사
-        if (fileName == null || fileName.isEmpty()) {
-            throw new IllegalArgumentException("File name cannot be null or empty");
-        }
-        if (displayName == null || displayName.isEmpty()) {
-            throw new IllegalArgumentException("Display name cannot be null or empty");
-        }
+    public String generateUniqueFileName(String originalFileName) {
+        String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        return UUID.randomUUID().toString() + fileExtension;
+    }
 
-        // 만료 시간 상수 정의
-        final long PRESIGNED_URL_EXPIRATION_TIME_MILLIS = 1000 * 60 * 15; // 15분
-        Date expiration = new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRATION_TIME_MILLIS);
-
-        // ResponseHeaderOverrides 설정 (다운로드 파일 이름 지정)
-        ResponseHeaderOverrides responseHeaders = new ResponseHeaderOverrides()
-                .withContentDisposition("attachment; filename=\"" + displayName + "\"");
-
-        try {
-            // Presigned URL 요청 생성
-            GeneratePresignedUrlRequest presignedUrlRequest = new GeneratePresignedUrlRequest(bucket, fileName)
-                    .withMethod(HttpMethod.GET)
-                    .withExpiration(expiration)
-                    .withResponseHeaders(responseHeaders);
-
-            // Presigned URL 생성
-            URL presignedUrl = amazonS3.generatePresignedUrl(presignedUrlRequest);
-
-            return presignedUrl.toString();
-        } catch (AmazonServiceException e) {
-            // AWS S3 서비스의 오류 처리
-            throw new RuntimeException("Error generating presigned URL: " + e.getErrorMessage(), e);
-        } catch (SdkClientException e) {
-            // 네트워크 오류 또는 클라이언트 오류 처리
-            throw new RuntimeException("Error generating presigned URL due to SDK client exception", e);
-        }
+    /**
+     * S3 키 생성
+     */
+    public String generateS3Key(String uploaderId, String category, String fileName) {
+        return String.format("%s/%s/%s", uploaderId, category, fileName);
     }
 
     /**
      * 파일 업로드
      */
-    public Map<String, String> uploadFile(MultipartFile file, String userId, String category) {
-        if (file == null || file.getOriginalFilename() == null) {
-            throw new IllegalArgumentException("Invalid file input");
-        }
-
-        String originalFileName = file.getOriginalFilename();
-        String uniqueFileName = generateUniqueFileName(originalFileName);
-        String s3Key = generateS3Key(userId, category, uniqueFileName);
-
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType(file.getContentType());
-        metadata.setContentLength(file.getSize());
-
+    public String uploadFile(MultipartFile file, String s3Key) {
         try {
-            // S3에 파일 업로드
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(file.getContentType());
+            metadata.setContentLength(file.getSize());
+
             amazonS3.putObject(new PutObjectRequest(bucket, s3Key, file.getInputStream(), metadata));
-
-            // S3 파일 URL 반환
-            URL fileUrl = amazonS3.getUrl(bucket, s3Key);
-            return Map.of(
-                    "fileUrl", fileUrl.toString(),
-                    "fileName", uniqueFileName,
-                    "s3Key", s3Key
-            );
+            return amazonS3.getUrl(bucket, s3Key).toString();
         } catch (IOException e) {
-            throw new RuntimeException("Error uploading file to S3", e);
+            throw new RuntimeException("Failed to upload file to S3", e);
         }
-
-        //for test without uploading to S3
-//        return Map.of(
-//                    "fileUrl", "test-url",
-//                    "fileName", uniqueFileName
-//            );
     }
 
+    /**
+     * 이미지 파일을 다운로드하고 Base64로 인코딩
+     */
+    public String downloadImageFileAsBase64(String s3Key) {
+        try (S3Object s3Object = amazonS3.getObject(bucket, s3Key);
+             S3ObjectInputStream inputStream = (s3Object != null ? s3Object.getObjectContent() : null)) {
+
+            if (s3Object == null || inputStream == null) {
+                throw new RuntimeException("S3 Error: Failed to access image file in S3: S3 object is null");
+            }
+
+            // S3ObjectInputStream을 바이트 배열로 변환
+            byte[] fileBytes = inputStream.readAllBytes();
+
+            // Base64로 인코딩하여 반환
+            return Base64.getEncoder().encodeToString(fileBytes);
+
+        } catch (AmazonS3Exception e) {
+            throw new RuntimeException("S3 Error: Failed to access image file in S3", e);
+        } catch (IOException e) {
+            throw new RuntimeException("IO Error: Failed to read image file content from S3", e);
+        }
+    }
 
     /**
-     * 파일 다운로드
+     * 문서 파일을 다운로드하여 바이너리 데이터로 반환
      */
-    public S3ObjectInputStream downloadFile(String fileName) {
-        S3Object s3Object = amazonS3.getObject(new GetObjectRequest(bucket, fileName));
-        return s3Object.getObjectContent();
+    public byte[] downloadDocumentFile(String s3Key) {
+        try {
+            S3Object s3Object = amazonS3.getObject(bucket, s3Key);
+
+            // S3Object가 null인 경우 예외 처리
+            if (s3Object == null) {
+                throw new RuntimeException("Failed to access document file in S3: S3 object is null");
+            }
+
+            try (S3ObjectInputStream inputStream = s3Object.getObjectContent()) {
+                return inputStream.readAllBytes();
+            }
+        } catch (AmazonS3Exception e) {
+            throw new RuntimeException("S3 Error: Failed to access document file in S3", e);
+        } catch (IOException e) {
+            throw new RuntimeException("IO Error: Failed to read document file content from S3", e);
+        }
     }
 
     /**
      * 파일 삭제
      */
-    public void deleteFile(String fileName) {
-        amazonS3.deleteObject(bucket, fileName);
+    public void deleteFile(String s3Key) {
+        amazonS3.deleteObject(bucket, s3Key);
     }
-
-    /**
-     * 고유한 파일 이름 생성
-     */
-    public String generateUniqueFileName(String originalFileName) {
-        String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
-        return UUID.randomUUID() + extension;
-    }
-
-    /**
-     * 파일 경로 생성
-     */
-    public String generateS3Key(String userId, String category, String fileName) {
-        // 파일 경로 생성
-        return String.format("%s/%s/%s", userId, category, fileName);
-    }
-
 }

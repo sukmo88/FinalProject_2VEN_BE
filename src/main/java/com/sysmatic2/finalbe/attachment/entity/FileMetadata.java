@@ -18,13 +18,13 @@ public class FileMetadata {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "display_name", nullable = false)
+    @Column(name = "display_name")
     private String displayName; // 유저에게 보여질 파일 이름
 
-    @Column(name = "file_name", nullable = false)
+    @Column(name = "file_name")
     private String fileName;
 
-    @Column(name = "file_path", nullable = false)
+    @Column(name = "file_path")
     private String filePath;
 
     @Column(name = "file_size")
@@ -34,7 +34,10 @@ public class FileMetadata {
     private String contentType;
 
     @Column(name = "file_category", nullable = false)
-    private String fileCategory; // 파일 유형: PROFILE, DOCUMENT, ACCOUNT_VERIFICATION 등
+    private String fileCategory; // 파일 유형: profile, account, icon, proposal
+
+    @Column(name = "file_category_item_id")
+    private String fileCategoryItemId;
 
     @Column(name = "member_id", nullable = false)
     private String uploaderId;
@@ -48,6 +51,16 @@ public class FileMetadata {
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private LocalDateTime uploadedAt = LocalDateTime.now();
 
-    @Column(name = "description", nullable = true)
+    @Column(name = "description")
     private String description;
+
+
+    public void clearMetadata() {
+        this.displayName = null;
+        this.fileName = null;
+        this.filePath = null;
+        this.fileSize = null;
+        this.contentType = null;
+        this.description = null;
+    }
 }
