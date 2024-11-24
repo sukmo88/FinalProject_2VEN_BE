@@ -74,7 +74,6 @@ public class DailyStatisticsService {
      * @return 계산된 일일 통계 데이터 엔티티
      */
     @Transactional
-<<<<<<< HEAD
     public DailyStatisticsEntity calculateDailyStatistics(
             Long strategyId,
             DailyStatisticsReqDto reqDto,
@@ -101,33 +100,11 @@ public class DailyStatisticsService {
         Integer previousCurrentConsecutivePlDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getCurrentConsecutivePlDays).orElse(0); // 이전 연속 손익일수
         Integer previousMaxConsecutiveProfitDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveProfitDays).orElse(0); // 이전 최대 연속 수익일수
         Integer previousMaxConsecutiveLossDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveLossDays).orElse(0); // 이전 최대 연속 손실일수
-=======
-    public DailyStatisticsEntity calculateDailyStatistics(DailyStatisticsReqDto reqDto, Optional<DailyStatisticsEntity> previousState) {
-        // 이전 상태 가져오기 (기본값 처리 포함)
-        BigDecimal previousBalance = previousState.map(DailyStatisticsEntity::getBalance).orElse(BigDecimal.ZERO);
-        BigDecimal previousCumulativeProfitLoss = previousState.map(DailyStatisticsEntity::getCumulativeProfitLoss).orElse(BigDecimal.ZERO);
-        BigDecimal previousPrincipal = previousState.map(DailyStatisticsEntity::getPrincipal).orElse(BigDecimal.ZERO);
-        BigDecimal previousReferencePrice = previousState.map(DailyStatisticsEntity::getReferencePrice).orElse(BigDecimal.ZERO);
-        BigDecimal previousMaxCumulativeProfitLoss = previousState.map(DailyStatisticsEntity::getMaxCumulativeProfitLoss).orElse(BigDecimal.ZERO);
-        BigDecimal previousMaxCumulativeProfitLossRate = previousState.map(DailyStatisticsEntity::getMaxCumulativeProfitLossRate).orElse(BigDecimal.ZERO);
-        BigDecimal previousMaxDrawdownAmount = previousState.map(DailyStatisticsEntity::getMaxDrawdownAmount).orElse(BigDecimal.ZERO);
-        BigDecimal previousMaxDrawdownRate = previousState.map(DailyStatisticsEntity::getMaxDrawdownRate).orElse(BigDecimal.ZERO);
-        Integer previousTradingDays = previousState.map(DailyStatisticsEntity::getTradingDays).orElse(0);
-        Integer previousProfitDays = previousState.map(DailyStatisticsEntity::getTotalProfitDays).orElse(0);
-        Integer previousLossDays = previousState.map(DailyStatisticsEntity::getTotalLossDays).orElse(0);
-        BigDecimal previousTotalProfit = previousState.map(DailyStatisticsEntity::getTotalProfit).orElse(BigDecimal.ZERO);
-        BigDecimal previousTotalLoss = previousState.map(DailyStatisticsEntity::getTotalLoss).orElse(BigDecimal.ZERO);
-        Integer previousStrategyOperationDays = previousState.map(DailyStatisticsEntity::getStrategyOperationDays).orElse(0);
-        Integer previousCurrentConsecutivePlDays = previousState.map(DailyStatisticsEntity::getCurrentConsecutivePlDays).orElse(0);
-        Integer previousMaxConsecutiveProfitDays = previousState.map(DailyStatisticsEntity::getMaxConsecutiveProfitDays).orElse(0);
-        Integer previousMaxConsecutiveLossDays = previousState.map(DailyStatisticsEntity::getMaxConsecutiveLossDays).orElse(0);
->>>>>>> cf4e8a4240944da058b53192241b0f7b69b0e2f6
 
         // 사용자 입력값
         BigDecimal dailyProfitLoss = reqDto.getDailyProfitLoss(); // 오늘의 일손익
         BigDecimal depWdPrice = reqDto.getDepWdPrice(); // 오늘의 입출금 금액
 
-<<<<<<< HEAD
         /**
          * 계산된 지표들
          */
@@ -211,6 +188,7 @@ public class DailyStatisticsService {
         // 평균 손익비 = 평균 이익 / |평균 손실|
         BigDecimal averageProfitLossRatio = averageLoss.compareTo(BigDecimal.ZERO) > 0
                 ? averageProfit.divide(averageLoss.abs(), 4, BigDecimal.ROUND_HALF_UP)
+                : BigDecimal.ZERO;
 
         // `dailyProfitLosses` 리스트 가져오기
         List<BigDecimal> dailyProfitLosses = dssp.findDailyProfitLossesByStrategyId(strategyId);
