@@ -78,7 +78,6 @@ public class InvestmentAssetClassesService {
         return resultList;
     }
 
-
     //2. 투자자산 분류 생성
     //페이로드 DTO를 받아서 엔티티에 넣는다. 만들고 나면 반환용 DTO를 반환한다.
     @Transactional

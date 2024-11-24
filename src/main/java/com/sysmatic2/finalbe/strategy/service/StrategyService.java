@@ -590,6 +590,11 @@ public class StrategyService {
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
 
         //TODO)일일 데이터 갯수 3개 판별
+        //전략 등록일을 가져와서 이후 일일 거래 데이터 3개 이상이면 진행
+        //3개 이하이면 예외를 던진다.
+        LocalDateTime createDatetime = strategyEntity.getCreatedAt();
+
+
         //이미 승인받은 전략은 승인요청을 보낼 수 없다.
         if(strategyEntity.getIsApproved().equals("Y")){
             throw new StrategyAlreadyApprovedException("이미 승인받은 전략입니다.");
