@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "daily_strategic_statistics_history")
+@Table(name = "daily_statistics_history")
 @Getter
 @Builder
 @ToString
@@ -19,16 +19,16 @@ public class DailyStatisticsHistoryEntity extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "daily_strategic_statistics_history_id", nullable = false)
-    private Long dailyStrategicStatisticsHistoryId; // 전략 일간 통계 이력 ID
+    @Column(name = "daily_statistics_history_id", nullable = false)
+    private Long dailyStatisticsHistoryId; // 전략 일간 통계 이력 ID
 
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
     private StrategyEntity strategyEntity; // 전략 FK
 
     @ManyToOne
-    @JoinColumn(name = "daily_strategic_statistics_id", nullable = false)
-    private DailyStatisticsEntity dailyStrategicStatistics; // 일간 통계 FK
+    @JoinColumn(name = "daily_statistics_id", nullable = false)
+    private DailyStatisticsEntity dailyStatistics; // 일간 통계 FK
 
     @Column(name = "date", nullable = false)
     private LocalDate date; // 일자
@@ -180,8 +180,8 @@ public class DailyStatisticsHistoryEntity extends Auditable {
     @Column(name = "strategy_operation_days", nullable = false)
     private Integer strategyOperationDays; // 총전략운용일수
 
-    @Column(name = "daily_strategic_statistics_status_code", nullable = false, precision = 10, scale = 4)
-    private String dailyStrategicStatisticsStatusCode; // 일간 통계 상태코드
+    @Column(name = "daily_statistics_status_code", nullable = false, precision = 10, scale = 4)
+    private String dailyStatisticsStatusCode; // 일간 통계 상태코드
 
     @Column(name = "change_start_date", nullable = false)
     private LocalDateTime changeStartDate; // 변경시작일시
