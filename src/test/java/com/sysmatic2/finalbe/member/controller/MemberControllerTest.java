@@ -2,17 +2,26 @@ package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
+import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
 import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
+import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,6 +39,19 @@ class MemberControllerTest {
 
     @MockBean
     private EmailService emailService;
+
+    // 인증토큰 생성 후 SecurityContext에 인증 정보 설정
+    private UsernamePasswordAuthenticationToken getUsernamePasswordAuthenticationToken(String memberId) {
+        MemberEntity memberEntity = new MemberEntity();
+        memberEntity.setMemberId(memberId);
+        memberEntity.setEmail("valid@email.com");
+        memberEntity.setMemberGradeCode("MEMBER_ROLE_TRADER");
+        CustomUserDetails customUserDetails = new CustomUserDetails(Optional.of(memberEntity));
+
+        // SecurityContext에 인증 정보 설정
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+        return authenticationToken;
+    }
 
     // 닉네임 중복검사 테스트
     @Test
@@ -94,8 +116,9 @@ class MemberControllerTest {
 
 
     // 이메일 중복 검사 및 인증번호 이메일 발송 테스트
-    @WithMockUser(username = "testUser", roles = "USER")  // 인증된 사용자를 모의(Mock)
     @Test
+    @WithMockUser
+    @DisplayName("이메일 검사 - 성공")
     public void testCheckEmail_Success() throws Exception {
         // 유효한 이메일로 인증 시도
         String validEmail = "valid@email.com";
@@ -119,8 +142,9 @@ class MemberControllerTest {
     }
 
     // 사이드바 프로필 조회 메소드 테스트 - 성공
-    @WithMockUser(username = "testUser", roles = "USER")  // 인증된 사용자를 모의(Mock)
+    @WithMockUser // 인증된 사용자를 모의(Mock)
     @Test
+    @DisplayName("사이드바 프로필 조회 성공")
     public void testGetSidebarProfile_Success() throws Exception {
 
         String memberId = "validMemberId";
@@ -148,13 +172,14 @@ class MemberControllerTest {
         verify(memberService, times(1)).getSimpleProfile(memberId);
     }
 
-    // 사이드바 프로필 조회 메소드 테스트 - 실패
+    // 사이드바 프로필 조회 메소드 테스트 - 실패 : 존재하지 않는 memberId로 조회 시도
     @WithMockUser(username = "testUser", roles = "USER")  // 인증된 사용자를 모의(Mock)
     @Test
+    @DisplayName("사이드바 프로필 조회 실패")
     public void testGetSidebarProfile_Failure() throws Exception {
         String invalidMemberId = "invalidMemberId";
 
-        // 저장되지 않은 memberId로 sidebar profile 조회 시 예외 발생
+        // 없는 memberId로 sidebar profile 조회 시 예외 발생
         doThrow(MemberNotFoundException.class).when(memberService).getSimpleProfile(invalidMemberId);
 
         mockMvc.perform(get("/api/members/{memberId}/sidebar-profile", invalidMemberId))
@@ -164,4 +189,59 @@ class MemberControllerTest {
                 .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."));
     }
 
+    // 상세 개인정보 조회 테스트 - 성공
+    @Test
+    @DisplayName("상세 개인정보 조회 테스트")
+    public void testGetDetails_Success() throws Exception {
+
+        // Mocked UserDetails 생성
+        String memberId = "validMemberId";
+        UsernamePasswordAuthenticationToken authenticationToken = getUsernamePasswordAuthenticationToken(memberId);
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        // 존재하는 memberId로 상세 개인정보 조회 시 DetailedProfileDTO 반환하도록 설정
+        DetailedProfileDTO detailedProfileDTO = new DetailedProfileDTO();
+        detailedProfileDTO.setNickname("nickname");
+        detailedProfileDTO.setEmail("valid@email.com");
+        detailedProfileDTO.setIntroduction("introduction");
+        detailedProfileDTO.setFileId("fileId");
+        detailedProfileDTO.setMarketingOptional(true);
+        detailedProfileDTO.setPhoneNumber("01012345678");
+
+        doReturn(detailedProfileDTO).when(memberService).getDetailedProfile(memberId);
+
+        // Controller 호출하여 성공 응답 반환하는지 확인
+        mockMvc.perform(get("/api/members/details"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.message").value("상세 개인정보 조회에 성공하였습니다."))
+                .andExpect(jsonPath("$.data.nickname").value(detailedProfileDTO.getNickname()))
+                .andExpect(jsonPath("$.data.email").value(detailedProfileDTO.getEmail()))
+                .andExpect(jsonPath("$.data.introduction").value(detailedProfileDTO.getIntroduction()))
+                .andExpect(jsonPath("$.data.fileId").value(detailedProfileDTO.getFileId()))
+                .andExpect(jsonPath("$.data.fileId").value(detailedProfileDTO.getFileId()))
+                .andExpect(jsonPath("$.data.marketingOptional").value(detailedProfileDTO.isMarketingOptional()))
+                .andExpect(jsonPath("$.data.phoneNumber").value(detailedProfileDTO.getPhoneNumber()));
+    }
+
+    // 상세 개인정보 조회 테스트 - 실패 : 존재하지 않는 memberId로 조회 시도
+    @WithMockUser
+    @Test
+    @DisplayName("상세 개인정보 조회 실패 테스트")
+    public void testGetDetails_Failure() throws Exception {
+
+        // Mocked UserDetails 생성
+        String invalidMemberId = "invalidMemberId";
+        UsernamePasswordAuthenticationToken authenticationToken = getUsernamePasswordAuthenticationToken(invalidMemberId);
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        // 없는 memberId로 sidebar profile 조회 시 예외 발생
+        doThrow(MemberNotFoundException.class).when(memberService).getDetailedProfile(invalidMemberId);
+
+        mockMvc.perform(get("/api/members/details", invalidMemberId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorType").value("MemberNotFoundException"))
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."));
+    }
 }
