@@ -11,9 +11,10 @@ import java.time.LocalDate;
 @Table(name = "daily_strategic_statistics")
 @Getter
 @ToString
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DailyStrategicStatisticsEntity extends Auditable {
+public class DailyStatisticsEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "daily_strategic_statistics_id", nullable = false)
@@ -21,7 +22,7 @@ public class DailyStrategicStatisticsEntity extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
-    private StrategyEntity strategyId; // 전략 FK
+    private StrategyEntity strategyEntity; // 전략 FK
 
     @Column(name = "date", nullable = false)
     private LocalDate date; // 일자 - 입력(상세 사용)
@@ -71,103 +72,103 @@ public class DailyStrategicStatisticsEntity extends Auditable {
     @Column(name = "daily_pl_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal dailyPlRate; // 일손익률 - (오늘 기준가 - 직전 기준가) / 직전 기준가
 
-    @Column(name = "max_daily_profit", precision = 19, scale = 4)
+    @Column(name = "max_daily_profit", nullable = false, precision = 19, scale = 4)
     private BigDecimal maxDailyProfit; // 최대일이익 - 오늘까지의 일손익 중 최대값(양수 or 0)(상세 사용)
 
-    @Column(name = "max_daily_profit_rate", precision = 10, scale = 4)
+    @Column(name = "max_daily_profit_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal maxDailyProfitRate; // 최대일이익률(%) - 오늘까지의 일손익률 중 최대값(양수 or 0)(상세 사용)
 
-    @Column(name = "max_daily_loss", precision = 19, scale = 4)
+    @Column(name = "max_daily_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal maxDailyLoss; // 최대일손실 - 오늘까지의 일손익중 최저값(음수 or 0)(상세 사용)
 
-    @Column(name = "max_daily_loss_rate", precision = 10, scale = 4)
+    @Column(name = "max_daily_loss_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal maxDailyLossRate; // 최대일손실률(%) - 오늘까지의 일손익률 중 최저값,(음수 or 0)(상세 사용)
 
-    @Column(name = "total_profit", precision = 19, scale = 4)
+    @Column(name = "total_profit", nullable = false, precision = 19, scale = 4)
     private BigDecimal totalProfit; // 총이익 - 양수인 일손익 합산(상세 사용)
 
-    @Column(name = "total_profit_days")
+    @Column(name = "total_profit_days", nullable = false)
     private Integer totalProfitDays; // 총이익일수 - 일손익 양수일때의 일수(상세 사용)
 
-    @Column(name = "average_profit", precision = 19, scale = 4)
+    @Column(name = "average_profit", nullable = false, precision = 19, scale = 4)
     private BigDecimal averageProfit; // 평균이익 - 총이익 / 이익일수, 이익일수 0이거나 없으면 값도 0
 
-    @Column(name = "total_loss", precision = 19, scale = 4)
+    @Column(name = "total_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal totalLoss; // 총손실 - 음수인 일손익 합산
 
-    @Column(name = "total_loss_days")
+    @Column(name = "total_loss_days", nullable = false)
     private Integer totalLossDays; // 총손실일수 - 일손익 음수일때의 일수(상세 사용)
 
-    @Column(name = "average_loss", precision = 19, scale = 4)
+    @Column(name = "average_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal averageLoss; // 평균손실 - 총 손실 / 손실일수, 손실일수 0이거나 없으면 값도 0
 
-    @Column(name = "cumulative_profit_loss", precision = 19, scale = 4)
+    @Column(name = "cumulative_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal cumulativeProfitLoss; // 누적손익 - 오늘까지의 일손익 합산
 
-    @Column(name = "cumulative_profit_loss_rate", precision = 10, scale = 4)
+    @Column(name = "cumulative_profit_loss_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal cumulativeProfitLossRate; // 누적손익률(%) - 기준가 / 1000 - 1(상세사용)
 
-    @Column(name = "max_cumulative_profit_loss", precision = 19, scale = 4)
+    @Column(name = "max_cumulative_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal maxCumulativeProfitLoss; // 최대누적손익 - 오늘까지의 누적손익 최대값(양수 or 0)(상세 사용)
 
-    @Column(name = "max_cumulative_profit_loss_rate", precision = 10, scale = 4)
+    @Column(name = "max_cumulative_profit_loss_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal maxCumulativeProfitLossRate; // 최대누적손익률(%) - 오늘까지의 누적손익률 최대값(양수 or 0)(상세 사용)
 
-    @Column(name = "average_profit_loss", precision = 19, scale = 4)
+    @Column(name = "average_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal averageProfitLoss; // 평균손익 - 누적손익 / 거래일수(상세 사용)
 
-    @Column(name = "average_profit_loss_rate", precision = 10, scale = 4)
+    @Column(name = "average_profit_loss_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal averageProfitLossRate; // 평균손익률(%) - 누적손익률 / 거래일수(상세사용)
 
-    @Column(name = "peak", precision = 19, scale = 4)
+    @Column(name = "peak", nullable = false, precision = 19, scale = 4)
     private BigDecimal peak; // Peak - 누적손익 최대값(양수 or 0)
 
-    @Column(name = "peak_rate", precision = 10, scale = 4)
+    @Column(name = "peak_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal peakRate; // Peak(%) - 누적손익률 최대값(양수 or 0)
 
-    @Column(name = "days_since_peak")
-    private Integer daysSincePeak; // 고점후경과일 - 직전거래일 Peak값, 오늘 Peak값 동일하고 양수이면 직전 고점후 경과일 +1, 아니면 0(상세사용)
+    @Column(name = "days_since_peak", nullable = false)
+    private Integer daysSincePeak; // // 고점후경과일 - 직전거래일 Peak값, 오늘 Peak값 동일하고 양수이면 직전 고점후 경과일 +1, 아니면 0(상세사용)
 
-    @Column(name = "current_drawdown_amount", precision = 19, scale = 4)
+    @Column(name = "current_drawdown_amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal currentDrawdownAmount; // 현재자본인하금액 - 누적손익 - 최대누적손익, 누적손익 0보다 큰 값(상세 사용)
 
-    @Column(name = "current_drawdown_rate", precision = 10, scale = 4)
+    @Column(name = "current_drawdown_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal currentDrawdownRate; // 현재자본인하율(%) - 기준일자 기준가에서 최대 기준가(양수)를 뺀 값을 기준일자 기준가로 나눈 값(상세 사용)
 
-    @Column(name = "max_drawdown_amount", precision = 19, scale = 4)
+    @Column(name = "max_drawdown_amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal maxDrawdownAmount; // 최대자본인하금액 - 현재 자본인하금액의 최저값, 음수(상세사용)
 
-    @Column(name = "max_drawdown_rate", precision = 10, scale = 4)
+    @Column(name = "max_drawdown_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal maxDrawdownRate; // 최대자본인하율(%) - 현재 자본 인하율의 최저값, 음수(상세사용)
 
-    @Column(name = "win_rate", precision = 10, scale = 4)
+    @Column(name = "win_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal winRate; // 승률 - 이익일수 / 거래일수(상세 사용)
 
-    @Column(name = "profit_factor", precision = 10, scale = 4)
+    @Column(name = "profit_factor", nullable = false, precision = 10, scale = 4)
     private BigDecimal profitFactor; // Profit Factor - 총손실이 음수인 경우 총이익/총손실(절대값), 총손실이 양수인 경우 0(상세 사용)
 
-    @Column(name = "roa", precision = 10, scale = 4)
+    @Column(name = "roa", nullable = false, precision = 10, scale = 4)
     private BigDecimal roa; // ROA - 누적손익금액 / 최대자본인하금액 * -1, 최대 자본인하금액이 0이거나 없으면 값은 0(상세 사용)
 
-    @Column(name = "average_profit_loss_ratio", precision = 10, scale = 4)
+    @Column(name = "average_profit_loss_ratio", nullable = false, precision = 10, scale = 4)
     private BigDecimal averageProfitLossRatio; // 평균손익비 - 평균이익 / 평균손실(절대값)
 
-    @Column(name = "coefficient_of_variation", precision = 10, scale = 4)
+    @Column(name = "coefficient_of_variation", nullable = false, precision = 10, scale = 4)
     private BigDecimal coefficientOfVariation; // 변동계수 - 기준일까지의 일손익 표준편차 / 기준일 평균손익 * 100
 
-    @Column(name = "sharp_ratio", precision = 10, scale = 4)
+    @Column(name = "sharp_ratio", nullable = false, precision = 10, scale = 4)
     private BigDecimal sharpRatio; // Sharp Ratio - 평균 손익 / 기준일까지의 일손익 표준 편차
 
-    @Column(name = "current_consecutive_pl_days")
+    @Column(name = "current_consecutive_pl_days", nullable = false)
     private Integer currentConsecutivePlDays; // 현재 연속 손익일수
 
-    @Column(name = "max_consecutive_profit_days")
+    @Column(name = "max_consecutive_profit_days", nullable = false)
     private Integer maxConsecutiveProfitDays; // 최대 연속 수익일수
 
-    @Column(name = "max_consecutive_loss_days")
+    @Column(name = "max_consecutive_loss_days", nullable = false)
     private Integer maxConsecutiveLossDays; // 최대 연속 손실일수
 
-    @Column(name = "recent_one_year_return", precision = 10, scale = 4)
+    @Column(name = "recent_one_year_return", nullable = false, precision = 10, scale = 4)
     private BigDecimal recentOneYearReturn; // 최근 1년 수익률
 
     @Column(name = "strategy_operation_days", nullable = false)

@@ -11,10 +11,11 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "daily_strategic_statistics_history")
 @Getter
+@Builder
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class DailyStrategicStatisticsHistoryEntity extends Auditable {
+public class DailyStatisticsHistoryEntity extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,11 +24,11 @@ public class DailyStrategicStatisticsHistoryEntity extends Auditable {
 
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
-    private StrategyEntity strategyId; // 전략 FK
+    private StrategyEntity strategyEntity; // 전략 FK
 
     @ManyToOne
     @JoinColumn(name = "daily_strategic_statistics_id", nullable = false)
-    private DailyStrategicStatisticsEntity dailyStrategicStatistics; // 일간 통계 FK
+    private DailyStatisticsEntity dailyStrategicStatistics; // 일간 통계 FK
 
     @Column(name = "date", nullable = false)
     private LocalDate date; // 일자
@@ -185,6 +186,6 @@ public class DailyStrategicStatisticsHistoryEntity extends Auditable {
     @Column(name = "change_start_date", nullable = false)
     private LocalDateTime changeStartDate; // 변경시작일시
 
-    @Column(name = "change_end_date")
+    @Column(name = "change_end_date", nullable = true)
     private LocalDateTime changeEndDate; // 변경종료일시
 }
