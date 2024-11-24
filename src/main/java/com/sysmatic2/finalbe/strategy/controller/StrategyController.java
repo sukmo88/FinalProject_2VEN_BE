@@ -1,9 +1,8 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
-import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
+import com.sysmatic2.finalbe.strategy.dto.*;
+import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,10 +16,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -30,6 +32,7 @@ import java.util.Map;
 public class StrategyController {
     private final StrategyService strategyService;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
+    private final DailyStatisticsService dailyStatisticsService;
 
     // 1. 전략 생성페이지(GET)
     //TODO) 관리자와 트레이더만 수정할 수 있다.
@@ -174,5 +177,64 @@ public class StrategyController {
         responseMap.put("msg", "TERMINATE_SUCCESS");
         responseMap.put("data", dataMap);
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+    }
+
+    // 10. 전략 수기 데이터 등록
+    @Operation(summary = "전략 수기 데이터 등록", description = "날짜, 입출금, 일손익을 최대 5행까지 입력받아 전략 데이터를 등록합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "수기 데이터 등록 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @PostMapping(value = "/{id}/daily-data", produces = "application/json")
+    public ResponseEntity<Map<String, Object>> registerManualDailyData(
+            @PathVariable("id") Long strategyId,
+            @RequestBody @Valid DailyDataPayloadDto payload) {
+
+        // 디버깅 로그 추가
+        System.out.println("Received strategyId: " + strategyId);
+
+        // 1. 데이터 유효성 검사
+        // 수기 데이터가 비어있는지 확인
+        if (payload.getPayload() == null || payload.getPayload().isEmpty()) {
+            // 수기 데이터가 없으면 BAD_REQUEST 상태로 오류 응답
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "수기 데이터는 최소 1개 이상 필요합니다.");
+        }
+        // 수기 데이터가 5개를 초과하는지 확인
+        if (payload.getPayload().size() > 5) {
+            // 5개를 초과하면 BAD_REQUEST 상태로 오류 응답
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "수기 데이터는 최대 5개까지 등록 가능합니다.");
+        }
+
+        // 2. 수기 데이터를 저장
+        // 수기 데이터를 하나씩 처리하여 저장
+        List<Long> savedIds = payload.getPayload().stream().map(entry -> {
+            try {
+                /// 각 데이터 항목을 기반으로 수기 데이터를 처리하는 서비스 메서드 호출
+                dailyStatisticsService.processDailyStatistics(
+                        strategyId,  // 전략 ID를 서비스 메서드에 전달
+                        DailyStatisticsReqDto.builder()
+                                .date(entry.getDate())  // 수기 데이터의 날짜
+                                .dailyProfitLoss(entry.getDailyProfitLoss())  // 일손익
+                                .depWdPrice(entry.getDepWdPrice())  // 입출금 금액
+                                .build()
+                );
+
+                return strategyId; // 실제로 저장된 데이터의 ID를 반환하도록 수정 가능
+            } catch (Exception e) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "알 수 없는 오류가 발생했습니다.", e);
+            }
+        }).collect(Collectors.toList());
+
+        // 3. 응답 데이터 구성
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("msg", "CREATE_SUCCESS");
+        responseMap.put("data", savedIds.stream()
+                .map(id -> Map.of("dailyDataId", id))
+                .collect(Collectors.toList()));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 }
