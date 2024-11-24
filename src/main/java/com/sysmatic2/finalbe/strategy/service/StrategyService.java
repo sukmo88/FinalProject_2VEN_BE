@@ -12,24 +12,21 @@ import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
-import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import com.sysmatic2.finalbe.strategy.entity.*;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
-import com.sysmatic2.finalbe.strategy.entity.StrategyHistoryEntity;
-import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
-import com.sysmatic2.finalbe.strategy.entity.StrategyIACHistoryEntity;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.HandlerMapping;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,6 +46,8 @@ public class StrategyService {
     private final StrategyIACRepository strategyIACRepository;
     private final StrategyIACHistoryRepository strategyIACHistoryRepository;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
+    private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
+
 
     //1. 전략 생성
     /**
@@ -589,11 +588,13 @@ public class StrategyService {
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
 
-        //TODO)일일 데이터 갯수 3개 판별
         //전략 등록일을 가져와서 이후 일일 거래 데이터 3개 이상이면 진행
-        //3개 이하이면 예외를 던진다.
+        //3개 미만이면 예외를 던진다.
         LocalDateTime createDatetime = strategyEntity.getCreatedAt();
-
+        LocalDate createDate = createDatetime.toLocalDate();
+        if(dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
+            throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
+        }
 
         //이미 승인받은 전략은 승인요청을 보낼 수 없다.
         if(strategyEntity.getIsApproved().equals("Y")){
