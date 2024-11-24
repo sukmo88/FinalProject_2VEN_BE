@@ -109,8 +109,6 @@ public class TradingTypeController {
     public ResponseEntity<Map<String, String>> updateTradingType(
             @PathVariable Integer id,
             @Valid @RequestBody TradingTypeAdminRequestDto tradingTypeAdminRequestDto) {
-        System.out.println("id = " + id);
-        System.out.println("tradingTypeService = " + tradingTypeAdminRequestDto);
         tradingTypeService.updateTradingType(id, tradingTypeAdminRequestDto);
 
         // 타임스탬프를 추가

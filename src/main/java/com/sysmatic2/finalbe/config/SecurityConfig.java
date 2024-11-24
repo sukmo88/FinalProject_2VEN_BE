@@ -84,10 +84,16 @@ public class SecurityConfig {
                 .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration),jwtUtil), UsernamePasswordAuthenticationFilter.class);
 
 
-
         //JWT 사용으로 세션 비활성화 설정
 //        http.sessionManagement((session) -> session
 //                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+
+        // Security filter 관련 에러(AuthenticationException, AccessDeniedException)가 GlobalExceptionHandler에서 처리되도록 설정
+        http.exceptionHandling(e -> e
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler));
+
         return http.build();
     }
 
@@ -131,6 +137,7 @@ public class SecurityConfig {
         http.sessionManagement((session) -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // Security filter 관련 에러(AuthenticationException, AccessDeniedException)가 GlobalExceptionHandler에서 처리되도록 설정
         http.exceptionHandling(e -> e
                 .authenticationEntryPoint(authenticationEntryPoint)
                 .accessDeniedHandler(accessDeniedHandler));
