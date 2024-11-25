@@ -203,6 +203,18 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 401: 비밀번호 틀림
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<Object> handleAuthenticationException(InvalidPasswordException e) {
+        logger.warn("Invalid Password {}", e.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "INVALID_PASSWORD",
+                e.getClass().getSimpleName(),
+                "비밀번호가 틀렸습니다.",
+                HttpStatus.UNAUTHORIZED
+        );
+    }
+
     // 403: 권한 없음
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException e) {
