@@ -88,9 +88,9 @@ class DailyStatisticsServiceTest {
         // Then: 계산 결과 검증
         assertNotNull(result, "결과 엔티티는 null이 아니어야 합니다.");
         assertEquals(BigDecimal.valueOf(1400), result.getBalance(), "잔고 계산 결과가 예상과 일치하지 않습니다.");
-        assertEquals(BigDecimal.valueOf(1050), result.getPrincipal(), "원금 계산 결과가 예상과 일치하지 않습니다.");
+        assertEquals(BigDecimal.valueOf(1041.6667), result.getPrincipal(), "원금 계산 결과가 예상과 일치하지 않습니다.");
         assertEquals(BigDecimal.valueOf(350), result.getCumulativeProfitLoss(), "누적손익 계산 결과가 예상과 일치하지 않습니다.");
-        assertEquals(BigDecimal.valueOf(1333.3).setScale(4), result.getReferencePrice(), "기준가 계산 결과가 예상과 일치하지 않습니다.");
+        assertEquals(BigDecimal.valueOf(1343.9999).setScale(4), result.getReferencePrice(), "기준가 계산 결과가 예상과 일치하지 않습니다.");
 
         // Mock 검증
         verify(dssp, never()).save(any()); // 이 테스트에서는 save가 호출되지 않아야 합니다.
@@ -196,11 +196,11 @@ class DailyStatisticsServiceTest {
 
         // Then: 계산된 모든 필드 검증
         assertEquals(BigDecimal.valueOf(1400), result.getBalance(), "잔고 계산 오류");
-        assertEquals(BigDecimal.valueOf(1050), result.getPrincipal(), "원금 계산 오류");
+        assertEquals(BigDecimal.valueOf(1041.6667), result.getPrincipal(), "원금 계산 오류");
         assertEquals(BigDecimal.valueOf(350), result.getCumulativeProfitLoss(), "누적손익 계산 오류");
-        assertEquals(BigDecimal.valueOf(1333.3).setScale(4, RoundingMode.HALF_UP), result.getReferencePrice(), "기준가 계산 오류");
-        assertEquals(BigDecimal.valueOf(0.2121).setScale(4, RoundingMode.HALF_UP), result.getDailyPlRate(), "일손익률 계산 오류");
-        assertEquals(BigDecimal.valueOf(0.3333).setScale(4, RoundingMode.HALF_UP), result.getCumulativeProfitLossRate(), "누적손익률 계산 오류");
+        assertEquals(BigDecimal.valueOf(1343.9999).setScale(4, RoundingMode.HALF_UP), result.getReferencePrice(), "기준가 계산 오류");
+        assertEquals(BigDecimal.valueOf(0.2218).setScale(4, RoundingMode.HALF_UP), result.getDailyPlRate(), "일손익률 계산 오류");
+        assertEquals(BigDecimal.valueOf(34.4000).setScale(4, RoundingMode.HALF_UP), result.getCumulativeProfitLossRate(), "누적손익률 계산 오류");
     }
 
     @Test

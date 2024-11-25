@@ -51,6 +51,12 @@ public class StrategyEntity extends Auditable {
     @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
 
+    @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
+    private BigDecimal kpRatio; // KP-Ratio
+
+    @Column(name = "sm_score", nullable = true, precision = 10, scale = 2)
+    private BigDecimal smScore; // SM-Score
+
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)
     private String writerId; // 작성자 ID
@@ -84,22 +90,4 @@ public class StrategyEntity extends Auditable {
     //전략(1) : 관계(N)
     @OneToMany(mappedBy = "strategyEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StrategyIACEntity> strategyIACEntities;
-
-//    public void updateOperationPeriod() {
-//        // 전략 상태가 "STRATEGY_STATUS_ACTIVE"인 경우에만 운용 기간을 계산합니다.
-//        // 운용 기간은 작성 일자(writedAt)로부터 현재 날짜까지의 일 수로 계산됩니다.
-//        // 전략이 처음 저장되거나 업데이트될 때마다 이 메서드가 호출되어 운용 기간이 갱신됩니다.
-//        if ("STRATEGY_STATUS_ACTIVE".equals(this.strategyStatusCode) && this.writedAt != null) {
-//            this.strategyOperationDays = (int) ChronoUnit.DAYS.between(this.writedAt, LocalDateTime.now());
-//        }
-//    }
-
-//    public void setStrategyStatusCode(String newStatus) {
-//        // 상태가 INACTIVE로 변경된 경우에만 종료일 설정
-//        if (this.strategyStatusCode != null && "STRATEGY_STATUS_INACTIVE".equals(newStatus) &&
-//                !"STRATEGY_STATUS_INACTIVE".equals(this.strategyStatusCode)) {
-//            this.exitDate = LocalDateTime.now();
-//        }
-//        this.strategyStatusCode = newStatus; // 상태 업데이트
-//    }
 }

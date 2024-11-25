@@ -231,9 +231,7 @@ public class StrategyController {
         // 3. 응답 데이터 구성
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "CREATE_SUCCESS");
-        responseMap.put("data", savedIds.stream()
-                .map(id -> Map.of("dailyDataId", id))
-                .collect(Collectors.toList()));
+        responseMap.put("timestamp", Instant.now());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
