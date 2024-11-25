@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,8 +23,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DailyStatisticsService {
 
-    private final DailyStatisticsRepository dssp;
-    private final DailyStatisticsHistoryRepository dsshp;
+    private final DailyStatisticsRepository dsp;
+    private final DailyStatisticsHistoryRepository dshp;
     private final StrategyRepository strategyRepository;
 
     /**
@@ -34,6 +35,9 @@ public class DailyStatisticsService {
      */
     @Transactional
     public void processDailyStatistics(Long strategyId, DailyStatisticsReqDto reqDto) {
+        if (dsp.existsByStrategyIdAndDate(strategyId, reqDto.getDate())) {
+            throw new IllegalArgumentException("이미 등록된 날짜입니다: " + reqDto.getDate());
+        }
         if (strategyId == null) {
             throw new IllegalArgumentException("Strategy ID는 null일 수 없습니다.");
         }
@@ -45,7 +49,7 @@ public class DailyStatisticsService {
         }
 
         // 1. 이전 데이터 가져오기 (최신 데이터 1개)
-        List<DailyStatisticsEntity> previousStates = dssp.findLatestByStrategyId(strategyId, PageRequest.of(0, 1));
+        List<DailyStatisticsEntity> previousStates = dsp.findLatestByStrategyId(strategyId, PageRequest.of(0, 1));
 
         // 2. 첫 번째 데이터 여부 판단 후 처리
         DailyStatisticsEntity dailyStatistics;
@@ -59,7 +63,7 @@ public class DailyStatisticsService {
         );
 
         // 3. 저장 처리
-        dssp.save(dailyStatistics);
+        dsp.save(dailyStatistics);
     }
 
 
@@ -119,7 +123,7 @@ public class DailyStatisticsService {
             principal = depWdPrice;
         } else {
             // 이전 원금 + 입출금 금액
-            principal = StatisticsCalculator.calculatePrincipal(previousPrincipal, depWdPrice);
+            principal = StatisticsCalculator.calculatePrincipal(previousPrincipal, depWdPrice, previousBalance);
         }
 
         // 누적손익 = 이전 누적손익 + 일손익
@@ -149,8 +153,14 @@ public class DailyStatisticsService {
         // 기준가 = (잔고 / 원금) * 1000
         BigDecimal referencePrice = StatisticsCalculator.calculateReferencePrice(balance, principal);
 
-        // 일손익률 = (오늘 기준가 - 이전 기준가) / 이전 기준가
-        BigDecimal dailyPlRate = StatisticsCalculator.calculateDailyPlRate(referencePrice, previousReferencePrice);
+        // 이전 기준가가 null이거나 0 이하인지 확인하여 첫 번째 등록 여부 판단
+        boolean isFirstEntry = previousReferencePrice == null || previousReferencePrice.compareTo(BigDecimal.ZERO) <= 0;
+
+        // 일손익률 = (오늘 기준가 - 이전 기준가) / 이전 기준가 (첫 번째 등록 시 (기준가 - 1000) / 1000)
+        BigDecimal dailyPlRate
+                = StatisticsCalculator.calculateDailyPlRate(referencePrice,
+                previousReferencePrice == null ? BigDecimal.ZERO : previousReferencePrice,
+                isFirstEntry);
 
         // 누적손익률 = (기준가 / 1000) - 1
         BigDecimal cumulativeProfitLossRate = StatisticsCalculator.calculateCumulativeProfitLossRate(referencePrice);
@@ -162,16 +172,19 @@ public class DailyStatisticsService {
         BigDecimal maxCumulativeProfitLossRate = cumulativeProfitLossRate.max(previousMaxCumulativeProfitLossRate);
 
         // 현재 자본인하 금액 = max(누적손익 - 최대 누적손익, 0)
-        BigDecimal currentDrawdownAmount = cumulativeProfitLoss.subtract(maxCumulativeProfitLoss).max(BigDecimal.ZERO);
+        BigDecimal currentDrawdownAmount = cumulativeProfitLoss
+                .subtract(maxCumulativeProfitLoss) // 누적손익 - 최대 누적손익
+                .max(BigDecimal.ZERO);            // 결과가 0보다 작으면 0 반환
 
         // 최대 자본인하 금액 = min(현재 자본인하 금액, 이전 최대 자본인하 금액)
         BigDecimal maxDrawdownAmount = currentDrawdownAmount.min(previousMaxDrawdownAmount);
 
+        // 현재 자본인하율 계산을 위한 데이터 조회
+        List<BigDecimal> allReferencePrices = dsp.findAllReferencePricesByStrategyId(strategyId);
         // 현재 자본인하율 = (기준가 - max(이전 기준가, 현재 기준가)) / 기준가
-        BigDecimal currentDrawdownRate = referencePrice.compareTo(BigDecimal.ZERO) > 0
-                ? referencePrice.subtract(previousReferencePrice.max(referencePrice))
-                .divide(referencePrice, 4, BigDecimal.ROUND_HALF_UP)
-                : BigDecimal.ZERO;
+        // - 기준가가 1000 초과인 경우 계산
+        // - 기준가가 1000 이하이거나 데이터가 없는 경우 0 반환
+        BigDecimal currentDrawdownRate = StatisticsCalculator.calculateCurrentDrawdownRate(referencePrice, allReferencePrices);
 
         // 최대 자본인하율 = min(현재 자본인하율, 이전 최대 자본인하율)
         BigDecimal maxDrawdownRate = currentDrawdownRate.min(previousMaxDrawdownRate);
@@ -187,11 +200,12 @@ public class DailyStatisticsService {
 
         // 평균 손익비 = 평균 이익 / |평균 손실|
         BigDecimal averageProfitLossRatio = averageLoss.compareTo(BigDecimal.ZERO) > 0
-                ? averageProfit.divide(averageLoss.abs(), 4, BigDecimal.ROUND_HALF_UP)
+                ? averageProfit.divide(averageLoss.abs(), 11, BigDecimal.ROUND_HALF_UP) // 11번째 자리까지 계산
+                .setScale(10, RoundingMode.HALF_UP) // 10번째 자리로 반올림
                 : BigDecimal.ZERO;
 
         // `dailyProfitLosses` 리스트 가져오기
-        List<BigDecimal> dailyProfitLosses = dssp.findDailyProfitLossesByStrategyId(strategyId);
+        List<BigDecimal> dailyProfitLosses = dsp.findDailyProfitLossesByStrategyId(strategyId);
 
         // 변동계수(Coefficient of Variation) 계산
         BigDecimal coefficientOfVariation = dailyProfitLosses.isEmpty()
@@ -209,8 +223,9 @@ public class DailyStatisticsService {
 
         // 누적 입출금, 입금, 출금 계산
         BigDecimal cumulativeDepWdPrice = StatisticsCalculator.calculateCumulativeDepWd(
-                previousState.map(DailyStatisticsEntity::getCumulativeDepWdPrice).orElse(BigDecimal.ZERO),
-                depWdPrice);
+                dsp.findDepWdHistoryByStrategyId(strategyId), // 전략 ID를 기준으로 모든 입출금 내역 조회
+                reqDto.getDepWdPrice()
+        );
 
         BigDecimal depositAmount = StatisticsCalculator.calculateDepositAmount(depWdPrice); // 입금 = 오늘 입출금 금액이 양수인 경우
         BigDecimal cumulativeDepositAmount = StatisticsCalculator.calculateCumulativeDeposit(
@@ -233,42 +248,56 @@ public class DailyStatisticsService {
         // 최대 일 손실 = min(이전 최대 일 손실, 오늘 일손익)
         BigDecimal maxDailyLoss = previousState.map(DailyStatisticsEntity::getMaxDailyLoss).orElse(BigDecimal.ZERO).min(dailyProfitLoss);
 
-        // 최대 일 손실률 = (최대 일 손실 / 원금) * 100
-        BigDecimal maxDailyLossRate = principal.compareTo(BigDecimal.ZERO) > 0
-                ? maxDailyLoss.divide(principal, 4, BigDecimal.ROUND_HALF_UP).multiply(BigDecimal.valueOf(100))
-                : BigDecimal.ZERO;
+        // 1. 일 손익률 데이터 조회
+        List<BigDecimal> dailyPlRates = dsp.findDailyPlRatesByStrategyId(strategyId);
+        // 최대 일 손실률 = MIN(일 손익률 리스트 중 최소 값, 0)
+        // 2. 현재 일 손익률 포함하여 최대 일 손실률 계산
+        // - 기존의 모든 일 손익률 데이터와 현재 입력된 일 손익률을 고려하여 최소값(최대 음수)을 반환합니다.
+        // - 최대 일 손실률은 항상 음수 또는 0이어야 합니다.
+        BigDecimal maxDailyLossRate = StatisticsCalculator.calculateMaxDailyLossRate(dailyPlRates, dailyPlRate);
 
         // 평균 손익 = (총 이익 + 총 손실) / 거래일수
         BigDecimal averageProfitLoss = tradingDays > 0
-                ? totalProfit.add(totalLoss).divide(BigDecimal.valueOf(tradingDays), 4, BigDecimal.ROUND_HALF_UP)
+                ? totalProfit.add(totalLoss)
+                .divide(BigDecimal.valueOf(tradingDays), 0, RoundingMode.HALF_UP) // 소수점 첫째 자리에서 반올림 후 정수 반환
                 : BigDecimal.ZERO;
 
         // 평균 손익률 = (누적손익률 / 거래일수) * 100
         BigDecimal averageProfitLossRate = tradingDays > 0
-                ? cumulativeProfitLossRate.divide(BigDecimal.valueOf(tradingDays), 4, BigDecimal.ROUND_HALF_UP)
+                ? cumulativeProfitLossRate.divide(BigDecimal.valueOf(tradingDays), 10, RoundingMode.DOWN) // 중간 계산에서 높은 정밀도로 계산
                 .multiply(BigDecimal.valueOf(100)) // 백분율 변환
+                .setScale(4, RoundingMode.DOWN) // 최종적으로 4자리까지 표현 (반올림 없이)
                 : BigDecimal.ZERO;
 
-        // 현재 연속 손익일수 = 이전 연속 손익일수 증가/감소
-        Integer currentConsecutivePlDays = dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0
-                ? previousCurrentConsecutivePlDays + 1
-                : (dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0 ? previousCurrentConsecutivePlDays - 1 : 0);
+        // 현재 연속 손익일수 계산
+        Integer currentConsecutivePlDays;
 
-        // 최대 연속 수익일수 = max(현재 연속 손익일수(양수인 경우), 이전 최대 연속 수익일수)
-        Integer maxConsecutiveProfitDays = currentConsecutivePlDays > 0
+        if (dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0) {
+            // 이익인 경우: 손실에서 이익으로 전환 시 1로 초기화, 이익이 지속되면 +1
+            currentConsecutivePlDays = previousCurrentConsecutivePlDays < 0 ? 1 : previousCurrentConsecutivePlDays + 1;
+        } else if (dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0) {
+            // 손실인 경우: 이익에서 손실로 전환 시 -1로 초기화, 손실이 지속되면 -1씩 감소
+            currentConsecutivePlDays = previousCurrentConsecutivePlDays > 0 ? -1 : previousCurrentConsecutivePlDays - 1;
+        } else {
+            // 손익이 0일 경우 연속 손익일수 초기화
+            currentConsecutivePlDays = 0;
+        }
+
+        // 최대 연속 수익일수 계산
+        Integer maxConsecutiveProfitDays = dailyProfitLoss.compareTo(BigDecimal.ZERO) > 0
                 ? Math.max(previousMaxConsecutiveProfitDays, currentConsecutivePlDays)
                 : previousMaxConsecutiveProfitDays;
 
-        // 최대 연속 손실일수 = max(현재 연속 손익일수(음수인 경우), 이전 최대 연속 손실일수)
-        Integer maxConsecutiveLossDays = currentConsecutivePlDays < 0
-                ? Math.max(previousMaxConsecutiveLossDays, Math.abs(currentConsecutivePlDays))
+        // 최대 연속 손실일수 계산 (음수로 누적된 값의 절대값이 가장 큰 음수 선택)
+        Integer maxConsecutiveLossDays = dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0
+                ? Math.min(previousMaxConsecutiveLossDays, currentConsecutivePlDays) // 음수에서 최솟값(더 작은 음수) 선택
                 : previousMaxConsecutiveLossDays;
 
         // 총 전략 운용일수 = 이전 전략 운용일수 + 1
         Integer strategyOperationDays = previousStrategyOperationDays + 1;
 
         // 최근 1년 수익률 = ((오늘 잔고 / 1년 전 잔고) - 1) * 100
-        Optional<BigDecimal> optionalOneYearAgoBalance = dssp.findBalanceOneYearAgo(strategyId, reqDto.getDate().minusYears(1));
+        Optional<BigDecimal> optionalOneYearAgoBalance = dsp.findBalanceOneYearAgo(strategyId, reqDto.getDate().minusYears(1));
         BigDecimal recentOneYearReturn = optionalOneYearAgoBalance
                 .filter(balanceOneYearAgo -> balanceOneYearAgo.compareTo(BigDecimal.ZERO) > 0)
                 .map(balanceOneYearAgo -> balance.divide(balanceOneYearAgo, 4, BigDecimal.ROUND_HALF_UP)
@@ -309,7 +338,7 @@ public class DailyStatisticsService {
         BigDecimal smScore = BigDecimal.ZERO;
         if (kpRatio.compareTo(BigDecimal.ZERO) > 0) {
             // 1. 모든 전략의 KP-Ratio 데이터 조회
-            List<BigDecimal> allKpRatios = dssp.findAllKpRatios();
+            List<BigDecimal> allKpRatios = dsp.findAllKpRatios();
 
             // 2. SM-Score 계산 (유틸 클래스 메서드 사용)
             smScore = StatisticsCalculator.calculateSmScore(kpRatio, allKpRatios);
@@ -378,7 +407,7 @@ public class DailyStatisticsService {
      */
     public long calculateMaxDrawdownDays(Long strategyId) {
         // 1. 데이터베이스에서 전략별 누적손익 히스토리 조회
-        List<Object[]> profitLossHistory = dssp.findCumulativeProfitLossHistory(strategyId);
+        List<Object[]> profitLossHistory = dsp.findCumulativeProfitLossHistory(strategyId);
 
         // 2. StatisticsCalculator를 호출하여 최대 하락 기간 계산
         return StatisticsCalculator.calculateMaxDrawdownDays(profitLossHistory);
