@@ -48,7 +48,7 @@ public class StrategyEntity extends Auditable {
     @Column(name = "followers_count", nullable = false)
     private Long followersCount = 0L; // 팔로워수 default = 0
 
-    @Column(name = "strategy_title", nullable = false)
+    @Column(name = "strategy_title", length = 300, nullable = false)
     private String strategyTitle; // 전략명
 
     @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
@@ -67,14 +67,14 @@ public class StrategyEntity extends Auditable {
 
     @Column(name = "is_approved", nullable = false, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N|P", message = "isApproved 필드는 'Y','N','P'만 허용됩니다.")
-    private String isApproved = "N"; // 승인여부 default = N
+    private String isApproved = "N"; // 승인여부 default = N, 승인 요청을 보내면 P, 승인되면 Y
 
     @CreatedDate
     @Column(name="writed_at", updatable = false, nullable = false)
     private LocalDateTime writedAt; // 작성일시
 
-    @Column(name = "strategy_overview", length = 1000)
-    private String strategyOverview; // 전략소개
+    @Column(name = "strategy_overview", length = 3000)
+    private String strategyOverview; // 전략소개 1000자
 
     @LastModifiedBy
     @Column(name="updater_id")

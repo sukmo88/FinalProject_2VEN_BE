@@ -475,4 +475,101 @@ public class StatisticsCalculator {
         // DD 기간이 0이면 0 반환
         return BigDecimal.ZERO;
     }
+
+    //월간 데이터 계산
+    /**
+     * 월평균 원금 계산.
+     * @Param 해당 월의 원금 리스트
+     * @return 월평균 원금
+     */
+    public static BigDecimal calculateMonthlyAveragePrincipal(List<BigDecimal> principals){
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BigDecimal principal : principals) {
+            sum = sum.add(principal);
+        }
+        return sum.divide(BigDecimal.valueOf(principals.size()), 4, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * 월 입출금 총액 계산
+     * @Param 해당 월의 입출금 리스트
+     * @return 월 입출금 총액
+     */
+    public static BigDecimal calculateMonthlyDepWdAmount(List<BigDecimal> dailyDepWdAmounts){
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BigDecimal dailyDepWdAmount : dailyDepWdAmounts) {
+            sum = sum.add(dailyDepWdAmount);
+        }
+
+        return sum.setScale(4, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * 월손익 계산
+     * @Param 해당 월의 일손익 리스트
+     * @return 월 일손익 총액
+     */
+    public static BigDecimal calculateMonthlyProfitLoss(List<BigDecimal> dailyProfitLosses){
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BigDecimal dailyProfitLoss : dailyProfitLosses) {
+            sum = sum.add(dailyProfitLoss);
+        }
+
+        return sum.setScale(4, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * 월 손익률 계산
+     * @Param 해당월 첫번째 기준가, 해당월 마지막 기준가
+     * @return 마지막 기준가 / 첫번째 기준가 - 1
+     */
+    public static BigDecimal calculateMonthlyReturn(BigDecimal firstReferencePrice, BigDecimal lastReferencePrice){
+        BigDecimal result = BigDecimal.ZERO;
+        result = firstReferencePrice.divide(lastReferencePrice, 4, RoundingMode.HALF_EVEN)
+                .subtract(BigDecimal.ONE);
+
+        return result.setScale(4, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * 월 누적 손익 계산
+     * @Param 해당 전략의 월손익 리스트
+     * @return 해당 전략의 월 누적 손익
+     */
+    public static BigDecimal calculateMonthlyCumulativeProfitLoss(List<BigDecimal> monthlyProfitLosses){
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BigDecimal monthlyProfitLoss : monthlyProfitLosses) {
+            sum = sum.add(monthlyProfitLoss);
+        }
+
+        return sum.setScale(4, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * 월 누적 손익률 계산
+     * @Param 해당 월 마지막 기준가
+     * @return 해당월 마지막 기준가 / 1000 -1
+     */
+    public static BigDecimal calculateMonthlyCumulativeReturn(BigDecimal lastDailyReferencePrice){
+        BigDecimal result = lastDailyReferencePrice;
+        result = result.divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_EVEN)
+                .subtract(BigDecimal.ONE);
+
+        return result.setScale(4, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * 월 평균 잔고 계산
+     * @Param 해당 월 일간데이터 잔고 리스트
+     * @return 월 평균 잔고
+     */
+    public static BigDecimal calculateMonthlyAverageBalance(List<BigDecimal> dailyBalances){
+        BigDecimal sum = BigDecimal.ZERO;
+        for(BigDecimal dailyBalance : dailyBalances){
+            sum = sum.add(dailyBalance);
+        }
+
+        return sum.divide(BigDecimal.valueOf(dailyBalances.size()), 4, RoundingMode.HALF_EVEN);
+    }
+
 }
