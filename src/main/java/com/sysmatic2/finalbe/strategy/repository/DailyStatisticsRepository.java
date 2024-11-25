@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -104,4 +105,33 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
      */
     @Query("SELECT ds.cumulativeProfitLossRate FROM DailyStatisticsEntity ds WHERE ds.strategyEntity.strategyId = :strategyId ORDER BY ds.date ASC")
     List<BigDecimal> findCumulativeProfitLossRateByStrategyId(@Param("strategyId") Long strategyId);
+
+    /**
+     * 특정 전략 ID에 대한 일간 통계 목록을 최신일자순으로 페이징 형태로 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @param pageable   페이지 정보 (페이지 번호와 크기)
+     * @return 주어진 전략 ID와 연관된 {@link DailyStatisticsEntity} 객체의 {@link Page}
+     */
+    Page<DailyStatisticsEntity> findByStrategyEntityStrategyIdOrderByDateDesc(Long strategyId, Pageable pageable);
+
+    /**
+     * 특정 전략 ID에 대한 전략 통계 데이터를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 해당 전략의 가장 최신 통계 데이터 (Optional로 반환)
+     */
+    @Query("SELECT d FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date DESC")
+    List<DailyStatisticsEntity> findLatestStatisticsByStrategyId(@Param("strategyId") Long strategyId, Pageable pageable);
+
+    /**
+     * 특정 전략의 일간 통계 중 가장 오래된 일자의 데이터를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 최초 입력 일자 (Optional 반환)
+     */
+    @Query("SELECT MIN(d.date) FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId")
+    Optional<LocalDate> findEarliestDateByStrategyId(@Param("strategyId") Long strategyId);
 }

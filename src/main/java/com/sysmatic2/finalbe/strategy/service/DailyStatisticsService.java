@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
+import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsHistoryRepository;
@@ -8,7 +9,9 @@ import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.util.StatisticsCalculator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +19,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -26,6 +33,93 @@ public class DailyStatisticsService {
     private final DailyStatisticsRepository dsp;
     private final DailyStatisticsHistoryRepository dshp;
     private final StrategyRepository strategyRepository;
+
+    /**
+     * 특정 전략의 통계 데이터를 조회합니다.
+     *
+     * @param strategyId 조회할 전략 ID
+     * @return 전략 통계 데이터를 Map 형식으로 반환
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDailyStatistics(Long strategyId) {
+        // 전략 존재 여부 확인
+        Optional<StrategyEntity> strategyOpt = strategyRepository.findById(strategyId);
+        if (strategyOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Strategy with ID " + strategyId + " does not exist.");
+        }
+
+        // 최신 일간 통계 데이터 조회
+        // 최신 일간 통계 데이터 조회
+        Pageable pageable = PageRequest.of(0, 1); // 첫 번째 데이터만 요청
+        List<DailyStatisticsEntity> latestStatisticsList = dsp.findLatestStatisticsByStrategyId(strategyId, pageable);
+
+        if (latestStatisticsList.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No daily statistics found for strategy with ID " + strategyId);
+        }
+        // 첫 번째 데이터 가져오기
+        DailyStatisticsEntity latestStatistics = latestStatisticsList.get(0);
+
+
+        // 최초 입력 일자 조회
+        Optional<LocalDate> earliestDateOpt = dsp.findEarliestDateByStrategyId(strategyId);
+        if (earliestDateOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No data found for strategy with ID " + strategyId);
+        }
+        LocalDate startDate = earliestDateOpt.get();
+        LocalDate endDate = latestStatistics.getDate();
+
+        // 운용기간 계산
+        long operationPeriod = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+
+        // Map 생성
+        Map<String, Object> response = new HashMap<>();
+        response.put("balance", latestStatistics.getBalance()); // 잔고
+        response.put("cumulative_dep_wd_price", latestStatistics.getCumulativeDepWdPrice()); // 누적 입출금액
+        response.put("principal", latestStatistics.getPrincipal()); // 원금
+        response.put("operationPeriod", operationPeriod); // 운용 기간
+        response.put("startDate", startDate); // 전략 시작일
+        response.put("endDate", endDate); // 종료일
+        response.put("cumulativeProfitLoss", latestStatistics.getCumulativeProfitLoss()); // 누적 손익 금액
+        response.put("cumulativeProfitLossRate", latestStatistics.getCumulativeProfitLossRate()); // 누적 손익률
+        response.put("maxCumulativeProfitLoss", latestStatistics.getMaxCumulativeProfitLoss()); // 최대 누적 손익 금액
+        response.put("maxCumulativeProfitLossRatio", latestStatistics.getMaxCumulativeProfitLossRate()); // 최대 누적 손익률
+        response.put("currentDrawdownAmount", latestStatistics.getCurrentDrawdownAmount()); // 현재 자본 인하 금액
+        response.put("currentDrawdownRate", latestStatistics.getCurrentDrawdownRate()); // 현재 자본 인하율
+        response.put("maxDrawdownAmount", latestStatistics.getMaxDrawdownAmount()); // 최대 자본 인하 금액
+        response.put("maxDrawdownRate", latestStatistics.getMaxDrawdownRate()); // 최대 자본 인하율
+        response.put("unrealizedProfitLoss", latestStatistics.getUnrealizedProfitLoss()); // 평가 손익
+        response.put("averageProfitLossRate", latestStatistics.getAverageProfitLossRate()); // 평균 손익률
+        response.put("maxDailyProfit", latestStatistics.getMaxDailyProfit()); // 최대 일 수익 금액
+        response.put("maxDailyProfitRate", latestStatistics.getMaxDailyProfitRate()); // 최대 일 수익률
+        response.put("maxDailyLoss", latestStatistics.getMaxDailyLoss()); // 최대 일 손실 금액
+        response.put("maxDailyLossRate", latestStatistics.getMaxDailyLossRate()); // 최대 일 손실률
+        response.put("tradingDays", latestStatistics.getTradingDays()); // 총 매매 일수
+        response.put("totalProfitDays", latestStatistics.getTotalProfitDays()); // 총 이익 일수
+        response.put("totalLossDays", latestStatistics.getTotalLossDays()); // 총 손실 일수
+        response.put("currentConsecutivePlDays", latestStatistics.getCurrentConsecutivePlDays()); // 현재 연속 손익 일수
+        response.put("maxConsecutiveProfitDays", latestStatistics.getMaxConsecutiveProfitDays()); // 최대 연속 이익 일수
+        response.put("maxConsecutiveLossDays", latestStatistics.getMaxConsecutiveLossDays()); // 최대 연속 손실 일수
+        response.put("winRate", latestStatistics.getWinRate()); // 승률
+        response.put("daysSincePeak", latestStatistics.getDaysSincePeak()); // 고점 갱신 후 경과일
+        response.put("profitFactor", latestStatistics.getProfitFactor()); // Profit Factor
+        response.put("roa", latestStatistics.getRoa()); // ROA
+
+        return response;
+    }
+
+    /**
+     * 특정 전략의 일간 통계 데이터를 최신일자순으로 페이징하여 조회합니다.
+     *
+     * @param strategyId 전략 ID.
+     * @param page       페이지 번호 (기본값: 0).
+     * @param pageSize   페이지 크기 (기본값: 5).
+     * @return 일간 통계 목록의 페이징된 결과.
+     */
+    public Page<DailyStatisticsResponseDto> getDailyStatisticsByStrategy(Long strategyId, int page, int pageSize) {
+        PageRequest pageRequest = PageRequest.of(page, pageSize);
+        Page<DailyStatisticsEntity> entities = dsp.findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, pageRequest);
+        return entities.map(DailyStatisticsResponseDto::fromEntity); // 엔티티를 DTO로 변환
+    }
 
     /**
      * 일일 통계 데이터를 처리하는 메서드
