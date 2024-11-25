@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.service;
 
+import com.sysmatic2.finalbe.admin.dto.RejectionRequestResponseDto;
 import com.sysmatic2.finalbe.admin.dto.TradingCycleRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
@@ -579,22 +580,24 @@ public class StrategyService {
      *
      * @Param strategyId 해당 전략 id, applicantId 요청자의 id
      * 해당전략 id로 엔티티를 가져오고 등록일 부터 일일 데이터 갯수가 3개인지, isApproved=N인지 판별
-     * 이후 전략 승인 요청 목록에 엔티티 생성해서 등록
+     * 이후 전략 승인 요청 목록에 엔티티 생성해서 등록, 전략 엔티티의 is_Approved = P로 변경
      */
     @Transactional
     public Map<String, Long> approvalRequest(Long strategyId, String applicantId){
+        //승인 요청자 정보 가져오기
         MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow();
 
+        //승인 요청할 전략 정보 가져오기
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
 
         //전략 등록일을 가져와서 이후 일일 거래 데이터 3개 이상이면 진행
         //3개 미만이면 예외를 던진다.
-        LocalDateTime createDatetime = strategyEntity.getCreatedAt();
-        LocalDate createDate = createDatetime.toLocalDate();
-        if(dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
-            throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
-        }
+//        LocalDateTime createDatetime = strategyEntity.getCreatedAt();
+//        LocalDate createDate = createDatetime.toLocalDate();
+//        if(dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
+//            throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
+//        }
 
         //이미 승인받은 전략은 승인요청을 보낼 수 없다.
         if(strategyEntity.getIsApproved().equals("Y")){
@@ -613,12 +616,53 @@ public class StrategyService {
         //요청 엔티티 저장, 해당 id 값 받기
         StrategyApprovalRequestsEntity savedRequest = strategyApprovalRequestsRepository.save(approvalRequestsEntity);
 
+        //해당 전략의 is_Approved = P로 변경
+        LocalDateTime changeStartDatetime = LocalDateTime.now(); //변경시작시간
+        strategyEntity.setIsApproved("P");
+        strategyEntity.setUpdaterId(applicantEntity.getMemberId());
+        strategyEntity.setUpdatedAt(LocalDateTime.now());
+        strategyRepo.save(strategyEntity);
+
+        //전략 이력에 P변경 내역 넣기
+        StrategyHistoryEntity changedHistory = new StrategyHistoryEntity(strategyEntity, "STRATEGY_STATUS_UPDATED", changeStartDatetime);
+        strategyHistoryRepo.save(changedHistory);
+
         //전략 Id값, 요청 Id값 반환
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         responseMap.put("request_Id", savedRequest.getStrategyApprovalRequestsId());
         return responseMap;
     }
+
+    /**
+     * 7-1. 해당 전략의 승인 요청 데이터를 가져오는 메서드
+     *
+     * @Param strategyId 해당 전략 id
+     * 전략 승인 요청 목록에서 해당 전략 id의 데이터를 가져와 보여줌.(is_Approved = N 인 것만)
+     */
+    @Transactional
+    public Map<String, Object> findRequestByStrategyId(Long strategyId){
+        //전략 id로 해당되는 요청 가져오기 - isApproved = N인것중 제일 최신것만 가져옴
+        StrategyApprovalRequestsEntity approvalRequest = strategyApprovalRequestsRepository.findLatestRejectedRequestByStrategyId(strategyId)
+                .orElseThrow(() -> new NoSuchElementException());
+
+        RejectionRequestResponseDto rejectionDto = new RejectionRequestResponseDto();
+        rejectionDto.setStrategyApprovalRequestId(approvalRequest.getStrategyApprovalRequestsId());
+        rejectionDto.setRequestDatetime(approvalRequest.getRequestDatetime());
+        rejectionDto.setIsApproved(approvalRequest.getIsApproved());
+        rejectionDto.setStrategyId(approvalRequest.getStrategy().getStrategyId());
+        rejectionDto.setIsPosted(approvalRequest.getIsPosted());
+        rejectionDto.setApplicantId(approvalRequest.getApplicant().getMemberId());
+        rejectionDto.setManagerNickname(approvalRequest.getAdmin().getNickname());
+        rejectionDto.setProfileImg(approvalRequest.getAdmin().getFileId());
+        rejectionDto.setRejectionReason(approvalRequest.getRejectionReason());
+        rejectionDto.setRejectionDatetime(approvalRequest.getRejectionDatetime());
+
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("data", rejectionDto);
+        return responseMap;
+    }
+
 }
 
 
