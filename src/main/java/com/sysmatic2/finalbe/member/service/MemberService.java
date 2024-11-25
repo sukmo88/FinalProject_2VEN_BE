@@ -1,12 +1,10 @@
 package com.sysmatic2.finalbe.member.service;
 
 import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
+import com.sysmatic2.finalbe.exception.InvalidPasswordException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
-import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
-import com.sysmatic2.finalbe.member.dto.ProfileUpdateDTO;
-import com.sysmatic2.finalbe.member.dto.SignupDTO;
-import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
+import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
@@ -33,9 +31,7 @@ public class MemberService {
 
         // nickname 중복 여부 & 비밀번호 동열 여부 확인
         duplicateNicknameCheck(signupDTO.getNickname());
-        if (!signupDTO.getPassword().equals(signupDTO.getConfirmPassword())) {
-            throw new ConfirmPasswordMismatchException("확인 비밀번호가 일치하지 않습니다.");
-        }
+        comparePassword(signupDTO.getPassword(), signupDTO.getConfirmPassword());
 
         MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
 
@@ -44,6 +40,12 @@ public class MemberService {
         member.setFileId(fileId);
 
         memberRepository.save(member); // 가입 실패 시 예외 발생
+    }
+
+    private void comparePassword(String newPassword, String confirmPassword) {
+        if (!newPassword.equals(confirmPassword)) {
+            throw new ConfirmPasswordMismatchException("확인 비밀번호가 일치하지 않습니다.");
+        }
     }
 
     // email 중복 여부 확인
@@ -125,6 +127,25 @@ public class MemberService {
         member.setPhoneNumber(profileUpdateDTO.getPhoneNumber());
         member.setIntroduction(profileUpdateDTO.getIntroduction());
         member.setIsAgreedMarketingAd(profileUpdateDTO.getMarketingOptional() ? 'Y' : 'N');
+        memberRepository.save(member);
+    }
+
+    @Transactional
+    public void changePassword(String memberId, PasswordUpdateDTO passwordUpdateDTO) {
+        // member 조회한 후 없으면 예외 발생
+        MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+
+        // 입력한 oldPassword가 기존 비밀번호와 일치하는지 확인 -> 불일치 시 예외 발생
+        if (!passwordEncoder.matches(passwordUpdateDTO.getOldPassword(), member.getPassword())) {
+            throw new InvalidPasswordException();
+        }
+
+        // 바꿀 비밀번호와 확인 비밀번호 일치하는지 확인 후 불일치 시 예외 발생
+        comparePassword(passwordUpdateDTO.getNewPassword(), passwordUpdateDTO.getConfirmPassword());
+
+        // 새로운 비밀번호 암호화 후 설정 및 저장
+        String encodedPwd = passwordEncoder.encode(passwordUpdateDTO.getNewPassword());
+        member.setPassword(encodedPwd);
         memberRepository.save(member);
     }
 
