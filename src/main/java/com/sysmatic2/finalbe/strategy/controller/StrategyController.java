@@ -164,6 +164,17 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 
+    //8-1. 전략 승인 요청 거절 정보(GET)
+    //TODO) 해당 전략 작성자와 관리자만 볼 수 있다.
+    @Operation(summary = "해당 전략의 거절 정보를 반환")
+    @GetMapping(value = "/{id}/rejection-info", produces = "application/json")
+    public ResponseEntity<Map> rejectionInfo(@PathVariable("id") Long strategyId) throws Exception{
+        //TODO) 접속한 사람의 토큰 확인하기
+
+        Map<String, Object> dataMap = strategyService.findRequestByStrategyId(strategyId);
+        return ResponseEntity.status(HttpStatus.OK).body(dataMap);
+    }
+
     //9. 전략 운용 종료(PATCH)
     //TODO) 관리자와 작성 트레이더만 운용종료할 수 있다.
     @Operation(summary = "전략 운용 종료")

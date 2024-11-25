@@ -48,7 +48,7 @@ public class StrategyEntity extends Auditable {
     @Column(name = "followers_count", nullable = false)
     private Long followersCount = 0L; // 팔로워수 default = 0
 
-    @Column(name = "strategy_title", nullable = false)
+    @Column(name = "strategy_title", length = 300, nullable = false)
     private String strategyTitle; // 전략명
 
     @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
@@ -74,7 +74,7 @@ public class StrategyEntity extends Auditable {
     private LocalDateTime writedAt; // 작성일시
 
     @Column(name = "strategy_overview", length = 3000)
-    private String strategyOverview; // 전략소개
+    private String strategyOverview; // 전략소개 1000자
 
     @LastModifiedBy
     @Column(name="updater_id")

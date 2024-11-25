@@ -25,9 +25,9 @@ public class StrategyApprovalRequestsEntity extends Auditable {
     @Column(name = "request_datetime", updatable = false, nullable = false)
     private LocalDateTime requestDatetime; //승인 요청 일시
 
-    @Column(name = "is_approved")
+    @Column(name = "is_approved", nullable = false)
     @Pattern(regexp = "Y|N|P", message = "isApproved 필드는 'Y','N','P'만 허용됩니다.")
-    private String isApproved; //승인여부(결과) - 등록하면 P(대기), 거부되면 N(거절), 승인되면 Y(승인)
+    private String isApproved = "P"; //승인여부(결과) - 등록하면 P(대기), 거부되면 N(거절), 승인되면 Y(승인)
 
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
