@@ -1,10 +1,7 @@
 package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.exception.EmailVerificationFailedException;
-import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
-import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
-import com.sysmatic2.finalbe.member.dto.SignupDTO;
-import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
+import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.member.service.MemberService;
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
@@ -169,8 +166,17 @@ public class MemberController {
 
     // 상세 개인정보 수정
     @PutMapping("/details")
-    public String updateDetails(HttpServletRequest request) {
-        return "updateDetails";
+    public ResponseEntity<Map<String, String>> modifyDetails(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                             @RequestBody @Valid ProfileUpdateDTO profileUpdateDTO) {
+
+        // 로그인 정보로 memberId 가져온 후 상세 개인정보 조회
+        String memberId = userDetails.getMemberId();
+        memberService.modifyDetails(memberId, profileUpdateDTO);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "회원정보가 성공적으로 수정되었습니다."
+        ));
     }
 
     //비밀번호 확인
@@ -178,9 +184,19 @@ public class MemberController {
     public String checkPassword(HttpServletRequest request) {
         return "check-password";
     }
-    //비밀번호 변경
+
+    // 비밀번호 수정
     @PatchMapping("/change-password")
-    public String changePassword(HttpServletRequest request) {
-        return "change-password";
+    public ResponseEntity<Map<String, String>> changePassword(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                              @RequestBody @Valid PasswordUpdateDTO passwordUpdateDTO) {
+
+        // 로그인 정보로 memberId 가져온 후 상세 개인정보 조회
+        String memberId = userDetails.getMemberId();
+        memberService.changePassword(memberId, passwordUpdateDTO);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "비밀번호가 성공적으로 변경되었습니다."
+        ));
     }
 }
