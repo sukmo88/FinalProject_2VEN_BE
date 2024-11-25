@@ -60,14 +60,14 @@ public class StrategyEntity extends Auditable {
     private String isPosted; // 공개여부
 
     @Column(name = "is_approved", nullable = false, columnDefinition = "CHAR(1)")
-    @Pattern(regexp = "Y|N", message = "isApproved 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isApproved = "N"; // 승인여부 default = N
+    @Pattern(regexp = "Y|N|P", message = "isApproved 필드는 'Y','N','P'만 허용됩니다.")
+    private String isApproved = "N"; // 승인여부 default = N, 승인 요청을 보내면 P, 승인되면 Y
 
     @CreatedDate
     @Column(name="writed_at", updatable = false, nullable = false)
     private LocalDateTime writedAt; // 작성일시
 
-    @Column(name = "strategy_overview", length = 1000)
+    @Column(name = "strategy_overview", length = 3000)
     private String strategyOverview; // 전략소개
 
     @LastModifiedBy
