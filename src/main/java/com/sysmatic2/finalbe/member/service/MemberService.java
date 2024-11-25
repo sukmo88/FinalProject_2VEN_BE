@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
+import com.sysmatic2.finalbe.member.dto.ProfileUpdateDTO;
 import com.sysmatic2.finalbe.member.dto.SignupDTO;
 import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
@@ -14,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +28,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional
     public void signup(SignupDTO signupDTO) {
 
         // nickname 중복 여부 & 비밀번호 동열 여부 확인
@@ -101,24 +105,27 @@ public class MemberService {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @Transactional(readOnly = true)
     public SimpleProfileDTO getSimpleProfile(String memberId) {
-        Optional<SimpleProfileDTO> simpleProfileByMemberId = memberRepository.findSimpleProfileByMemberId(memberId);
-
-        if(simpleProfileByMemberId.isEmpty()) {
-            throw new MemberNotFoundException("존재하지 않는 회원입니다.");
-        }
-
-        return simpleProfileByMemberId.get();
+        return memberRepository.findSimpleProfileByMemberId(memberId).orElseThrow(MemberNotFoundException::new);
     }
 
+    @Transactional(readOnly = true)
     public DetailedProfileDTO getDetailedProfile(String memberId) {
-        Optional<DetailedProfileDTO> detailedProfileByMemberId = memberRepository.findDetailedProfileByMemberId(memberId);
+        return memberRepository.findDetailedProfileByMemberId(memberId).orElseThrow(MemberNotFoundException::new);
+    }
 
-        if (detailedProfileByMemberId.isEmpty()) {
-            throw new MemberNotFoundException("존재하지 않는 회원입니다.");
-        }
+    @Transactional
+    public void modifyDetails(String memberId, ProfileUpdateDTO profileUpdateDTO) {
+        // memberId로 회원 조회 -> 없으면 예외 발생
+        MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
 
-        return detailedProfileByMemberId.get();
+        // 조회한 회원에 수정할 값 입력 후 저장
+        member.setNickname(profileUpdateDTO.getNickname());
+        member.setPhoneNumber(profileUpdateDTO.getPhoneNumber());
+        member.setIntroduction(profileUpdateDTO.getIntroduction());
+        member.setIsAgreedMarketingAd(profileUpdateDTO.getMarketingOptional() ? 'Y' : 'N');
+        memberRepository.save(member);
     }
 
 }

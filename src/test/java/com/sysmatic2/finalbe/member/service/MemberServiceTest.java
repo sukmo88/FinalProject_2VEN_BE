@@ -3,9 +3,11 @@ package com.sysmatic2.finalbe.member.service;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
+import com.sysmatic2.finalbe.member.dto.ProfileUpdateDTO;
 import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -142,5 +144,15 @@ class MemberServiceTest {
 
         // 예외 발생 X, 메서드 1회 호출되었는지 확인
         assertDoesNotThrow(() ->  memberService.getDetailedProfile(existMemberId));
+    }
+
+    // 상세 개인정보 수정하는 테스트 - memberId 존재하지 않으면 MemberNotFoundException 발생
+    @Test
+    @DisplayName("상세 개인정보 수정 - member 존재하지 않아 예외 발생")
+    public void modifyDetails_memberNotExists() {
+        String notExistMemberId = "notExistMemberId";
+        when(memberRepository.findById(notExistMemberId)).thenReturn(Optional.empty());
+
+        assertThrows(MemberNotFoundException.class, () -> memberService.modifyDetails(notExistMemberId, new ProfileUpdateDTO()));
     }
 }
