@@ -104,6 +104,9 @@ public class DailyStatisticsService {
         Integer previousCurrentConsecutivePlDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getCurrentConsecutivePlDays).orElse(0); // 이전 연속 손익일수
         Integer previousMaxConsecutiveProfitDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveProfitDays).orElse(0); // 이전 최대 연속 수익일수
         Integer previousMaxConsecutiveLossDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveLossDays).orElse(0); // 이전 최대 연속 손실일수
+        BigDecimal previousMaxDDInRate = previousState
+                .map(DailyStatisticsEntity::getMaxDDInRate)
+                .orElse(BigDecimal.ZERO); // 이전 maxDDInRate 값 가져오기
 
         // 사용자 입력값
         BigDecimal dailyProfitLoss = reqDto.getDailyProfitLoss(); // 오늘의 일손익
@@ -305,44 +308,31 @@ public class DailyStatisticsService {
                         .multiply(BigDecimal.valueOf(100)))
                 .orElse(BigDecimal.ZERO);
 
+
         // 고점 이후 최대 하락 기간(dd_day) 계산
-        long ddDay = calculateMaxDrawdownDays(strategyId);
+        Integer ddDay = StatisticsCalculator.calculateDdDay(
+                currentDrawdownRate, // 현재 자본인하율
+                previousState.map(DailyStatisticsEntity::getDdDay).orElse(0) // 이전 DD 기간
+        );
 
-        // 현재 자본인하율의 자연 로그 계산
-        BigDecimal currentDrawdownRateLn = BigDecimal.ZERO;
-        if (currentDrawdownRate.compareTo(BigDecimal.ZERO) > 0) {
-            currentDrawdownRateLn = BigDecimal.valueOf(Math.log(currentDrawdownRate.doubleValue()));
-        }
+        // maxDDInRate 계산
+        BigDecimal maxDDInRate = StatisticsCalculator.calculateMaxDDInRate(
+                currentDrawdownRate,    // 현재 자본인하율
+                previousMaxDDInRate,    // 이전 maxDDInRate
+                ddDay                  // 현재 DD 기간
+        );
 
-        // 누적손익률의 자연 로그 계산 (cumulativeProfitLossRateLn)
-        // 조건: 누적손익률 > 0이어야 함
-        BigDecimal cumulativeProfitLossRateLn = BigDecimal.ZERO;
-        if (cumulativeProfitLossRate.compareTo(BigDecimal.ZERO) > 0) {
-            cumulativeProfitLossRateLn = BigDecimal.valueOf(Math.log(cumulativeProfitLossRate.doubleValue()));
-        }
+        // 누적손익 리스트 가져오기
+        List<BigDecimal> cumulativeProfitLossHistory = dsp.findCumulativeProfitLossByStrategyId(strategyId);
 
+        // 누적손익률 리스트 가져오기
+        List<BigDecimal> cumulativeProfitLossRateHistory = dsp.findCumulativeProfitLossRateByStrategyId(strategyId);
 
-        // KP-Ratio 계산
-        BigDecimal kpRatio = BigDecimal.ZERO;
-        if (currentDrawdownRateLn.compareTo(BigDecimal.ZERO) != 0 && tradingDays > 0) {
-            kpRatio = cumulativeProfitLossRateLn.divide(
-                    currentDrawdownRateLn.abs().multiply(
-                            BigDecimal.valueOf(Math.sqrt((double) ddDay / tradingDays))
-                    ),
-                    4,
-                    BigDecimal.ROUND_HALF_UP
-            );
-        }
+        // 누적손익의 최대값 (Peak) 계산
+        BigDecimal peak = StatisticsCalculator.calculatePeak(cumulativeProfitLossHistory, cumulativeProfitLoss);
 
-        // SM-Score 계산 로직 추가
-        BigDecimal smScore = BigDecimal.ZERO;
-        if (kpRatio.compareTo(BigDecimal.ZERO) > 0) {
-            // 1. 모든 전략의 KP-Ratio 데이터 조회
-            List<BigDecimal> allKpRatios = dsp.findAllKpRatios();
-
-            // 2. SM-Score 계산 (유틸 클래스 메서드 사용)
-            smScore = StatisticsCalculator.calculateSmScore(kpRatio, allKpRatios);
-        }
+        // 누적손익률의 최대값 (Peak Rate) 계산
+        BigDecimal peakRate = StatisticsCalculator.calculatePeakRate(cumulativeProfitLossRateHistory, cumulativeProfitLossRate);
 
 
         // 빌더 패턴으로 결과 엔티티 생성
@@ -374,9 +364,11 @@ public class DailyStatisticsService {
                 .totalLossDays(totalLossDays)
                 .averageLoss(averageLoss)
                 .averageProfitLossRatio(averageProfitLossRatio)
-                .peak(maxCumulativeProfitLoss)
-                .peakRate(maxCumulativeProfitLossRate)
+                .peak(peak)
+                .peakRate(peakRate)
                 .daysSincePeak(daysSincePeak)
+                .ddDay(ddDay)
+                .maxDDInRate(maxDDInRate) // DD 기간 내 최대 자본인하율
                 .coefficientOfVariation(coefficientOfVariation)
                 .sharpRatio(sharpRatio)
                 .maxDailyProfit(maxDailyProfit)
@@ -397,19 +389,5 @@ public class DailyStatisticsService {
                 .cumulativeWithdrawAmount(cumulativeWithdrawAmount)
                 .strategyEntity(strategyEntity)  // StrategyEntity 설정
                 .build();
-    }
-
-    /**
-     * 특정 전략의 고점 이후 최대 하락 기간 (dd_day)을 계산합니다.
-     *
-     * @param strategyId 전략 ID
-     * @return 최대 하락 기간 (일 단위)
-     */
-    public long calculateMaxDrawdownDays(Long strategyId) {
-        // 1. 데이터베이스에서 전략별 누적손익 히스토리 조회
-        List<Object[]> profitLossHistory = dsp.findCumulativeProfitLossHistory(strategyId);
-
-        // 2. StatisticsCalculator를 호출하여 최대 하락 기간 계산
-        return StatisticsCalculator.calculateMaxDrawdownDays(profitLossHistory);
     }
 }
