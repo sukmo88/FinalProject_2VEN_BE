@@ -50,25 +50,6 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     Optional<BigDecimal> findBalanceOneYearAgo(@Param("strategyId") Long strategyId, @Param("oneYearAgo") LocalDate oneYearAgo);
 
     /**
-     * 특정 전략의 누적손익 히스토리 데이터를 날짜 오름차순으로 조회합니다.
-     *
-     * @param strategyId 조회할 전략의 ID
-     * @return 누적손익 히스토리 리스트 (날짜와 누적손익 데이터를 포함)
-     */
-    @Query("SELECT d.date, d.cumulativeProfitLoss FROM DailyStatisticsEntity d " +
-            "WHERE d.strategyEntity.strategyId = :strategyId " +
-            "ORDER BY d.date ASC")
-    List<Object[]> findCumulativeProfitLossHistory(@Param("strategyId") Long strategyId);
-
-    /**
-     * KP-Ratio가 설정된 모든 전략의 KP-Ratio 데이터를 조회합니다.
-     *
-     * @return KP-Ratio 데이터 리스트 (양수 값만 포함)
-     */
-    @Query("SELECT d.kpRatio FROM DailyStatisticsEntity d WHERE d.kpRatio IS NOT NULL AND d.kpRatio > 0")
-    List<BigDecimal> findAllKpRatios();
-
-    /**
      * 특정 전략의 모든 기준가(referencePrice)를 날짜 오름차순으로 조회합니다.
      *
      * @param strategyId 조회할 전략의 ID
@@ -105,4 +86,22 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
      */
     @Query("SELECT COUNT(ds) > 0 FROM DailyStatisticsEntity ds WHERE ds.strategyEntity.strategyId = :strategyId AND ds.date = :date")
     boolean existsByStrategyIdAndDate(@Param("strategyId") Long strategyId, @Param("date") LocalDate date);
+
+    /**
+     * 특정 전략의 누적손익 리스트를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 누적손익(BigDecimal) 리스트 (날짜 오름차순 정렬)
+     */
+    @Query("SELECT ds.cumulativeProfitLoss FROM DailyStatisticsEntity ds WHERE ds.strategyEntity.strategyId = :strategyId ORDER BY ds.date ASC")
+    List<BigDecimal> findCumulativeProfitLossByStrategyId(@Param("strategyId") Long strategyId);
+
+    /**
+     * 특정 전략의 누적손익률 리스트를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 누적손익률(BigDecimal) 리스트 (날짜 오름차순 정렬)
+     */
+    @Query("SELECT ds.cumulativeProfitLossRate FROM DailyStatisticsEntity ds WHERE ds.strategyEntity.strategyId = :strategyId ORDER BY ds.date ASC")
+    List<BigDecimal> findCumulativeProfitLossRateByStrategyId(@Param("strategyId") Long strategyId);
 }
