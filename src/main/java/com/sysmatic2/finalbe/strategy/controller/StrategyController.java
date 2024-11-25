@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
+import com.sysmatic2.finalbe.util.CreatePageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -12,6 +13,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -245,5 +248,72 @@ public class StrategyController {
         responseMap.put("timestamp", Instant.now());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
+    }
+
+    /**
+     * 11. 특정 전략의 일간 통계 데이터를 최신일자순으로 페이징하여 반환합니다.
+     *
+     * @param strategyId 전략 ID.
+     * @param page       페이지 번호 (기본값: 0).
+     * @param pageSize   페이지 크기 (기본값: 5).
+     * @return 페이징된 일간 통계 데이터를 포함한 Map.
+     */
+    @Operation(
+            summary = "특정 전략의 일간 통계 데이터 조회",
+            description = "특정 전략 ID에 대한 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/{strategyId}/daily-analyses")
+    public ResponseEntity<Map<String, Object>> getDailyAnalyses(
+            @PathVariable Long strategyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int pageSize) {
+
+        // 서비스에서 페이징된 결과를 가져옴
+        Page<DailyStatisticsResponseDto> result = dailyStatisticsService.getDailyStatisticsByStrategy(strategyId, page, pageSize);
+
+        // CreatePageResponse 유틸리티를 사용하여 결과를 Map 형태로 변환
+        Map<String, Object> response = CreatePageResponse.createPageResponse(result);
+
+        // 변환된 Map 반환
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 전략 통계를 반환합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 전략 통계 데이터
+     */
+    @Operation(
+            summary = "특정 전략의 통계 데이터 조회",
+            description = "특정 전략 ID에 대한 최신 통계 데이터를 반환합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/{strategyId}/statistics")
+    public ResponseEntity<Map<String, Object>> getStrategyStatistics(
+            @PathVariable Long strategyId) {
+        // 서비스 호출: Map<String, Object> 형태의 통계 데이터 반환
+        Map<String, Object> statistics = dailyStatisticsService.getDailyStatistics(strategyId);
+
+        // 응답 데이터 포맷
+        Map<String, Object> response = Map.of(
+                "data", statistics,
+                "timestamp", Instant.now().toString() // 현재 타임스탬프 추가
+        );
+
+        return ResponseEntity.ok(response); // HTTP 200 상태로 응답 반환
     }
 }

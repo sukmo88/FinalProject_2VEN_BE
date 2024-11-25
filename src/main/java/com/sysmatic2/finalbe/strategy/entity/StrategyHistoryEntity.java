@@ -9,6 +9,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -47,6 +48,12 @@ public class StrategyHistoryEntity extends Auditable {
 
     @Column(name = "strategy_title", length = 300, nullable = false)
     private String strategyTitle; //전략명
+
+    @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
+    private BigDecimal kpRatio; // KP-Ratio
+
+    @Column(name = "sm_score", nullable = true, precision = 10, scale = 2)
+    private BigDecimal smScore; // SM-Score
 
     @Column(name = "writer_id", nullable = false)
     private String writerId; //작성자 ID

@@ -51,12 +51,6 @@ public class DailyStatisticsHistoryEntity extends Auditable {
     @Column(name = "unrealized_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal unrealizedProfitLoss; // 평가손익
 
-    @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
-    private BigDecimal kpRatio; // KP-Ratio
-
-    @Column(name = "sm_score", nullable = true, precision = 10, scale = 2)
-    private BigDecimal smScore; // SM-Score
-
     @Column(name = "reference_price", nullable = false, precision = 19, scale = 4)
     private BigDecimal referencePrice; // 기준가
 
@@ -182,6 +176,12 @@ public class DailyStatisticsHistoryEntity extends Auditable {
 
     @Column(name = "daily_statistics_status_code", nullable = false, precision = 10, scale = 4)
     private String dailyStatisticsStatusCode; // 일간 통계 상태코드
+
+    @Column(name = "dd_day", nullable = false)
+    private Integer ddDay; // DD 기간
+
+    @Column(name = "max_dd_in_rate", nullable = false)
+    private BigDecimal maxDDInRate; // DD기간 내 최대 자본인하율
 
     @Column(name = "change_start_date", nullable = false)
     private LocalDateTime changeStartDate; // 변경시작일시

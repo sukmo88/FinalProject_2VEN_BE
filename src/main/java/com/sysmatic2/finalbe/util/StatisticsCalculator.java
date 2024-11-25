@@ -166,18 +166,18 @@ public class StatisticsCalculator {
      * @param previousPrincipal 이전 원금
      * @param depWdPrice 오늘의 입출금
      * @param previousBalance 이전 잔고
-     * @return 계산된 원금
+     * @return 소수점 첫째자리에서 반올림된 정수부 원금
      */
     public static BigDecimal calculatePrincipal(BigDecimal previousPrincipal, BigDecimal depWdPrice, BigDecimal previousBalance) {
         if (previousBalance.compareTo(BigDecimal.ZERO) == 0) {
             // 이전 잔고가 0일 경우 입출금 금액만 반영
-            return previousPrincipal.add(depWdPrice);
+            return previousPrincipal.add(depWdPrice).setScale(0, RoundingMode.HALF_UP); // 소수점 반올림
         }
 
         // 원금 = 이전 원금 + (입출금 금액 / (이전 잔고 / 이전 원금))
         BigDecimal adjustmentFactor = previousBalance.divide(previousPrincipal, 10, RoundingMode.HALF_UP); // 이전 잔고/이전 원금
         BigDecimal adjustedDepWd = depWdPrice.divide(adjustmentFactor, 10, RoundingMode.HALF_UP); // 입출금 비율 조정
-        return previousPrincipal.add(adjustedDepWd).setScale(4, RoundingMode.HALF_UP); // 최종 계산
+        return previousPrincipal.add(adjustedDepWd).setScale(0, RoundingMode.HALF_UP); // 소수점 첫째자리에서 반올림 후 정수부 반환
     }
 
     /**
@@ -246,10 +246,10 @@ public class StatisticsCalculator {
     public static BigDecimal calculateCumulativeProfitLossRate(BigDecimal referencePrice) {
         return referencePrice.compareTo(BigDecimal.ZERO) > 0
                 ? referencePrice
-                .divide(BigDecimal.valueOf(1000), 5, RoundingMode.HALF_UP) // 중간 계산은 5자리, 5번째 자리에서 반올림
+                .divide(BigDecimal.valueOf(1000), 10, RoundingMode.HALF_UP) // 중간 계산: 소수점 10자리까지
                 .subtract(BigDecimal.ONE)
                 .multiply(BigDecimal.valueOf(100)) // 백분율 변환
-                .setScale(4, RoundingMode.HALF_UP) // 최종적으로 4자리로 반올림
+                .setScale(4, RoundingMode.HALF_UP) // 최종적으로 소수점 4자리로 반올림
                 : BigDecimal.ZERO;
     }
 
