@@ -15,7 +15,7 @@ public class EmailService {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(toEmail);
         mailMessage.setSubject("[시스메틱] 인증 번호");
-        mailMessage.setText("인증을 완료하려면 인증번호를 입력하세요! \n\n인증코드: " + verificationCode);
+        mailMessage.setText("인증을 완료하려면 5분 내에 인증번호를 입력하세요! \n\n인증코드: " + verificationCode);
 
         // 이메일 전송 -> 실패하면 MailException 예외 발생
         mailSender.send(mailMessage);
