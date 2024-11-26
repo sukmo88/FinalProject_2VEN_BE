@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
@@ -29,6 +30,20 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // ResponseStatusException 처리
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Object> handleResponseStatusException(ResponseStatusException ex) {
+        logger.warn("ResponseStatusException: {} - Reason: {}", ex.getStatusCode(), ex.getReason());
+        // HttpStatusCode -> HttpStatus 변환
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        return ResponseUtils.buildErrorResponse(
+                ex.getStatusCode().toString(),       // 예: "404 NOT_FOUND"
+                ex.getClass().getSimpleName(),       // 예외 클래스명
+                ex.getReason(),                      // 간단한 예외 설명
+                status                               // 상태 코드
+        );
+    }
 
     // 400: 커스텀 예외 처리 - ReplyNotFoundException
     @ExceptionHandler(ReplyNotFoundException.class)

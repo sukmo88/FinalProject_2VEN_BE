@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.service;
 
+import com.sysmatic2.finalbe.exception.DuplicateDateException;
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
@@ -21,10 +22,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -72,7 +70,7 @@ public class DailyStatisticsService {
         long operationPeriod = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
 
         // Map 생성
-        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> response = new LinkedHashMap<>();
         response.put("balance", latestStatistics.getBalance()); // 잔고
         response.put("cumulative_dep_wd_price", latestStatistics.getCumulativeDepWdPrice()); // 누적 입출금액
         response.put("principal", latestStatistics.getPrincipal()); // 원금
@@ -130,7 +128,7 @@ public class DailyStatisticsService {
     @Transactional
     public void processDailyStatistics(Long strategyId, DailyStatisticsReqDto reqDto) {
         if (dsp.existsByStrategyIdAndDate(strategyId, reqDto.getDate())) {
-            throw new IllegalArgumentException("이미 등록된 날짜입니다: " + reqDto.getDate());
+            throw new DuplicateDateException("이미 등록된 날짜입니다: " + reqDto.getDate());
         }
         if (strategyId == null) {
             throw new IllegalArgumentException("Strategy ID는 null일 수 없습니다.");
@@ -160,6 +158,111 @@ public class DailyStatisticsService {
         dsp.save(dailyStatistics);
     }
 
+    /**
+     * 일간 통계 데이터를 수정하고 지표를 재계산합니다.
+     *
+     * @param strategyId   전략 ID
+     * @param dailyDataId  수정할 데이터의 ID
+     * @param reqDto       수정 요청 데이터
+     */
+    @Transactional
+    public void updateDailyData(Long strategyId, Long dailyDataId, DailyStatisticsReqDto reqDto) {
+        // 1. 수정 대상 데이터 조회
+        DailyStatisticsEntity targetData = dsp.findById(dailyDataId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Daily data not found"));
+
+        // 2. 수정 날짜 중복 확인
+        if (dsp.existsByStrategyIdAndDate(strategyId, reqDto.getDate()) && !targetData.getDate().equals(reqDto.getDate())) {
+            throw new DuplicateDateException("Date already exists: " + reqDto.getDate());
+        }
+
+        // 3. 날짜 비교: 수정 전 날짜 vs 수정 후 날짜
+        boolean isDateEarlier = targetData.getDate().isBefore(reqDto.getDate());
+
+        // 직전 최신 데이터 조회
+        Pageable pageable = PageRequest.of(0, 1); // 1개 데이터만 반환
+        List<DailyStatisticsEntity> previousDataList = dsp.findLatestBeforeDate(strategyId, targetData.getDate(), pageable);
+        // 가장 처음 데이터일 경우 null
+        DailyStatisticsEntity previousData = previousDataList.isEmpty() ? null : previousDataList.get(0);
+
+        if (isDateEarlier) {
+            // (1) 수정 전 날짜가 빠른 경우
+
+            // 수정된 데이터 업데이트
+            targetData.setDate(reqDto.getDate());
+            targetData.setDailyProfitLoss(reqDto.getDailyProfitLoss());
+            targetData.setDepWdPrice(reqDto.getDepWdPrice());
+            dsp.save(targetData);
+
+            // 직전 최신 데이터부터 리스트 조회
+            // 가장 처음 데이터면 현재 데이터부터 리스트 조회
+            List<DailyStatisticsEntity> affectedRows = dsp.findFromDate(
+                    strategyId,
+                    previousData == null ? reqDto.getDate() : previousData.getDate()
+            );
+
+            // 직전 최신 데이터부터 삭제
+            // 가장 처음 데이터면 현재 데이터부터 삭제
+            dsp.deleteFromDate(strategyId, previousData == null ? reqDto.getDate() : previousData.getDate());
+
+            // 리스트 데이터 재등록 및 재계산
+            recalculateAndSave(affectedRows, previousData, strategyId);
+        } else {
+            // (2) 수정 전 날짜가 느린 경우
+
+            // 수정된 데이터 업데이트
+            targetData.setDate(reqDto.getDate());
+            targetData.setDailyProfitLoss(reqDto.getDailyProfitLoss());
+            targetData.setDepWdPrice(reqDto.getDepWdPrice());
+            dsp.save(targetData);
+
+            // 수정된 데이터부터 리스트 조회
+            List<DailyStatisticsEntity> affectedRows = dsp.findFromDate(strategyId, reqDto.getDate());
+
+            // 수정된 데이터부터 삭제 및 재등록
+            dsp.deleteFromDate(strategyId, reqDto.getDate());
+            recalculateAndSave(affectedRows, previousData, strategyId);
+        }
+    }
+
+    /**
+     * 주어진 데이터 리스트를 재계산하여 저장합니다.
+     *
+     * @param affectedRows 수정 후 영향을 받는 데이터 리스트
+     * @param previousData 직전 최신 데이터 (수정된 데이터 기준)
+     * @param strategyId   전략 ID
+     */
+    private void recalculateAndSave(List<DailyStatisticsEntity> affectedRows, DailyStatisticsEntity previousData, Long strategyId) {
+        Optional<DailyStatisticsEntity> previousState = Optional.ofNullable(previousData);
+
+        // 전략 존재 여부 확인
+        Optional<StrategyEntity> strategy = strategyRepository.findById(strategyId);
+        if (strategy.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Strategy with ID " + strategyId + " does not exist.");
+        }
+
+        for (DailyStatisticsEntity row : affectedRows) {
+            // 기존 메서드에 맞춰 매개변수 가공
+            DailyStatisticsReqDto reqDto = new DailyStatisticsReqDto(
+                    row.getDate(),
+                    row.getDepWdPrice(),
+                    row.getDailyProfitLoss()
+            );
+
+            boolean firstEntry = previousData == null;
+
+            DailyStatisticsEntity recalculatedData = calculateDailyStatistics(
+                    strategyId,
+                    reqDto,
+                    firstEntry,
+                    previousState,
+                    strategy.get()
+            );
+
+            dsp.save(recalculatedData);
+            previousState = Optional.of(recalculatedData); // 업데이트된 데이터를 다음 계산의 기준으로 사용
+        }
+    }
 
     /**
      * 일일 통계를 계산하는 메서드
@@ -173,11 +276,11 @@ public class DailyStatisticsService {
      */
     @Transactional
     public DailyStatisticsEntity calculateDailyStatistics(
-            Long strategyId,
-            DailyStatisticsReqDto reqDto,
-            boolean firstEntry,
-            Optional<DailyStatisticsEntity> previousState,
-            StrategyEntity strategyEntity) {
+        Long strategyId,
+        DailyStatisticsReqDto reqDto,
+        boolean firstEntry,
+        Optional<DailyStatisticsEntity> previousState,
+        StrategyEntity strategyEntity) {
 
         // 이전 상태 가져오기
         // ===== 첫 번째 데이터 초기화 처리 =====
@@ -362,7 +465,6 @@ public class DailyStatisticsService {
         // 평균 손익률 = (누적손익률 / 거래일수) * 100
         BigDecimal averageProfitLossRate = tradingDays > 0
                 ? cumulativeProfitLossRate.divide(BigDecimal.valueOf(tradingDays), 10, RoundingMode.DOWN) // 중간 계산에서 높은 정밀도로 계산
-                .multiply(BigDecimal.valueOf(100)) // 백분율 변환
                 .setScale(4, RoundingMode.DOWN) // 최종적으로 4자리까지 표현 (반올림 없이)
                 : BigDecimal.ZERO;
 

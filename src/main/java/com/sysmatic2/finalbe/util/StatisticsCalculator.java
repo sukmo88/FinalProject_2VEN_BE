@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.util;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
@@ -329,24 +330,34 @@ public class StatisticsCalculator {
     }
 
     /**
-     * 일손익률 계산.
+     * 일손익률 계산 (백분율로 반환, 계산은 소수점 10자리, 반올림은 소수점 5번째 자리).
+     *
+     * 첫 번째 등록일인 경우: (오늘 기준가 - 1000) / 1000 * 100
+     * 두 번째 이후 등록일인 경우: (오늘 기준가 - 이전 기준가) / 이전 기준가 * 100
+     *
      * @param referencePrice 오늘의 기준가
      * @param previousReferencePrice 이전 기준가
      * @param isFirstEntry 첫 번째 등록 여부
-     * @return 계산된 일손익률
+     * @return 계산된 일손익률 (백분율)
      */
     public static BigDecimal calculateDailyPlRate(BigDecimal referencePrice, BigDecimal previousReferencePrice, boolean isFirstEntry) {
+        MathContext mathContext = new MathContext(10, RoundingMode.HALF_UP); // 계산은 소수점 10자리 정밀도 유지
+
         if (isFirstEntry) {
-            // 첫 번째 등록일 계산: (J3 - 1000) / 1000
-            return referencePrice.subtract(BigDecimal.valueOf(1000))
-                    .divide(BigDecimal.valueOf(1000), 4, BigDecimal.ROUND_HALF_UP);
+            // 첫 번째 등록일 계산: (기준가 - 1000) / 1000 * 100
+            return referencePrice.subtract(BigDecimal.valueOf(1000), mathContext)
+                    .divide(BigDecimal.valueOf(1000), mathContext)
+                    .multiply(BigDecimal.valueOf(100), mathContext)
+                    .setScale(5, RoundingMode.HALF_UP); // 최종 결과는 소수점 5번째 자리에서 반올림
         } else if (previousReferencePrice.compareTo(BigDecimal.ZERO) > 0) {
-            // 두 번째 이후 등록일 계산: (J4 - J3) / J3
-            return referencePrice.subtract(previousReferencePrice)
-                    .divide(previousReferencePrice, 4, BigDecimal.ROUND_HALF_UP);
+            // 두 번째 이후 등록일 계산: (오늘 기준가 - 이전 기준가) / 이전 기준가 * 100
+            return referencePrice.subtract(previousReferencePrice, mathContext)
+                    .divide(previousReferencePrice, mathContext)
+                    .multiply(BigDecimal.valueOf(100), mathContext)
+                    .setScale(5, RoundingMode.HALF_UP); // 최종 결과는 소수점 5번째 자리에서 반올림
         } else {
             // 이전 기준가가 0 이하인 경우, 0 반환
-            return BigDecimal.ZERO;
+            return BigDecimal.ZERO.setScale(5, RoundingMode.HALF_UP);
         }
     }
 
