@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.strategy.controller;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
+import com.sysmatic2.finalbe.strategy.service.ExcelGeneratorService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,11 +13,16 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import org.springframework.core.io.InputStreamResource; // 추가
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -33,6 +39,7 @@ public class StrategyController {
     private final StrategyService strategyService;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsService dailyStatisticsService;
+    private final ExcelGeneratorService excelGeneratorService;
 
     // 1. 전략 생성페이지(GET)
     //TODO) 관리자와 트레이더만 수정할 수 있다.
@@ -236,5 +243,77 @@ public class StrategyController {
                 .collect(Collectors.toList()));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
+    }
+
+    // 11. 일간 지표 다운로드
+    @Operation(summary = "일간 지표 다운로드", description = "일간 지표를 엑셀 파일로 다운로드합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "엑셀 파일 다운로드 성공"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/download/daily-indicators")
+    public ResponseEntity<byte[]> downloadDailyStatisticsExcel() {
+        try {
+            ByteArrayInputStream in = excelGeneratorService.generateDailyStatisticsExcel();
+            byte[] bytes = in.readAllBytes();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Disposition", "attachment; filename=daily_statistics.xlsx");
+            headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(bytes);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "엑셀 파일 생성 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    // 12. 일간 분석 지표 다운로드
+    @Operation(summary = "일간 분석 지표 다운로드", description = "일간 분석 지표를 포함한 엑셀 파일을 다운로드합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "엑셀 파일 다운로드 성공"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/download/daily-analysis-indicators")
+    public ResponseEntity<byte[]> downloadDailyAnalysisIndicatorsExcel() {
+        try {
+            ByteArrayInputStream in = excelGeneratorService.generateDailyAnalysisIndicatorsExcel();
+            byte[] bytes = in.readAllBytes();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Disposition", "attachment; filename=daily_analysis_indicators.xlsx");
+            headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(bytes);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "엑셀 파일 생성 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    // 13. 월간 지표 다운로드
+    @Operation(summary = "월간 지표 다운로드", description = "월간 지표를 엑셀 파일로 다운로드합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "엑셀 파일 다운로드 성공"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/download/monthly-indicators")
+    public ResponseEntity<byte[]> downloadMonthlyStatisticsExcel() {
+        try {
+            ByteArrayInputStream in = excelGeneratorService.generateMonthlyStatisticsExcel();
+            byte[] bytes = in.readAllBytes();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Disposition", "attachment; filename=monthly_statistics.xlsx");
+            headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(bytes);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "엑셀 파일 생성 중 오류가 발생했습니다.", e);
+        }
     }
 }

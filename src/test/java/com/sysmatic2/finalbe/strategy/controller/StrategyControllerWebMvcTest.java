@@ -1,10 +1,15 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
+import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
+import com.sysmatic2.finalbe.strategy.service.ExcelGeneratorService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -15,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +28,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.startsWith;
 
 @WebMvcTest(StrategyController.class)
 class StrategyControllerWebMvcTest {
@@ -31,6 +38,15 @@ class StrategyControllerWebMvcTest {
 
     @MockBean
     private StrategyService strategyService;
+
+    @MockBean
+    private ExcelGeneratorService excelGeneratorService; // 추가
+
+    @MockBean
+    private StrategyApprovalRequestsRepository strategyApprovalRequestsRepository; // 추가
+
+    @MockBean
+    private DailyStatisticsService dailyStatisticsService; // 추가
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -117,5 +133,81 @@ class StrategyControllerWebMvcTest {
                         .param("pageSize", "10"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
+    }
+
+    // 11. 일간 지표 다운로드 테스트
+    @Test
+    @DisplayName("일간 지표 다운로드 - 성공")
+    @WithMockUser
+    void testDownloadDailyStatisticsExcel_Success() throws Exception {
+        // Given
+        byte[] mockExcelData = "Excel Data".getBytes();
+        ByteArrayInputStream mockInputStream = new ByteArrayInputStream(mockExcelData);
+        when(excelGeneratorService.generateDailyStatisticsExcel()).thenReturn(mockInputStream);
+
+        // When & Then
+        mockMvc.perform(get("/api/strategies/download/daily-indicators"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=daily_statistics.xlsx"))
+                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
+                .andExpect(content().bytes(mockExcelData));
+
+        verify(excelGeneratorService, times(1)).generateDailyStatisticsExcel();
+    }
+
+    // 12. 일간 분석 지표 다운로드 테스트
+    @Test
+    @DisplayName("일간 분석 지표 다운로드 - 성공")
+    @WithMockUser
+    void testDownloadDailyAnalysisIndicatorsExcel_Success() throws Exception {
+        // Given
+        byte[] mockExcelData = "Daily Analysis Excel Data".getBytes();
+        ByteArrayInputStream mockInputStream = new ByteArrayInputStream(mockExcelData);
+        when(excelGeneratorService.generateDailyAnalysisIndicatorsExcel()).thenReturn(mockInputStream);
+
+        // When & Then
+        mockMvc.perform(get("/api/strategies/download/daily-analysis-indicators"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=daily_analysis_indicators.xlsx"))
+                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
+                .andExpect(content().bytes(mockExcelData));
+
+        verify(excelGeneratorService, times(1)).generateDailyAnalysisIndicatorsExcel();
+    }
+
+    // 13. 월간 지표 다운로드 테스트
+    @Test
+    @DisplayName("월간 지표 다운로드 - 성공")
+    @WithMockUser
+    void testDownloadMonthlyStatisticsExcel_Success() throws Exception {
+        // Given
+        byte[] mockExcelData = "Monthly Statistics Excel Data".getBytes();
+        ByteArrayInputStream mockInputStream = new ByteArrayInputStream(mockExcelData);
+        when(excelGeneratorService.generateMonthlyStatisticsExcel()).thenReturn(mockInputStream);
+
+        // When & Then
+        mockMvc.perform(get("/api/strategies/download/monthly-indicators"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=monthly_statistics.xlsx"))
+                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
+                .andExpect(content().bytes(mockExcelData));
+
+        verify(excelGeneratorService, times(1)).generateMonthlyStatisticsExcel();
+    }
+
+    // 예외 케이스 테스트 (수정)
+    @Test
+    @DisplayName("일간 지표 다운로드 - 서버 오류")
+    @WithMockUser
+    void testDownloadDailyStatisticsExcel_ServerError() throws Exception {
+        // Given
+        when(excelGeneratorService.generateDailyStatisticsExcel()).thenThrow(new IOException("파일 생성 오류"));
+
+        // When & Then
+        mockMvc.perform(get("/api/strategies/download/daily-indicators"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("알 수 없는 오류가 발생했습니다."));
+
+        verify(excelGeneratorService, times(1)).generateDailyStatisticsExcel();
     }
 }

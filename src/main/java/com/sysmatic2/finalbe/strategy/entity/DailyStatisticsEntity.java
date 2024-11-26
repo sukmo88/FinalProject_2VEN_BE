@@ -10,6 +10,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "daily_statistics")
 @Getter
+@Setter
 @ToString
 @Builder
 @NoArgsConstructor

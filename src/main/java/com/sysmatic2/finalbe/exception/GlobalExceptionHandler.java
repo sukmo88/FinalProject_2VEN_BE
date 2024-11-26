@@ -29,6 +29,17 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(ExcelValidationException.class)
+    public ResponseEntity<Object> handleExcelValidationException(ExcelValidationException ex) {
+        logger.warn("ExcelValidationException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "EXCEL_VALIDATION_ERROR",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
     // 400: 커스텀 예외 처리 - ReplyNotFoundException
     @ExceptionHandler(ReplyNotFoundException.class)
     public ResponseEntity<Object> handleReplyNotFoundException(ReplyNotFoundException ex) {
