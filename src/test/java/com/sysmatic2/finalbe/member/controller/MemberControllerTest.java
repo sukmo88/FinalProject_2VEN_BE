@@ -1,9 +1,11 @@
 package com.sysmatic2.finalbe.member.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
+import com.sysmatic2.finalbe.member.dto.ProfileUpdateDTO;
 import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.service.EmailService;
@@ -16,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -24,7 +27,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Optional;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -243,5 +249,43 @@ class MemberControllerTest {
                 .andExpect(jsonPath("$.errorType").value("MemberNotFoundException"))
                 .andExpect(jsonPath("$.error").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."));
+    }
+
+    // 상세 개인정보 수정 테스트 - 실패
+    @Test
+    @DisplayName("상세 개인정보 수정 실패 테스트")
+    public void testModifyDetails_Failure() throws Exception {
+
+        // Mocked UserDetails 생성
+        String invalidMemberId = "invalidMemberId";
+        UsernamePasswordAuthenticationToken authenticationToken = getUsernamePasswordAuthenticationToken(invalidMemberId);
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        // 개인정보 수정을 위한 ProfileUpdateDTO 생성
+        ProfileUpdateDTO profileUpdateDTO = new ProfileUpdateDTO();
+        profileUpdateDTO.setNickname("nickname");
+        profileUpdateDTO.setPhoneNumber("01012345678");
+        profileUpdateDTO.setIntroduction("introduction");
+        profileUpdateDTO.setMarketingOptional(true);
+
+        // ObjectMapper를 사용하여 DTO를 JSON 문자열로 반환
+        ObjectMapper objectMapper = new ObjectMapper();
+        String requestBody = objectMapper.writeValueAsString(profileUpdateDTO);
+
+        // 없는 memberId로 sidebar profile 조회 시 예외 발생
+        // eq() 메서드를 사용하여 동일한 내용의 객체를 매칭하도록 설정하거나, any(ProfileUpdateDTO.class)와 같이 클래스 타입으로 매칭
+        doThrow(MemberNotFoundException.class).when(memberService).modifyDetails(eq(invalidMemberId), any(ProfileUpdateDTO.class));
+
+        mockMvc.perform(put("/api/members/details")
+                        .content(requestBody)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(csrf())
+                        .with(authentication(authenticationToken))) // 인증 정보 추가
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorType").value("MemberNotFoundException"))
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("해당되는 데이터를 찾을 수 없습니다."));
+
+        verify(memberService, times(1)).modifyDetails(eq(invalidMemberId), any(ProfileUpdateDTO.class));
     }
 }

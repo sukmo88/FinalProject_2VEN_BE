@@ -5,6 +5,7 @@ import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.ExcelGeneratorService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
+import com.sysmatic2.finalbe.util.CreatePageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -14,6 +15,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -39,7 +42,6 @@ public class StrategyController {
     private final StrategyService strategyService;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsService dailyStatisticsService;
-    private final ExcelGeneratorService excelGeneratorService;
 
     // 1. 전략 생성페이지(GET)
     //TODO) 관리자와 트레이더만 수정할 수 있다.
@@ -169,6 +171,17 @@ public class StrategyController {
         responseMap.put("msg", "CREATE_SUCCESS");
         responseMap.put("data", dataMap);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
+    }
+
+    //8-1. 전략 승인 요청 거절 정보(GET)
+    //TODO) 해당 전략 작성자와 관리자만 볼 수 있다.
+    @Operation(summary = "해당 전략의 거절 정보를 반환")
+    @GetMapping(value = "/{id}/rejection-info", produces = "application/json")
+    public ResponseEntity<Map> rejectionInfo(@PathVariable("id") Long strategyId) throws Exception{
+        //TODO) 접속한 사람의 토큰 확인하기
+
+        Map<String, Object> dataMap = strategyService.findRequestByStrategyId(strategyId);
+        return ResponseEntity.status(HttpStatus.OK).body(dataMap);
     }
 
     //9. 전략 운용 종료(PATCH)

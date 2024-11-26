@@ -13,24 +13,23 @@ import java.util.Optional;
 public class AuditorAwareImpl implements AuditorAware<String> {
 
     @Override
-    // 현재 사용자의 ID나 이름을 반환.
-    // Optional을 사용하여 null이 될 수 있음을 처리
+    // 현재 사용자의 ID나 이름을 반환
     public Optional<String> getCurrentAuditor() {
-         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // SecurityContext에서 Authentication 객체를 가져옴
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-
-//         인증 정보가 없거나 인증이 되어 있지 않으면 빈 Optional을 반환
-        if (authentication == null || !authentication.isAuthenticated()) {
+        // 인증 정보가 없거나 인증되지 않은 경우 빈 Optional 반환
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
             return Optional.empty();
         }
 
-        String principal = (String) authentication.getPrincipal();
-        if (principal.equals("anonymousUser")) {
-            return Optional.empty();
+        // principal이 CustomUserDetails라면 memberId를 반환
+        if (authentication.getPrincipal() instanceof CustomUserDetails) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            return Optional.ofNullable(userDetails.getMemberId());
         }
 
-        // CustomUserDetails에서 memberId를 가져옴
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        return Optional.ofNullable(userDetails.getMemberId());
+        // 예상하지 못한 principal 타입인 경우 빈 Optional 반환
+        return Optional.empty();
     }
 }

@@ -9,12 +9,16 @@ public class FileValidator {
     // 허용된 파일 확장자
     private static final Map<String, Set<String>> ALLOWED_EXTENSIONS_BY_CATEGORY = Map.of(
             "profile", Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"),
+            "icon", Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"),
+            "account", Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"),
             "proposal", Set.of(".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".zip", ".7z", ".rar", ".tar")
     );
 
     // 허용된 MIME 타입
     private static final Map<String, List<String>> ALLOWED_MIME_TYPES_BY_CATEGORY = Map.of(
             "profile", List.of("image/png", "image/jpeg", "image/gif", "image/webp"),
+            "icon", List.of("image/png", "image/jpeg", "image/gif", "image/webp"),
+            "account", List.of("image/png", "image/jpeg", "image/gif", "image/webp"),
             "proposal", List.of(
                     "application/pdf",
                     "application/msword", // .doc

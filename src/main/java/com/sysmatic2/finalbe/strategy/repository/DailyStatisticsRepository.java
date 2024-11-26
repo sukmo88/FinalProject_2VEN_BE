@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -50,25 +51,6 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     Optional<BigDecimal> findBalanceOneYearAgo(@Param("strategyId") Long strategyId, @Param("oneYearAgo") LocalDate oneYearAgo);
 
     /**
-     * 특정 전략의 누적손익 히스토리 데이터를 날짜 오름차순으로 조회합니다.
-     *
-     * @param strategyId 조회할 전략의 ID
-     * @return 누적손익 히스토리 리스트 (날짜와 누적손익 데이터를 포함)
-     */
-    @Query("SELECT d.date, d.cumulativeProfitLoss FROM DailyStatisticsEntity d " +
-            "WHERE d.strategyEntity.strategyId = :strategyId " +
-            "ORDER BY d.date ASC")
-    List<Object[]> findCumulativeProfitLossHistory(@Param("strategyId") Long strategyId);
-
-    /**
-     * KP-Ratio가 설정된 모든 전략의 KP-Ratio 데이터를 조회합니다.
-     *
-     * @return KP-Ratio 데이터 리스트 (양수 값만 포함)
-     */
-    @Query("SELECT d.kpRatio FROM DailyStatisticsEntity d WHERE d.kpRatio IS NOT NULL AND d.kpRatio > 0")
-    List<BigDecimal> findAllKpRatios();
-
-    /**
      * 특정 전략의 모든 기준가(referencePrice)를 날짜 오름차순으로 조회합니다.
      *
      * @param strategyId 조회할 전략의 ID
@@ -105,4 +87,51 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
      */
     @Query("SELECT COUNT(ds) > 0 FROM DailyStatisticsEntity ds WHERE ds.strategyEntity.strategyId = :strategyId AND ds.date = :date")
     boolean existsByStrategyIdAndDate(@Param("strategyId") Long strategyId, @Param("date") LocalDate date);
+
+    /**
+     * 특정 전략의 누적손익 리스트를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 누적손익(BigDecimal) 리스트 (날짜 오름차순 정렬)
+     */
+    @Query("SELECT ds.cumulativeProfitLoss FROM DailyStatisticsEntity ds WHERE ds.strategyEntity.strategyId = :strategyId ORDER BY ds.date ASC")
+    List<BigDecimal> findCumulativeProfitLossByStrategyId(@Param("strategyId") Long strategyId);
+
+    /**
+     * 특정 전략의 누적손익률 리스트를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 누적손익률(BigDecimal) 리스트 (날짜 오름차순 정렬)
+     */
+    @Query("SELECT ds.cumulativeProfitLossRate FROM DailyStatisticsEntity ds WHERE ds.strategyEntity.strategyId = :strategyId ORDER BY ds.date ASC")
+    List<BigDecimal> findCumulativeProfitLossRateByStrategyId(@Param("strategyId") Long strategyId);
+
+    /**
+     * 특정 전략 ID에 대한 일간 통계 목록을 최신일자순으로 페이징 형태로 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @param pageable   페이지 정보 (페이지 번호와 크기)
+     * @return 주어진 전략 ID와 연관된 {@link DailyStatisticsEntity} 객체의 {@link Page}
+     */
+    Page<DailyStatisticsEntity> findByStrategyEntityStrategyIdOrderByDateDesc(Long strategyId, Pageable pageable);
+
+    /**
+     * 특정 전략 ID에 대한 전략 통계 데이터를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 해당 전략의 가장 최신 통계 데이터 (Optional로 반환)
+     */
+    @Query("SELECT d FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date DESC")
+    List<DailyStatisticsEntity> findLatestStatisticsByStrategyId(@Param("strategyId") Long strategyId, Pageable pageable);
+
+    /**
+     * 특정 전략의 일간 통계 중 가장 오래된 일자의 데이터를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @return 최초 입력 일자 (Optional 반환)
+     */
+    @Query("SELECT MIN(d.date) FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId")
+    Optional<LocalDate> findEarliestDateByStrategyId(@Param("strategyId") Long strategyId);
 }
