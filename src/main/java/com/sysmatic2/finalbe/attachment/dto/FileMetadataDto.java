@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class FileMetadataDto {
     private Long id;
     private String displayName; // 유저에게 보여질 파일 이름
-    // private String fileName; // 저장된 파일 이름(UUID)
+    private String fileName; // 저장된 파일 이름(UUID)
     private String filePath;
     private Long fileSize;
     private String contentType;
@@ -26,16 +26,34 @@ public class FileMetadataDto {
     private LocalDateTime uploadedAt;
     //private String description;
 
+    public static FileMetadataDto fromEntity(FileMetadata metadata) {
+        FileMetadataDto dto = new FileMetadataDto();
+        dto.setId(metadata.getId());
+        dto.setDisplayName(metadata.getDisplayName());
+        dto.setFileName(metadata.getFileName());
+        dto.setFileSize(metadata.getFileSize());
+        dto.setFilePath(metadata.getFilePath());
+        dto.setContentType(metadata.getContentType());
+        dto.setFileCategory(metadata.getFileCategory());
+        dto.setFileCategoryItemId(metadata.getFileCategoryItemId());
+        dto.setUploaderId(metadata.getUploaderId());
+        dto.setUploadedAt(LocalDateTime.now());
 
-    public FileMetadataDto(FileMetadata fileMetadata) {
-        this.id = fileMetadata.getId();
-        this.displayName = fileMetadata.getDisplayName();
-        this.fileSize = fileMetadata.getFileSize();
-        this.filePath = fileMetadata.getFilePath();
-        this.contentType = fileMetadata.getContentType();
-        this.uploaderId = fileMetadata.getUploaderId();
-        this.fileCategory = fileMetadata.getFileCategory();
-        this.fileCategoryItemId = fileMetadata.getFileCategoryItemId();
-        this.uploadedAt = fileMetadata.getUploadedAt();
+        return dto;
+    }
+
+    public static FileMetadata toEntity(FileMetadataDto dto) {
+        FileMetadata metadata = new FileMetadata();
+        metadata.setId(dto.getId());
+        metadata.setDisplayName(dto.getDisplayName());
+        metadata.setFileName(dto.getFileName());
+        metadata.setFileSize(dto.getFileSize());
+        metadata.setFilePath(dto.getFilePath());
+        metadata.setContentType(dto.getContentType());
+        metadata.setFileCategory(dto.getFileCategory());
+        metadata.setFileCategoryItemId(dto.getFileCategoryItemId());
+        metadata.setUploaderId(dto.getUploaderId());
+        metadata.setUploadedAt(LocalDateTime.now());
+        return metadata;
     }
 }
