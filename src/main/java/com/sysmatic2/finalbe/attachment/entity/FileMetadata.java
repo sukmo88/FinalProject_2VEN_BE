@@ -54,13 +54,4 @@ public class FileMetadata {
     @Column(name = "description")
     private String description;
 
-
-    public void clearMetadata() {
-        this.displayName = null;
-        this.fileName = null;
-        this.filePath = null;
-        this.fileSize = null;
-        this.contentType = null;
-        this.description = null;
-    }
 }

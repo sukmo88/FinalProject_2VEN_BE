@@ -22,6 +22,7 @@ public class JWTFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
     }
 
+    //발급된 JWT토큰의 유효성을 검사하는 필터
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
@@ -31,8 +32,6 @@ public class JWTFilter extends OncePerRequestFilter {
         }
         //request에서 Authorization 헤더를 찾음
         String authorization = request.getHeader("Authorization");
-        System.out.println("doFilterInternal");
-        System.out.println("authorization:"+authorization);
 
         //Authorization 헤더 검증
         if(authorization == null || !authorization.startsWith("Bearer ")) {
@@ -70,12 +69,12 @@ public class JWTFilter extends OncePerRequestFilter {
         });
         //UserDetails에 회원 정보 객체 담기
         CustomUserDetails customUserDetails = new CustomUserDetails(memberEntityOptional);
-
+        //Authentication 구현체 생성(회원정보객체,인증자격증명(null),권한정보)
         Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
         System.out.println("authToken:"+authToken);
         System.out.println("customUserDetails 권한:"+customUserDetails.getAuthorities());
 
-
+        //Authentication 객체 인증이 성공하면 SecurityContextHolder에 저장됨
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);

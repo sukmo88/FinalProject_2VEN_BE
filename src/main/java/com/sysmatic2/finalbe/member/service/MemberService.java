@@ -8,6 +8,7 @@ import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -65,7 +66,7 @@ public class MemberService {
     }
 
     //로그인 서비스
-    public ResponseEntity<Map<String,Object>> login(String email, String password) {
+    public ResponseEntity<Map<String,Object>> login(String email, String password, HttpSession session) {
         MemberEntity member = memberRepository.findByEmail(email)
                 .orElse(null);
         Map<String,Object> response = new HashMap<>();
@@ -97,10 +98,21 @@ public class MemberService {
         response.put("status", "success");
         response.put("message", "로그인에 성공했습니다.");
         Map<String, Object> data = new HashMap<>();
+        String role = member.getMemberGradeCode().replace("MEMBER_", "");
         data.put("member_id",member.getMemberId());
         data.put("email", member.getEmail());
         data.put("nickname", member.getNickname());
-        data.put("role", member.getMemberGradeCode());
+        data.put("role",role);
+        data.put("fileId", member.getFileId());
+        if(role.equals("ROLE_ADMIN")){
+            AdminSessionDTO adminSessionDTO = new AdminSessionDTO();
+            adminSessionDTO.setAuthorized(false);
+            adminSessionDTO.setAuthorizationStatus("PENDING");
+            adminSessionDTO.setAuthorizedAt("");
+            adminSessionDTO.setExpiresAt("");
+            data.put("admin_info",adminSessionDTO);
+            session.setAttribute("admin_info",adminSessionDTO);
+        }
         //jwt 값을 전달해줘야지 정상적으로 로그인 했으면
         response.put("data", data);
 
