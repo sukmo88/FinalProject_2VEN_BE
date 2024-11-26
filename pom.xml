@@ -167,6 +167,11 @@
             <version>0.12.3</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- session -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-core</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
