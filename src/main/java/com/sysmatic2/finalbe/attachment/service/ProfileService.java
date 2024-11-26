@@ -33,29 +33,34 @@ public class ProfileService {
     }
 
     /**
-     * 프로필 파일 다운로드 (Base64로 변환되서 리턴)
-     */
-    public Object downloadProfileFileAsBase64(Long fileId, String uploaderId) {
-        String category = "profile";
-
-        // Base64 데이터 다운로드
-        return fileService.downloadFile(fileId, uploaderId, category);
-    }
-
-    /**
      * 프로필 파일 삭제
      */
     @Transactional
     public void deleteProfileFile(Long fileId, String uploaderId) {
         // 프로필 메타데이터 초기화 및 S3 파일 삭제
-        fileService.deleteFile(fileId, uploaderId, "profile", true, true);
+        fileService.deleteFile(fileId, uploaderId, "profile", true,  false);
+
+        // 기존 메타데이터 조회
+        FileMetadata metadata = fileMetadataRepository.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException("File metadata not found for ID: " + fileId));
+        metadata.setFileSize(null);
+        metadata.setContentType(null);
+        metadata.setDisplayName(null);
+        metadata.setFileName(null);
+        metadata.setFilePath(null);
+
+        // 메타데이터 저장
+        fileMetadataRepository.save(metadata);
+
     }
 
     /**
-     * 프로필 메타데이터 조회
+     * 프로필 url 조회
      */
-    public FileMetadataDto getProfileFileMetadata(Long fileId, String uploaderId) {
-        return fileService.getFileMetadataByFileIdAndUploaderIdAndCategory(fileId, uploaderId, "profile");
+    public FileMetadataDto getProfileUrl(String uploaderId) {
+        Optional<FileMetadataDto> fileMetadataDto =  fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile");
+
+        return fileMetadataDto.orElse(null);
     }
 
     /**
