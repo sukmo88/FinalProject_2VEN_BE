@@ -60,6 +60,8 @@ public class SecurityConfig {
         http
                 // 모든 요청을 허용하지만 HTTPS를 강제
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/members/details", "/api/members/change-password", "api/members/withdrawal").authenticated()
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
                         .requestMatchers("/**").permitAll() // 모든 경로를 허용
                 )
                 .requiresChannel(channel -> channel
@@ -109,7 +111,8 @@ public class SecurityConfig {
         http
                 // 모든 요청을 허용하고 HTTPS 강제 설정 없음
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/members/details").authenticated()
+                        .requestMatchers("/api/members/details", "/api/members/change-password", "api/members/withdrawal").authenticated()
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
                         .requestMatchers("/**").permitAll() // 모든 경로를 허용
 //                        .requestMatchers("/api/members/login").permitAll()
 //                        .requestMatchers("/api/auth/**").hasAuthority("ROLE_ADMIN")

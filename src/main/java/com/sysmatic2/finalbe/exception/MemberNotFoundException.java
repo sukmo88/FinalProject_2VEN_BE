@@ -1,6 +1,9 @@
 package com.sysmatic2.finalbe.exception;
 
 public class MemberNotFoundException extends RuntimeException {
-    public MemberNotFoundException() {}
+    public MemberNotFoundException() {
+        super("존재하지 않는 회원입니다.");
+    }
+
     public MemberNotFoundException(String message) { super(message); }
 }
