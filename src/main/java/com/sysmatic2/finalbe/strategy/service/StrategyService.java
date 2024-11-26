@@ -160,7 +160,6 @@ public class StrategyService {
         strategyHistoryEntity.setStrategyStatusCode(createdEntity.getStrategyStatusCode());
         strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_CREATED");
         strategyHistoryEntity.setMinInvestmentAmount(createdEntity.getMinInvestmentAmount());
-        strategyHistoryEntity.setFollowersCount(createdEntity.getFollowersCount());
         strategyHistoryEntity.setStrategyTitle(createdEntity.getStrategyTitle());
         strategyHistoryEntity.setWriterId(createdEntity.getWriterId());
         strategyHistoryEntity.setIsPosted(createdEntity.getIsPosted());
@@ -271,7 +270,6 @@ public class StrategyService {
         strategyHistoryEntity.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
         strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_DELETED");
         strategyHistoryEntity.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
-        strategyHistoryEntity.setFollowersCount(strategyEntity.getFollowersCount());
         strategyHistoryEntity.setStrategyTitle(strategyEntity.getStrategyTitle());
         strategyHistoryEntity.setWriterId(strategyEntity.getWriterId());
         strategyHistoryEntity.setIsPosted(strategyEntity.getIsPosted());
@@ -509,7 +507,6 @@ public class StrategyService {
         strategyHistoryEntity.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
         strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_UPDATED");
         strategyHistoryEntity.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
-        strategyHistoryEntity.setFollowersCount(strategyEntity.getFollowersCount());
         strategyHistoryEntity.setStrategyTitle(strategyEntity.getStrategyTitle());
         strategyHistoryEntity.setWriterId(strategyEntity.getWriterId());
         strategyHistoryEntity.setIsPosted(strategyEntity.getIsPosted());

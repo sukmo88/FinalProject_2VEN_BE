@@ -1,21 +1,29 @@
 //package com.sysmatic2.finalbe.attachment.service;
 //
+//import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 //import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 //import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.Test;
-//import org.mockito.InjectMocks;
-//import org.mockito.Mock;
-//import org.mockito.MockitoAnnotations;
+//import org.junit.jupiter.api.extension.ExtendWith;
+//import org.mockito.*;
+//import org.mockito.junit.jupiter.MockitoExtension;
 //import org.springframework.web.multipart.MultipartFile;
 //
 //import java.util.Optional;
 //
-//import static org.assertj.core.api.Assertions.assertThat;
-//import static org.junit.jupiter.api.Assertions.assertThrows;
+//import static org.junit.jupiter.api.Assertions.*;
+//import static org.mockito.ArgumentMatchers.*;
 //import static org.mockito.Mockito.*;
 //
+//@ExtendWith(MockitoExtension.class)
 //class ProfileServiceTest {
+//
+//    @InjectMocks
+//    private ProfileService profileService;
+//
+//    @Mock
+//    private FileService fileService;
 //
 //    @Mock
 //    private S3ClientService s3ClientService;
@@ -23,93 +31,154 @@
 //    @Mock
 //    private FileMetadataRepository fileMetadataRepository;
 //
-//    @InjectMocks
-//    private ProfileService profileService;
+//    @Test
+//    void uploadOrUpdateProfileFile_WhenExistingFile_ShouldModifyFile() {
+//        // Arrange
+//        String uploaderId = "user123";
+//        String category = "profile";
+//        MultipartFile file = mock(MultipartFile.class);
 //
-//    @BeforeEach
-//    void setUp() {
-//        MockitoAnnotations.openMocks(this);
+//        FileMetadataDto existingMetadata = new FileMetadataDto();
+//        existingMetadata.setId(1L);
+//        existingMetadata.setFileName("oldFileName");
+//        existingMetadata.setFilePath("oldFileUrl");
+//        existingMetadata.setUploaderId(uploaderId);
+//        existingMetadata.setFileCategory(category);
+//
+//        FileMetadataDto updatedMetadata = new FileMetadataDto();
+//        updatedMetadata.setId(1L);
+//        updatedMetadata.setFileName("newFileName");
+//        updatedMetadata.setFilePath("newFileUrl");
+//        updatedMetadata.setUploaderId(uploaderId);
+//        updatedMetadata.setFileCategory(category);
+//
+//        // Mock: 기존 파일 메타데이터 존재
+//        when(fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category))
+//                .thenReturn(Optional.of(existingMetadata));
+//        // Mock: 기존 파일 수정 동작
+//        when(fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category))
+//                .thenReturn(updatedMetadata);
+//
+//        // Act
+//        FileMetadataDto result = profileService.uploadOrUpdateProfileFile(file, uploaderId);
+//
+//        // Assert
+//        assertNotNull(result);
+//        assertEquals("newFileName", result.getFileName());
+//        verify(fileService, times(1)).modifyFile(file, existingMetadata.getId(), uploaderId, category);
+//        verify(fileService, never()).uploadFile(any(), anyString(), anyString(), any());
 //    }
 //
 //    @Test
-//    void testUploadProfileFile_Success() {
-//        MultipartFile mockFile = mock(MultipartFile.class);
-//        when(mockFile.getOriginalFilename()).thenReturn("test-image.png");
-//        when(mockFile.getContentType()).thenReturn("image/png");
-//        when(mockFile.getSize()).thenReturn(1024L);
+//    void uploadOrUpdateProfileFile_WhenNoExistingFile_ShouldUploadNewFile() {
+//        // Arrange
+//        String uploaderId = "user123";
+//        String category = "profile";
+//        MultipartFile file = mock(MultipartFile.class);
 //
-//        String uploaderId = "test-user";
-//        String displayName = "Profile Picture";
-//        String uniqueFileName = "unique-test-image.png";
-//        String s3Key = "test-user/profile/unique-test-image.png";
-//        String fileUrl = "https://s3-bucket-url/test-user/profile/unique-test-image.png";
+//        FileMetadataDto newMetadata = new FileMetadataDto();
+//        newMetadata.setId(1L);
+//        newMetadata.setFileName("fileName");
+//        newMetadata.setFilePath("url");
+//        newMetadata.setUploaderId(uploaderId);
+//        newMetadata.setFileCategory(category);
 //
-//        when(s3ClientService.generateUniqueFileName(anyString())).thenReturn(uniqueFileName);
-//        when(s3ClientService.generateS3Key(uploaderId, "profile", uniqueFileName)).thenReturn(s3Key);
-//        when(s3ClientService.uploadFile(mockFile, s3Key)).thenReturn(fileUrl);
+//        // Mock: 기존 파일이 없음
+//        when(fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category))
+//                .thenReturn(Optional.empty());
+//        // Mock: 새 파일 업로드
+//        when(fileService.uploadFile(file, uploaderId, category, null)).thenReturn(newMetadata);
 //
-//        FileMetadata metadata = new FileMetadata();
-//        metadata.setId(1L);
-//        when(fileMetadataRepository.save(any(FileMetadata.class))).thenReturn(metadata);
+//        // Act
+//        FileMetadataDto result = profileService.uploadOrUpdateProfileFile(file, uploaderId);
 //
-//        FileMetadata result = profileService.uploadProfileFile(mockFile, uploaderId, displayName);
-//
-//        assertThat(result.getId()).isEqualTo(1L);
-//        verify(s3ClientService, times(1)).uploadFile(mockFile, s3Key);
-//        verify(fileMetadataRepository, times(1)).save(any(FileMetadata.class));
+//        // Assert
+//        assertNotNull(result);
+//        assertEquals("fileName", result.getFileName());
+//        verify(fileService, times(1)).uploadFile(file, uploaderId, category, null);
+//        verify(fileService, never()).modifyFile(any(), anyLong(), anyString(), anyString());
 //    }
 //
 //    @Test
-//    void testDownloadProfileFileAsBase64_Success() {
+//    void deleteProfileFile_ShouldCallDeleteFile() {
+//        // Arrange
 //        Long fileId = 1L;
-//        String uploaderId = "test-user";
-//        String s3Key = "test-user/profile/test-image.png";
+//        String uploaderId = "user123";
+//        String category = "profile";
 //
-//        FileMetadata metadata = new FileMetadata();
-//        metadata.setId(fileId);
-//        metadata.setUploaderId(uploaderId);
-//        metadata.setFileCategory("profile");
-//        metadata.setFileName("test-image.png");
+//        // Mock: deleteFile 동작 설정 필요 없음
+//        doNothing().when(fileService).deleteFile(fileId, uploaderId, category, true, true);
 //
-//        when(fileMetadataRepository.findById(fileId)).thenReturn(Optional.of(metadata));
-//        when(s3ClientService.generateS3Key(uploaderId, "profile", "test-image.png")).thenReturn(s3Key);
-//        when(s3ClientService.downloadImageFileAsBase64(s3Key)).thenReturn("base64ImageData");
-//
-//        String result = profileService.downloadProfileFileAsBase64(fileId, uploaderId);
-//
-//        assertThat(result).isEqualTo("base64ImageData");
-//        verify(s3ClientService, times(1)).downloadImageFileAsBase64(s3Key);
-//    }
-//
-//    @Test
-//    void testDeleteProfileFile_Success() {
-//        Long fileId = 1L;
-//        String uploaderId = "test-user";
-//        String s3Key = "test-user/profile/test-image.png";
-//
-//        FileMetadata metadata = new FileMetadata();
-//        metadata.setId(fileId);
-//        metadata.setUploaderId(uploaderId);
-//        metadata.setFileCategory("profile");
-//        metadata.setFileName("test-image.png");
-//
-//        when(fileMetadataRepository.findById(fileId)).thenReturn(Optional.of(metadata));
-//        when(s3ClientService.generateS3Key(uploaderId, "profile", "test-image.png")).thenReturn(s3Key);
-//
+//        // Act
 //        profileService.deleteProfileFile(fileId, uploaderId);
 //
-//        verify(s3ClientService, times(1)).deleteFile(s3Key);
-//        verify(fileMetadataRepository, times(1)).delete(metadata);
+//        // Assert
+//        verify(fileService, times(1)).deleteFile(fileId, uploaderId, category, true, true);
 //    }
 //
 //    @Test
-//    void testValidateImageFile_InvalidType() {
-//        MultipartFile mockFile = mock(MultipartFile.class);
-//        when(mockFile.getContentType()).thenReturn("text/plain");
+//    void getProfileUrl_WhenFileExists_ShouldReturnMetadata() {
+//        // Arrange
+//        String uploaderId = "user123";
+//        String category = "profile";
 //
-//        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-//                () -> profileService.uploadProfileFile(mockFile, "test-user", "Invalid Image"));
+//        FileMetadataDto metadata = new FileMetadataDto();
+//        metadata.setId(1L);
+//        metadata.setFileName("fileName");
+//        metadata.setFilePath("url");
+//        metadata.setUploaderId(uploaderId);
+//        metadata.setFileCategory(category);
 //
-//        assertThat(exception.getMessage()).isEqualTo("Invalid file type: Only image files are allowed.");
+//        // Mock: 파일 메타데이터가 존재
+//        when(fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category))
+//                .thenReturn(Optional.of(metadata));
+//
+//        // Act
+//        FileMetadataDto result = profileService.getProfileUrl(uploaderId);
+//
+//        // Assert
+//        assertNotNull(result);
+//        assertEquals("fileName", result.getFileName());
+//        verify(fileService, times(1)).getFileMetadataByUploaderIdAndCategory(uploaderId, category);
+//    }
+//
+//    @Test
+//    void getProfileUrl_WhenFileNotExists_ShouldReturnNull() {
+//        // Arrange
+//        String uploaderId = "user123";
+//        String category = "profile";
+//
+//        // Mock: 파일 메타데이터가 존재하지 않음
+//        when(fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category))
+//                .thenReturn(Optional.empty());
+//
+//        // Act
+//        FileMetadataDto result = profileService.getProfileUrl(uploaderId);
+//
+//        // Assert
+//        assertNull(result);
+//        verify(fileService, times(1)).getFileMetadataByUploaderIdAndCategory(uploaderId, category);
+//    }
+//
+//    @Test
+//    void createDefaultFileMetadataForMember_ShouldCreateAndReturnId() {
+//        // Arrange
+//        String uploaderId = "user123";
+//
+//        FileMetadata fileMetadata = new FileMetadata();
+//        fileMetadata.setId(1L);
+//        fileMetadata.setFileCategory("profile");
+//        fileMetadata.setUploaderId(uploaderId);
+//
+//        // Mock: 메타데이터 저장
+//        when(fileMetadataRepository.save(any(FileMetadata.class))).thenReturn(fileMetadata);
+//
+//        // Act
+//        String result = profileService.createDefaultFileMetadataForMember(uploaderId);
+//
+//        // Assert
+//        assertNotNull(result);
+//        assertEquals("1", result);
+//        verify(fileMetadataRepository, times(1)).save(any(FileMetadata.class));
 //    }
 //}
