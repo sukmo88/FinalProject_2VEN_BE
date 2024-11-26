@@ -202,9 +202,22 @@ public class FileService {
      * @param category 파일 카테고리
      * @return 파일 메타데이터
      */
-    public Optional<FileMetadataDto> getFileMetadataByUploaderIdAndCategory(String uploaderId, String category) {
+    public FileMetadataDto getFileMetadataByUploaderIdAndCategory(String uploaderId, String category) {
         return fileMetadataRepository.findByUploaderIdAndFileCategory(uploaderId, category)
-                .map(FileMetadataDto::fromEntity);
+                .map(FileMetadataDto::fromEntity)
+                .orElse(null); // 값이 없으면 null 반환
+    }
+
+    /**
+     * 파일 메타데이터 조회
+     *
+     * @param filePath 파일 저장 경로
+     * @return 파일 메타데이터
+     */
+    public FileMetadataDto getFileMetadataByFilePath(String filePath) {
+        return fileMetadataRepository.findByFilePath(filePath)
+                .map(FileMetadataDto::fromEntity)
+                .orElse(null); // 값이 없으면 null 반환
     }
 
     /**

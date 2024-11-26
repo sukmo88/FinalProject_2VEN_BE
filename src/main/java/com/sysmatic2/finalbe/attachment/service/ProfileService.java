@@ -27,9 +27,15 @@ public class ProfileService {
         String category = "profile";
 
         // 기존 프로필 파일 조회
-        return fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category)
-                .map(metadata -> fileService.modifyFile(file, metadata.getId(), uploaderId, category)) // 기존 파일 업데이트
-                .orElseGet(() -> fileService.uploadFile(file, uploaderId, category, null)); // 새 파일 업로드
+        FileMetadataDto existingMetadata = fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category);
+
+        if (existingMetadata != null) {
+            // 기존 파일이 있을 경우 수정
+            return fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category);
+        } else {
+            // 기존 파일이 없을 경우 새 파일 업로드
+            return fileService.uploadFile(file, uploaderId, category, null);
+        }
     }
 
     /**
@@ -58,9 +64,8 @@ public class ProfileService {
      * 프로필 url 조회
      */
     public FileMetadataDto getProfileUrl(String uploaderId) {
-        Optional<FileMetadataDto> fileMetadataDto =  fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile");
 
-        return fileMetadataDto.orElse(null);
+        return fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile");
     }
 
     /**
