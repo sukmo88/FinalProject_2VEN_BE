@@ -76,7 +76,6 @@ class StrategyRepositoryTest {
         for (int i = 1; i <= 20; i++) {
             StrategyEntity strategy = new StrategyEntity();
             strategy.setStrategyTitle("Strategy " + i);
-            strategy.setFollowersCount((long) (i * 10));
             strategy.setMinInvestmentAmount("10000");
 //            strategy.setStrategyStatusCode("ACTIVE");
             strategy.setIsPosted("Y");

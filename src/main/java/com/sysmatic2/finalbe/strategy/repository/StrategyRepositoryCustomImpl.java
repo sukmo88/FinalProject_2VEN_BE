@@ -75,8 +75,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                         strategy.strategyId,
                         tradingType.tradingTypeIcon,
                         tradingCycle.tradingCycleIcon,
-                        strategy.strategyTitle,
-                        strategy.followersCount
+                        strategy.strategyTitle
                 )
                 .from(strategy)
                 .leftJoin(strategy.tradingCycleEntity, tradingCycle)
@@ -110,8 +109,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                         tuple.get(tradingType.tradingTypeIcon), // 매매유형 아이콘
                         tuple.get(tradingCycle.tradingCycleIcon), // 매매주기 아이콘
                         strategyAssetIconsMap.getOrDefault(tuple.get(strategy.strategyId), List.of()), // 투자자산 아이콘 리스트
-                        tuple.get(strategy.strategyTitle), // 전략명
-                        tuple.get(strategy.followersCount) // 팔로워 수
+                        tuple.get(strategy.strategyTitle) // 전략명
                 ))
                 .toList();
 
