@@ -43,17 +43,8 @@ public class StrategyHistoryEntity extends Auditable {
     @Column(name = "min_investment_amount", nullable = false)
     private String minInvestmentAmount; //최소운용가능금액
 
-    @Column(name = "followers_count", nullable = false)
-    private Long followersCount; //팔로워수
-
     @Column(name = "strategy_title", length = 300, nullable = false)
     private String strategyTitle; //전략명
-
-    @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
-    private BigDecimal kpRatio; // KP-Ratio
-
-    @Column(name = "sm_score", nullable = true, precision = 10, scale = 2)
-    private BigDecimal smScore; // SM-Score
 
     @Column(name = "writer_id", nullable = false)
     private String writerId; //작성자 ID
@@ -95,7 +86,6 @@ public class StrategyHistoryEntity extends Auditable {
         this.strategyStatusCode = strategyEntity.getStrategyStatusCode();
         this.strategyHistoryStatusCode = statusHistoryCode;
         this.minInvestmentAmount = strategyEntity.getMinInvestmentAmount();
-        this.followersCount = strategyEntity.getFollowersCount();
         this.strategyTitle = strategyEntity.getStrategyTitle();
         this.writerId = strategyEntity.getWriterId();
         this.writedAt = strategyEntity.getWritedAt();
