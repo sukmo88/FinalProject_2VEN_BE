@@ -27,19 +27,15 @@ public class ProfileService {
         String category = "profile";
 
         // 기존 프로필 파일 조회
-        return fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category)
-                .map(metadata -> fileService.modifyFile(file, metadata.getId(), uploaderId, category)) // 기존 파일 업데이트
-                .orElseGet(() -> fileService.uploadFile(file, uploaderId, category, null)); // 새 파일 업로드
-    }
+        FileMetadataDto existingMetadata = fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category);
 
-    /**
-     * 프로필 파일 다운로드 (Base64로 변환되서 리턴)
-     */
-    public Object downloadProfileFileAsBase64(Long fileId, String uploaderId) {
-        String category = "profile";
-
-        // Base64 데이터 다운로드
-        return fileService.downloadFile(fileId, uploaderId, category);
+        if (existingMetadata != null) {
+            // 기존 파일이 있을 경우 수정
+            return fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category);
+        } else {
+            // 기존 파일이 없을 경우 새 파일 업로드
+            return fileService.uploadFile(file, uploaderId, category, null);
+        }
     }
 
     /**
@@ -48,14 +44,28 @@ public class ProfileService {
     @Transactional
     public void deleteProfileFile(Long fileId, String uploaderId) {
         // 프로필 메타데이터 초기화 및 S3 파일 삭제
-        fileService.deleteFile(fileId, uploaderId, "profile", true, true);
+        fileService.deleteFile(fileId, uploaderId, "profile", true,  false);
+
+        // 기존 메타데이터 조회
+        FileMetadata metadata = fileMetadataRepository.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException("File metadata not found for ID: " + fileId));
+        metadata.setFileSize(null);
+        metadata.setContentType(null);
+        metadata.setDisplayName(null);
+        metadata.setFileName(null);
+        metadata.setFilePath(null);
+
+        // 메타데이터 저장
+        fileMetadataRepository.save(metadata);
+
     }
 
     /**
-     * 프로필 메타데이터 조회
+     * 프로필 url 조회
      */
-    public FileMetadataDto getProfileFileMetadata(Long fileId, String uploaderId) {
-        return fileService.getFileMetadataByFileIdAndUploaderIdAndCategory(fileId, uploaderId, "profile");
+    public FileMetadataDto getProfileUrl(String uploaderId) {
+
+        return fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile");
     }
 
     /**

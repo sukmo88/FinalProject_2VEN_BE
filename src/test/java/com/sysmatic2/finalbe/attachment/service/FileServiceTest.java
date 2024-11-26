@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.attachment.service;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.util.FileValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -35,6 +36,7 @@ class FileServiceTest {
 
     @Test
     void testUploadFile_Success() {
+        // Arrange
         MultipartFile file = mock(MultipartFile.class);
         String uploaderId = "testUploader";
         String category = "profile";
@@ -53,8 +55,10 @@ class FileServiceTest {
         when(s3ClientService.uploadFile(eq(file), anyString())).thenReturn("https://s3.amazonaws.com/test.jpg");
         when(fileMetadataRepository.save(any(FileMetadata.class))).thenReturn(savedMetadata);
 
+        // Act
         FileMetadataDto result = fileService.uploadFile(file, uploaderId, category, fileCategoryItemId);
 
+        // Assert
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(1L);
         verify(s3ClientService, times(1)).uploadFile(eq(file), anyString());
@@ -68,7 +72,6 @@ class FileServiceTest {
         String uploaderId = "testUploader";
         String category = "profile";
 
-        // Mock behavior
         when(file.getOriginalFilename()).thenReturn("test.jpg");
         when(file.getSize()).thenReturn(1024L);
         when(file.getContentType()).thenReturn("image/jpeg");
@@ -87,58 +90,42 @@ class FileServiceTest {
     }
 
     @Test
-    void testDownloadFile_ReturnsBase64ForImage() {
+    void testModifyFile_Success() {
+        // Arrange
+        MultipartFile file = mock(MultipartFile.class);
         Long fileId = 1L;
         String uploaderId = "testUploader";
         String category = "profile";
 
-        FileMetadata metadata = new FileMetadata();
-        metadata.setUploaderId(uploaderId);
-        metadata.setFileCategory(category);
-        metadata.setFileName("test.jpg");
-        metadata.setContentType("image/jpeg");
+        FileMetadata existingMetadata = new FileMetadata();
+        existingMetadata.setId(fileId);
+        existingMetadata.setUploaderId(uploaderId);
+        existingMetadata.setFileCategory(category);
+        existingMetadata.setFileName("old-file.jpg");
 
-        byte[] fileBytes = new byte[]{1, 2, 3};
-        String base64String = "AQID";
+        when(file.getOriginalFilename()).thenReturn("new-file.jpg");
+        when(file.getSize()).thenReturn(2048L);
+        when(file.getContentType()).thenReturn("image/jpeg");
+        when(fileMetadataRepository.findById(fileId)).thenReturn(Optional.of(existingMetadata));
+        when(s3ClientService.generateUniqueFileName("new-file.jpg")).thenReturn("unique-new-file.jpg");
+        when(s3ClientService.generateS3Key(uploaderId, category, "unique-new-file.jpg")).thenReturn("s3/key/unique-new-file.jpg");
+        when(s3ClientService.generateS3Key(uploaderId, category, "old-file.jpg")).thenReturn("s3/key/old-file.jpg");
+        when(s3ClientService.uploadFile(eq(file), anyString())).thenReturn("https://s3.amazonaws.com/new-file.jpg");
+        when(fileMetadataRepository.save(any(FileMetadata.class))).thenReturn(existingMetadata);
 
-        when(fileMetadataRepository.findById(fileId)).thenReturn(Optional.of(metadata));
-        when(s3ClientService.generateS3Key(anyString(), anyString(), anyString())).thenReturn("s3/key/test.jpg");
-        when(s3ClientService.downloadFile(anyString())).thenReturn(fileBytes);
+        // Act
+        FileMetadataDto result = fileService.modifyFile(file, fileId, uploaderId, category);
 
-        Object result = fileService.downloadFile(fileId, uploaderId, category);
-
-        assertThat(result).isInstanceOf(String.class);
-        assertThat(result).isEqualTo(base64String);
-        verify(s3ClientService, times(1)).downloadFile(anyString());
-    }
-
-    @Test
-    void testDownloadFile_ReturnsBytesForNonImage() {
-        Long fileId = 1L;
-        String uploaderId = "testUploader";
-        String category = "profile";
-
-        FileMetadata metadata = new FileMetadata();
-        metadata.setUploaderId(uploaderId);
-        metadata.setFileCategory(category);
-        metadata.setFileName("test.pdf");
-        metadata.setContentType("application/pdf");
-
-        byte[] fileBytes = new byte[]{1, 2, 3};
-
-        when(fileMetadataRepository.findById(fileId)).thenReturn(Optional.of(metadata));
-        when(s3ClientService.generateS3Key(anyString(), anyString(), anyString())).thenReturn("s3/key/test.pdf");
-        when(s3ClientService.downloadFile(anyString())).thenReturn(fileBytes);
-
-        Object result = fileService.downloadFile(fileId, uploaderId, category);
-
-        assertThat(result).isInstanceOf(byte[].class);
-        assertThat((byte[]) result).isEqualTo(fileBytes);
-        verify(s3ClientService, times(1)).downloadFile(anyString());
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFileName()).isEqualTo("unique-new-file.jpg");
+        verify(s3ClientService, times(1)).deleteFile("s3/key/old-file.jpg"); // 삭제 호출 확인
+        verify(fileMetadataRepository, times(1)).save(any(FileMetadata.class)); // 저장 호출 확인
     }
 
     @Test
     void testDeleteFile_Success() {
+        // Arrange
         Long fileId = 1L;
         String uploaderId = "testUploader";
         String category = "profile";
@@ -151,14 +138,17 @@ class FileServiceTest {
         when(fileMetadataRepository.findById(fileId)).thenReturn(Optional.of(metadata));
         when(s3ClientService.generateS3Key(anyString(), anyString(), anyString())).thenReturn("s3/key/test.jpg");
 
+        // Act
         fileService.deleteFile(fileId, uploaderId, category, true, true);
 
+        // Assert
         verify(s3ClientService, times(1)).deleteFile(anyString());
         verify(fileMetadataRepository, times(1)).delete(any(FileMetadata.class));
     }
 
     @Test
     void testDeleteFile_FailureInS3() {
+        // Arrange
         Long fileId = 1L;
         String uploaderId = "testUploader";
         String category = "profile";
@@ -172,8 +162,10 @@ class FileServiceTest {
         when(s3ClientService.generateS3Key(anyString(), anyString(), anyString())).thenReturn("s3/key/test.jpg");
         doThrow(new RuntimeException("S3 deletion failed")).when(s3ClientService).deleteFile(anyString());
 
+        // Act & Assert
         assertThrows(RuntimeException.class, () -> fileService.deleteFile(fileId, uploaderId, category, true, true));
 
+        // Verify
         verify(s3ClientService, times(1)).deleteFile(anyString());
         verify(fileMetadataRepository, never()).delete(any(FileMetadata.class));
     }

@@ -159,19 +159,19 @@ public class FileService {
     /**
      * 파일 다운로드
      */
-    public Object downloadFile(Long fileId, String uploaderId, String category) {
-        FileMetadata metadata = validateFileAccess(fileId, uploaderId, category);
-        String s3Key = s3ClientService.generateS3Key(metadata.getUploaderId(), metadata.getFileCategory(), metadata.getFileName());
-
-        // 이미지 외 파일은 byte 타입으로 리턴
-        byte[] fileBytes = s3ClientService.downloadFile(s3Key);
-
-        // 다운 받는게 이미지파일이면 Base64로 변환
-        if (metadata.getContentType().startsWith("image/")) {
-            return convertToBase64(fileBytes, metadata.getContentType());
-        }
-        return fileBytes;
-    }
+//    public Object downloadFile(Long fileId, String uploaderId, String category) {
+//        FileMetadata metadata = validateFileAccess(fileId, uploaderId, category);
+//        String s3Key = s3ClientService.generateS3Key(metadata.getUploaderId(), metadata.getFileCategory(), metadata.getFileName());
+//
+//        // 이미지 외 파일은 byte 타입으로 리턴
+//        byte[] fileBytes = s3ClientService.downloadFile(s3Key);
+//
+//        // 다운 받는게 이미지파일이면 Base64로 변환
+//        if (metadata.getContentType().startsWith("image/")) {
+//            return convertToBase64(fileBytes, metadata.getContentType());
+//        }
+//        return fileBytes;
+//    }
 
 
     /**
@@ -202,9 +202,22 @@ public class FileService {
      * @param category 파일 카테고리
      * @return 파일 메타데이터
      */
-    public Optional<FileMetadataDto> getFileMetadataByUploaderIdAndCategory(String uploaderId, String category) {
+    public FileMetadataDto getFileMetadataByUploaderIdAndCategory(String uploaderId, String category) {
         return fileMetadataRepository.findByUploaderIdAndFileCategory(uploaderId, category)
-                .map(FileMetadataDto::fromEntity);
+                .map(FileMetadataDto::fromEntity)
+                .orElse(null); // 값이 없으면 null 반환
+    }
+
+    /**
+     * 파일 메타데이터 조회
+     *
+     * @param filePath 파일 저장 경로
+     * @return 파일 메타데이터
+     */
+    public FileMetadataDto getFileMetadataByFilePath(String filePath) {
+        return fileMetadataRepository.findByFilePath(filePath)
+                .map(FileMetadataDto::fromEntity)
+                .orElse(null); // 값이 없으면 null 반환
     }
 
     /**
