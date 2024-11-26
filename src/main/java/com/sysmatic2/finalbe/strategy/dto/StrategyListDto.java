@@ -13,5 +13,4 @@ public class StrategyListDto {
     private String tradingCycleIcon; // 주기 아이콘
     private List<String> investmentAssetClassesIcons; // 투자자산 분류 아이콘 리스트
     private String strategyTitle; // 전략명
-    private Long followersCount; // 팔로워 수
 }
