@@ -9,8 +9,12 @@ import java.util.List;
 
 public interface FileMetadataRepository extends JpaRepository<FileMetadata, Long> {
 
-    List<FileMetadata> findAllByUploaderIdAndFileCategory(String uploaderId, String fileCategory);
-    Optional<FileMetadata> findFirstByUploaderIdAndFileCategory(String uploaderId, String fileCategory);
+    Optional<FileMetadata> findByUploaderIdAndFileCategory(String uploaderId, String category);
 
+    Optional<FileMetadata> findByFileName(String fileName);
+
+    Optional<FileMetadata> findByIdAndUploaderIdAndFileCategory(Long fileId, String uploaderId, String category);
+
+    Optional<FileMetadata> findByFilePath(String filePath);
 
 }

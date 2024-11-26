@@ -45,17 +45,8 @@ public class StrategyEntity extends Auditable {
     @Column(name = "min_investment_amount", nullable = false)
     private String minInvestmentAmount; //최소운용가능금액
 
-    @Column(name = "followers_count", nullable = false)
-    private Long followersCount = 0L; // 팔로워수 default = 0
-
-    @Column(name = "strategy_title", length = 300, nullable = false)
+    @Column(name = "strategy_title", nullable = false)
     private String strategyTitle; // 전략명
-
-    @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
-    private BigDecimal kpRatio; // KP-Ratio
-
-    @Column(name = "sm_score", nullable = true, precision = 10, scale = 2)
-    private BigDecimal smScore; // SM-Score
 
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)

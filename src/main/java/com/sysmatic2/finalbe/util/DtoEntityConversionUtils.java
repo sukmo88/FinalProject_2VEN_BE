@@ -171,7 +171,6 @@ public class DtoEntityConversionUtils {
         responseDto.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
         responseDto.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
         responseDto.setStrategyOverview(strategyEntity.getStrategyOverview());
-        responseDto.setFollowersCount(strategyEntity.getFollowersCount());
         responseDto.setWritedAt(strategyEntity.getWritedAt());
         responseDto.setIsPosted(strategyEntity.getIsPosted());
         responseDto.setIsApproved(strategyEntity.getIsApproved());

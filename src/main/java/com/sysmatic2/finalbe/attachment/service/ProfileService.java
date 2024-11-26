@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.attachment.service;
 
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
+import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
 import com.sysmatic2.finalbe.util.FileValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,97 +17,71 @@ public class ProfileService {
 
     private final FileService fileService;
     private final S3ClientService s3ClientService;
+    private final FileMetadataRepository fileMetadataRepository;
 
     /**
-     * Profile 파일 업로드
+     * 프로필 파일 업로드 또는 업데이트
      */
     @Transactional
-    public FileMetadata uploadOrUpdateProfileFile(MultipartFile file, String uploaderId) {
+    public FileMetadataDto uploadOrUpdateProfileFile(MultipartFile file, String uploaderId) {
         String category = "profile";
 
-        // 이미지 검증
-        FileValidator.validateFile(file, category);
-
         // 기존 프로필 파일 조회
-        Optional<FileMetadata> existingMetadata = fileService.getProfileMetadataByUploaderId(uploaderId, category);
+        FileMetadataDto existingMetadata = fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, category);
 
-        if (existingMetadata.isPresent()) {
-            // 기존 파일 삭제
-            FileMetadata metadata = existingMetadata.get();
-            String s3Key = s3ClientService.generateS3Key(metadata.getUploaderId(), category, metadata.getFileName());
-            s3ClientService.deleteFile(s3Key);
-
-            // 새로운 파일 정보 업데이트
-            return fileService.updateProfile(file,uploaderId,category, metadata);
+        if (existingMetadata != null) {
+            // 기존 파일이 있을 경우 수정
+            return fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category);
         } else {
-            // 새 프로필 등록
-            // 프로필 업로드는 fileCategoryItemId가 필요 없으므로 null 전달
+            // 기존 파일이 없을 경우 새 파일 업로드
             return fileService.uploadFile(file, uploaderId, category, null);
         }
-
     }
 
     /**
-     * Profile 파일 다운로드 (Base64로 변환)
-     */
-    public String downloadProfileFileAsBase64(Long fileId, String uploaderId) {
-        // `FileService`의 이미지 전용 다운로드 메서드 호출
-        return fileService.downloadImageFile(fileId, uploaderId, "profile");
-    }
-
-    /**
-     * Profile 파일 삭제
-     * - S3에서 데이터 삭제
-     * - 프로필 필드 초기화
+     * 프로필 파일 삭제
      */
     @Transactional
     public void deleteProfileFile(Long fileId, String uploaderId) {
-        String category = "profile";
+        // 프로필 메타데이터 초기화 및 S3 파일 삭제
+        fileService.deleteFile(fileId, uploaderId, "profile", true,  false);
 
-        String fileName;
-        try {
-            // 1. 프로필 메타데이터 초기화
-            fileName = fileService.clearFileMetadata(fileId);
-            if (fileName == null || fileName.isBlank()) {
-                throw new IllegalArgumentException("File name is missing. Unable to delete file from S3.");
-            }
+        // 기존 메타데이터 조회
+        FileMetadata metadata = fileMetadataRepository.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException("File metadata not found for ID: " + fileId));
+        metadata.setFileSize(null);
+        metadata.setContentType(null);
+        metadata.setDisplayName(null);
+        metadata.setFileName(null);
+        metadata.setFilePath(null);
 
-            // 2. S3 파일 삭제
-            fileService.deleteS3File(uploaderId, category, fileName);
+        // 메타데이터 저장
+        fileMetadataRepository.save(metadata);
 
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete profile file: " + e.getMessage(), e);
-        }
     }
 
     /**
-     * Profile 메타데이터 조회
+     * 프로필 url 조회
      */
-    public FileMetadata getProfileFileMetadata(Long fileId, String uploaderId) {
-        FileMetadata metadata = fileService.getFileMetadata(fileId);
+    public FileMetadataDto getProfileUrl(String uploaderId) {
 
-        // Profile 파일 접근 권한 확인
-        if (!metadata.getUploaderId().equals(uploaderId) || !"profile".equals(metadata.getFileCategory())) {
-            throw new IllegalArgumentException("Access denied or invalid category.");
-        }
-
-        return metadata;
+        return fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile");
     }
 
     /**
-     * Member fileId 필드값 생성
+     * 멤버 기본 프로필 메타데이터 생성
      */
     @Transactional
     public String createDefaultFileMetadataForMember(String uploaderId) {
-        // FileMetadata 객체 생성 및 기본 값 설정
-        FileMetadata metadata = new FileMetadata();
-        metadata.setFileCategory("profile");
-        metadata.setUploaderId(uploaderId);
+        FileMetadata fileMetadata = new FileMetadata();
+        fileMetadata.setFileCategory("profile");
+        fileMetadata.setFileCategoryItemId(null);
+        fileMetadata.setUploaderId(uploaderId);
+        FileMetadata savedFile = fileMetadataRepository.save(fileMetadata);
 
-        // FileMetadata 저장
-        FileMetadata newFileMetadata = fileService.saveMetadata(metadata); // fileService를 통해 메타데이터 저장
+        FileMetadataDto dto = FileMetadataDto.fromEntity(savedFile);
 
-        return newFileMetadata.getId().toString();
+        return dto.getId().toString();
     }
 
 }
