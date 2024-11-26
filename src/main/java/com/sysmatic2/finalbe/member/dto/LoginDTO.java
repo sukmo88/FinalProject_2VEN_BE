@@ -1,6 +1,6 @@
 package com.sysmatic2.finalbe.member.dto;
 
-public class LoginDto {
+public class LoginDTO {
     private String email;
     private String password;
 

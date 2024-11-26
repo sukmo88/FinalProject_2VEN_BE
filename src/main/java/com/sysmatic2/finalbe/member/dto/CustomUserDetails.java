@@ -67,4 +67,8 @@ public class CustomUserDetails implements UserDetails {
     public boolean isEnabled() {
         return UserDetails.super.isEnabled();
     }
+
+    public boolean isLoginLocked(){
+        return member.get().getIsLoginLocked() == 'Y';
+    }
 }
