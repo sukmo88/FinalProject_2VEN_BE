@@ -30,7 +30,6 @@ public class ProfileController {
      */
     @PostMapping
     public ResponseEntity<?> uploadProfileFile(@RequestParam("file") MultipartFile file,
-                                               //@RequestParam("uploaderId") String uploaderId) {
                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // uploaderId 추출 (로그인한 사람)
@@ -67,41 +66,41 @@ public class ProfileController {
      * @param uploaderId  요청한 사용자 ID (JWT 토큰에서 추출 예정)
      * @return Base64로 인코딩된 파일 데이터
      */
-    @GetMapping("/{fileId}")
-    public ResponseEntity<?> downloadProfileFile(@PathVariable Long fileId,
-                                                 @RequestParam("uploaderId") String uploaderId) {
-        // Metadata 객체
-        FileMetadataDto dto = profileService.getProfileFileMetadata(fileId, uploaderId);
-
-        try {
-            String base64Content = profileService.downloadProfileFileAsBase64(fileId, uploaderId).toString();
-
-            return ResponseEntity.ok(Map.of(
-                    "fileId", fileId,
-                    "displayName", dto.getDisplayName(),
-                    "base64Content", base64Content,
-                    "message", "File successfully retrieved"
-            ));
-        } catch (NoSuchElementException e) {
-            return ResponseUtils.buildErrorResponse(
-                    "FILE_NOT_FOUND", e.getClass().getSimpleName(),
-                    "File not found.",
-                    HttpStatus.NOT_FOUND
-            );
-        } catch (IllegalArgumentException e) {
-            return ResponseUtils.buildErrorResponse(
-                    "BAD_REQUEST", e.getClass().getSimpleName(),
-                    "Invalid input: " + e.getMessage(),
-                    HttpStatus.BAD_REQUEST
-            );
-        } catch (Exception e) {
-            return ResponseUtils.buildErrorResponse(
-                    "INTERNAL_SERVER_ERROR", e.getClass().getSimpleName(),
-                    "An unexpected error occurred.",
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
-    }
+//    @GetMapping("/{fileId}")
+//    public ResponseEntity<?> downloadProfileFile(@PathVariable Long fileId,
+//                                                 @RequestParam("uploaderId") String uploaderId) {
+//        // Metadata 객체
+//        FileMetadataDto dto = profileService.getProfileFileMetadata(fileId, uploaderId);
+//
+//        try {
+//            String base64Content = profileService.downloadProfileFileAsBase64(fileId, uploaderId).toString();
+//
+//            return ResponseEntity.ok(Map.of(
+//                    "fileId", fileId,
+//                    "displayName", dto.getDisplayName(),
+//                    "base64Content", base64Content,
+//                    "message", "File successfully retrieved"
+//            ));
+//        } catch (NoSuchElementException e) {
+//            return ResponseUtils.buildErrorResponse(
+//                    "FILE_NOT_FOUND", e.getClass().getSimpleName(),
+//                    "File not found.",
+//                    HttpStatus.NOT_FOUND
+//            );
+//        } catch (IllegalArgumentException e) {
+//            return ResponseUtils.buildErrorResponse(
+//                    "BAD_REQUEST", e.getClass().getSimpleName(),
+//                    "Invalid input: " + e.getMessage(),
+//                    HttpStatus.BAD_REQUEST
+//            );
+//        } catch (Exception e) {
+//            return ResponseUtils.buildErrorResponse(
+//                    "INTERNAL_SERVER_ERROR", e.getClass().getSimpleName(),
+//                    "An unexpected error occurred.",
+//                    HttpStatus.INTERNAL_SERVER_ERROR
+//            );
+//        }
+//    }
 
     /**
      * 프로필 파일 삭제
@@ -140,28 +139,25 @@ public class ProfileController {
     }
 
     /**
-     * 프로필 메타데이터 조회
+     * 프로필 url 조회
      *
-     * @param fileId      파일의 ID
-     * @param uploaderId  요청한 사용자 ID
+     * @param userDetails  요청한 사용자 ID
      * @return 파일 메타데이터
      */
-    @GetMapping("/{fileId}/metadata")
-    public ResponseEntity<?> getProfileFileMetadata(@PathVariable Long fileId,
-                                                    @RequestParam("uploaderId") String uploaderId) {
+    @GetMapping("/url")
+    public ResponseEntity<?> getProfileUrl(@AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        // uploaderId 추출 (로그인한 사람)
+        String uploaderId = userDetails.getMemberId();
+
         try {
-            FileMetadataDto fileMetadataDto = profileService.getProfileFileMetadata(fileId, uploaderId);
+            FileMetadataDto fileMetadataDto = profileService.getProfileUrl(uploaderId);
 
             return ResponseEntity.ok(Map.of(
-                    "fileId", fileMetadataDto.getId(),
                     "fileUrl", fileMetadataDto.getFilePath(),
                     "displayName", fileMetadataDto.getDisplayName(),
-                    "fileSize", fileMetadataDto.getFileSize(),
-                    "contentType", fileMetadataDto.getContentType(),
-                    "uploaderId", fileMetadataDto.getUploaderId(),
                     "category", fileMetadataDto.getFileCategory(),
-                    "uploadedAt", fileMetadataDto.getUploadedAt(),
-                    "message", "File metadata retrieved successfully"
+                    "message", "File url retrieved successfully"
             ));
         } catch (NoSuchElementException e) {
             return ResponseUtils.buildErrorResponse(
@@ -183,4 +179,5 @@ public class ProfileController {
             );
         }
     }
+
 }
