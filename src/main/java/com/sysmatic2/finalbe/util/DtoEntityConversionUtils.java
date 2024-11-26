@@ -206,7 +206,6 @@ public class DtoEntityConversionUtils {
     public static MemberEntity convertToMemberEntity(SignupDTO signupDTO, PasswordEncoder passwordEncoder) {
         MemberEntity member = new MemberEntity();
 
-        member.setMemberId(RandomKeyGenerator.createUUID());
         member.setMemberGradeCode("MEMBER_ROLE_" + signupDTO.getMemberType());
         member.setMemberStatusCode("MEMBER_STATUS_ACTIVE");
         member.setEmail(signupDTO.getEmail());
