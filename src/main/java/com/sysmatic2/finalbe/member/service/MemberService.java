@@ -154,4 +154,23 @@ public class MemberService {
         memberRepository.save(member);
     }
 
+    public void checkExistEmail(String email) {
+        if (memberRepository.findByEmail(email).isEmpty()) {
+            throw new MemberNotFoundException("해당 이메일로 등록된 계정을 찾을 수 없습니다.");
+        }
+    }
+
+    @Transactional
+    public void resetPassword(String email, PasswordResetDTO passwordResetDTO) {
+        // 1. member 조회한 후 없으면 예외 발생
+        MemberEntity member = memberRepository.findByEmail(email).orElseThrow(MemberNotFoundException::new);
+
+        // 2. 입력한 두 비밀번호 일치 여부 확인
+        comparePassword(passwordResetDTO.getNewPassword(), passwordResetDTO.getConfirmPassword());
+
+        // 3. 비밀번호 암호화 후 member 수정해서 저장
+        member.setPassword(passwordEncoder.encode(passwordResetDTO.getNewPassword()));
+        memberRepository.save(member);
+    }
+
 }
