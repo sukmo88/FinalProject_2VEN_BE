@@ -29,7 +29,6 @@ public class StrategyResponseDto {
     private String strategyStatusCode;  //전략 운용 코드 - 운용중/운용종료
     private String minInvestmentAmount; //최소운용가능금액
     private String strategyOverview;    //전략설명
-    private Long followersCount;        //팔로워수
     private LocalDateTime writedAt;     //작성일시
     private String isPosted;            //공개여부
     private String isApproved;           //승인여부

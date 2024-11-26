@@ -53,7 +53,6 @@ class StrategyDeleteMockTest {
 
 //        mockStrategyEntity.setStrategyStatusCode("ACTIVE");
         mockStrategyEntity.setMinInvestmentAmount("100000");
-        mockStrategyEntity.setFollowersCount(50L);
         mockStrategyEntity.setStrategyTitle("Test Strategy");
         mockStrategyEntity.setWriterId("test_writer");
         mockStrategyEntity.setIsPosted("Y");
