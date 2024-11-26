@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.member.service;
 
+import com.sysmatic2.finalbe.attachment.service.ProfileService;
 import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
 import com.sysmatic2.finalbe.exception.InvalidPasswordException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
@@ -8,6 +9,7 @@ import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ProfileService profileService;
 
     @Transactional
     public void signup(SignupDTO signupDTO) {
@@ -35,9 +38,9 @@ public class MemberService {
 
         MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
 
-        //TODO) fileService 에서 프로필 사진 등록하는 메서드 호출 후 fileId 획득해서 치환하기
-        String fileId = "1234";
-        member.setFileId(fileId);
+        String uuid = RandomKeyGenerator.createUUID();
+        member.setMemberId(uuid);
+        member.setFileId(profileService.createDefaultFileMetadataForMember(uuid));  // profileService 에서 fileId 받아와서 member에 등록
 
         memberRepository.save(member); // 가입 실패 시 예외 발생
     }
@@ -121,6 +124,8 @@ public class MemberService {
     public void modifyDetails(String memberId, ProfileUpdateDTO profileUpdateDTO) {
         // memberId로 회원 조회 -> 없으면 예외 발생
         MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+
+        duplicateNicknameCheck(profileUpdateDTO.getNickname()); // 닉네임 중복 체크
 
         // 조회한 회원에 수정할 값 입력 후 저장
         member.setNickname(profileUpdateDTO.getNickname());
