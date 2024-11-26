@@ -43,7 +43,7 @@ public class StrategyHistoryEntity extends Auditable {
     @Column(name = "min_investment_amount", nullable = false)
     private String minInvestmentAmount; //최소운용가능금액
 
-    @Column(name = "strategy_title", nullable = false)
+    @Column(name = "strategy_title", length = 300, nullable = false)
     private String strategyTitle; //전략명
 
     @Column(name = "writer_id", nullable = false)
@@ -54,13 +54,13 @@ public class StrategyHistoryEntity extends Auditable {
     private String isPosted; //공개여부
 
     @Column(name = "is_approved", nullable = false, columnDefinition = "CHAR(1)")
-    @Pattern(regexp = "Y|N", message = "isApproved 필드는 'Y' 또는 'N'만 허용됩니다.")
+    @Pattern(regexp = "Y|N|P", message = "isApproved 필드는 'Y','N','P'만 허용됩니다.")
     private String isApproved; //승인여부
 
     @Column(name = "writed_at", nullable = false)
     private LocalDateTime writedAt; //작성일시
 
-    @Column(name = "strategy_overview", length = 1000)
+    @Column(name = "strategy_overview", length = 3000)
     private String strategyOverview; //전략소개
 
     @Column(name = "updater_id")

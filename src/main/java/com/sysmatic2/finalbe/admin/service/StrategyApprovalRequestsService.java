@@ -10,6 +10,7 @@ import com.sysmatic2.finalbe.strategy.entity.StrategyHistoryEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
 import com.sysmatic2.finalbe.strategy.repository.StrategyHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyIACRepository;
+import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ public class StrategyApprovalRequestsService {
     private final StrategyIACRepository strategyIACRepository;
     private final MemberRepository memberRepository;
     private final StrategyHistoryRepository strategyHistoryRepository;
+    private final StrategyRepository strategyRepository;
 
     //1. 전략 승인 요청 목록
     // 주기, 매매유형, 투자자산 분류, 전략명, 운용여부, 요청일시, 공개여부
@@ -97,21 +99,32 @@ public class StrategyApprovalRequestsService {
     }
 
     //3. 전략 승인 요청 반려
-    public void rejectStrategy(Long id, String adminId, String rejectionReason){
+    public void rejectStrategy(Long requestId, String adminId, String rejectionReason){
         //담당자 정보 가져오기
         MemberEntity admin = memberRepository.findById(adminId)
                 .orElseThrow(() -> new NoSuchElementException("관리자 정보가 존재하지 않습니다."));
 
         //해당 전략요청을 id로 가져온다.
-        StrategyApprovalRequestsEntity requestEntity = strategyApprovalRequestsRepository.findById(id)
+        StrategyApprovalRequestsEntity requestEntity = strategyApprovalRequestsRepository.findById(requestId)
                 .orElseThrow(() -> new NoSuchElementException("해당되는 승인 요청이 존재하지 않습니다."));
+
+        //해당 전략의 승인 flag를 P에서 N으로 변경한다.
+        LocalDateTime changeStartDatetime = LocalDateTime.now();
+        StrategyEntity strategyEntity = requestEntity.getStrategy();
+        strategyEntity.setIsApproved("N");
+        strategyEntity.setUpdaterId(adminId);
+        strategyEntity.setUpdatedAt(LocalDateTime.now());
+        strategyRepository.save(strategyEntity);
+
+        //해당 전략 수정 이력 저장
+        StrategyHistoryEntity historyEntity = new StrategyHistoryEntity(strategyEntity, "STRATEGY_STATUS_UPDATED", changeStartDatetime);
+        strategyHistoryRepository.save(historyEntity);
 
         //전략 승인 요청 목록 테이블의 담당자ID, 거부사유, 거부일시를 등록한다.
         requestEntity.setAdmin(admin);
         requestEntity.setIsApproved("N");
         requestEntity.setRejectionReason(rejectionReason);
         requestEntity.setRejectionDatetime(LocalDateTime.now());
-        //저장
         strategyApprovalRequestsRepository.save(requestEntity);
     }
 }
