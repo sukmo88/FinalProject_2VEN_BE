@@ -42,7 +42,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChainLocal(HttpSecurity http) throws Exception {
         // CORS 설정
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOriginPattern("http://*"); // HTTP 요청 허용
+        configuration.addAllowedOriginPattern("*"); // HTTP 요청 허용
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.addAllowedHeader("*");
         configuration.addExposedHeader("Authorization");
@@ -98,6 +98,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
                         .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/swagger-ui/**", "/api/**").permitAll()
                         .requestMatchers("/**").permitAll()
                 )
                 .requiresChannel(channel -> channel.anyRequest().requiresSecure()) // HTTPS 강제
