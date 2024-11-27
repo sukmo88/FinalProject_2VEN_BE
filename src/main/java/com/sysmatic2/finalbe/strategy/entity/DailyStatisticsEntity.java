@@ -10,6 +10,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "daily_statistics")
 @Getter
+@Setter
 @ToString
 @Builder
 @NoArgsConstructor
@@ -44,6 +45,12 @@ public class DailyStatisticsEntity extends Auditable {
 
     @Column(name = "unrealized_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal unrealizedProfitLoss; // 평가손익 - 원금 - 잔고
+
+    @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
+    private BigDecimal kpRatio; // KP-Ratio
+
+    @Column(name = "sm_score", nullable = true, precision = 10, scale = 2)
+    private BigDecimal smScore; // SM-Score
 
     @Column(name = "reference_price", nullable = false, precision = 19, scale = 4)
     private BigDecimal referencePrice; // 기준가 - 잔고 / 원금 * 1000
@@ -173,4 +180,14 @@ public class DailyStatisticsEntity extends Auditable {
 
     @Column(name = "max_dd_in_rate", nullable = false)
     private BigDecimal maxDDInRate; // DD기간 내 최대 자본인하율
+
+    @Column(name = "followers_count", nullable = false)
+    private Long followersCount; // 팔로워수 default = 0
+
+    @PrePersist
+    public void prePersist() {
+        if (followersCount == null) {
+            followersCount = 0L;
+        }
+    }
 }

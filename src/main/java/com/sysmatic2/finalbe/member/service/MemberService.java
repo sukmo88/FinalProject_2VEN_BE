@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.member.service;
 
+import com.sysmatic2.finalbe.attachment.service.ProfileService;
 import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
 import com.sysmatic2.finalbe.exception.InvalidPasswordException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
@@ -8,6 +9,8 @@ import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.util.RandomKeyGenerator;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +28,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ProfileService profileService;
 
     @Transactional
     public void signup(SignupDTO signupDTO) {
@@ -35,9 +39,9 @@ public class MemberService {
 
         MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
 
-        //TODO) fileService 에서 프로필 사진 등록하는 메서드 호출 후 fileId 획득해서 치환하기
-        String fileId = "1234";
-        member.setFileId(fileId);
+        String uuid = RandomKeyGenerator.createUUID();
+        member.setMemberId(uuid);
+        member.setFileId(profileService.createDefaultFileMetadataForMember(uuid));  // profileService 에서 fileId 받아와서 member에 등록
 
         memberRepository.save(member); // 가입 실패 시 예외 발생
     }
@@ -65,7 +69,7 @@ public class MemberService {
     }
 
     //로그인 서비스
-    public ResponseEntity<Map<String,Object>> login(String email, String password) {
+    public ResponseEntity<Map<String,Object>> login(String email, String password, HttpSession session) {
         MemberEntity member = memberRepository.findByEmail(email)
                 .orElse(null);
         Map<String,Object> response = new HashMap<>();
@@ -97,10 +101,21 @@ public class MemberService {
         response.put("status", "success");
         response.put("message", "로그인에 성공했습니다.");
         Map<String, Object> data = new HashMap<>();
+        String role = member.getMemberGradeCode().replace("MEMBER_", "");
         data.put("member_id",member.getMemberId());
         data.put("email", member.getEmail());
         data.put("nickname", member.getNickname());
-        data.put("role", member.getMemberGradeCode());
+        data.put("role",role);
+        data.put("fileId", member.getFileId());
+        if(role.equals("ROLE_ADMIN")){
+            AdminSessionDTO adminSessionDTO = new AdminSessionDTO();
+            adminSessionDTO.setAuthorized(false);
+            adminSessionDTO.setAuthorizationStatus("PENDING");
+            adminSessionDTO.setAuthorizedAt("");
+            adminSessionDTO.setExpiresAt("");
+            data.put("admin_info",adminSessionDTO);
+            session.setAttribute("admin_info",adminSessionDTO);
+        }
         //jwt 값을 전달해줘야지 정상적으로 로그인 했으면
         response.put("data", data);
 
@@ -121,6 +136,8 @@ public class MemberService {
     public void modifyDetails(String memberId, ProfileUpdateDTO profileUpdateDTO) {
         // memberId로 회원 조회 -> 없으면 예외 발생
         MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+
+        duplicateNicknameCheck(profileUpdateDTO.getNickname()); // 닉네임 중복 체크
 
         // 조회한 회원에 수정할 값 입력 후 저장
         member.setNickname(profileUpdateDTO.getNickname());
@@ -146,6 +163,25 @@ public class MemberService {
         // 새로운 비밀번호 암호화 후 설정 및 저장
         String encodedPwd = passwordEncoder.encode(passwordUpdateDTO.getNewPassword());
         member.setPassword(encodedPwd);
+        memberRepository.save(member);
+    }
+
+    public void checkExistEmail(String email) {
+        if (memberRepository.findByEmail(email).isEmpty()) {
+            throw new MemberNotFoundException("해당 이메일로 등록된 계정을 찾을 수 없습니다.");
+        }
+    }
+
+    @Transactional
+    public void resetPassword(String email, PasswordResetDTO passwordResetDTO) {
+        // 1. member 조회한 후 없으면 예외 발생
+        MemberEntity member = memberRepository.findByEmail(email).orElseThrow(MemberNotFoundException::new);
+
+        // 2. 입력한 두 비밀번호 일치 여부 확인
+        comparePassword(passwordResetDTO.getNewPassword(), passwordResetDTO.getConfirmPassword());
+
+        // 3. 비밀번호 암호화 후 member 수정해서 저장
+        member.setPassword(passwordEncoder.encode(passwordResetDTO.getNewPassword()));
         memberRepository.save(member);
     }
 

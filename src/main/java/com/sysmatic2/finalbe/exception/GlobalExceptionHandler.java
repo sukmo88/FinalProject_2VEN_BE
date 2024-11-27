@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
@@ -29,6 +30,44 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // ResponseStatusException 처리
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Object> handleResponseStatusException(ResponseStatusException ex) {
+        logger.warn("ResponseStatusException: {} - Reason: {}", ex.getStatusCode(), ex.getReason());
+        // HttpStatusCode -> HttpStatus 변환
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        return ResponseUtils.buildErrorResponse(
+                ex.getStatusCode().toString(),       // 예: "404 NOT_FOUND"
+                ex.getClass().getSimpleName(),       // 예외 클래스명
+                ex.getReason(),                      // 간단한 예외 설명
+                status                               // 상태 코드
+        );
+    }
+
+    // 400: 커스텀 예외 처리 - ReplyNotFoundException
+    @ExceptionHandler(ReplyNotFoundException.class)
+    public ResponseEntity<Object> handleReplyNotFoundException(ReplyNotFoundException ex) {
+        logger.warn("ReplyNotFoundException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    // 400: 커스텀 예외 처리 - ConsultationAlreadyCompletedException
+    @ExceptionHandler(ConsultationAlreadyCompletedException.class)
+    public ResponseEntity<Object> handleConsultationAlreadyCompletedException(ConsultationAlreadyCompletedException ex) {
+        logger.warn("ConsultationAlreadyCompletedException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
 
     // 500: 일반적인 예외 처리
     @ExceptionHandler({Exception.class})
@@ -163,40 +202,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 400 : 파일 최대 크기 사이즈 넘겼을 때
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public Map<String, Object> handleMaxSizeException(MaxUploadSizeExceededException ex) {
-        return Map.of(
-                "error", "FILE_SIZE_EXCEEDED",
-                "message", "The uploaded file exceeds the maximum allowed size.",
-                "status", HttpStatus.BAD_REQUEST.value()
-        );
-    }
-
-    // 400: 커스텀 예외 처리 - ReplyNotFoundException
-    @ExceptionHandler(ReplyNotFoundException.class)
-    public ResponseEntity<Object> handleReplyNotFoundException(ReplyNotFoundException ex) {
-        logger.warn("ReplyNotFoundException 발생: {}", ex.getMessage());
-        return ResponseUtils.buildErrorResponse(
-                "BAD_REQUEST",
-                ex.getClass().getSimpleName(),
-                ex.getMessage(),
-                HttpStatus.BAD_REQUEST
-        );
-    }
-
-    // 400: 커스텀 예외 처리 - ConsultationAlreadyCompletedException
-    @ExceptionHandler(ConsultationAlreadyCompletedException.class)
-    public ResponseEntity<Object> handleConsultationAlreadyCompletedException(ConsultationAlreadyCompletedException ex) {
-        logger.warn("ConsultationAlreadyCompletedException 발생: {}", ex.getMessage());
-        return ResponseUtils.buildErrorResponse(
-                "BAD_REQUEST",
-                ex.getClass().getSimpleName(),
-                ex.getMessage(),
-                HttpStatus.BAD_REQUEST
-        );
-    }
-
     // 401: 인증 실패
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Object> handleAuthenticationException(AuthenticationException e) {
@@ -277,7 +282,15 @@ public class GlobalExceptionHandler {
         );
     }
 
-
+    // 400 : 파일 최대 크기 사이즈 넘겼을 때
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Map<String, Object> handleMaxSizeException(MaxUploadSizeExceededException ex) {
+        return Map.of(
+                "error", "FILE_SIZE_EXCEEDED",
+                "message", "The uploaded file exceeds the maximum allowed size.",
+                "status", HttpStatus.BAD_REQUEST.value()
+        );
+    }
 
 
 

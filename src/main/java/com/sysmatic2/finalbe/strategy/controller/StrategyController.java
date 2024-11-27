@@ -209,9 +209,6 @@ public class StrategyController {
             @PathVariable("id") Long strategyId,
             @RequestBody @Valid DailyDataPayloadDto payload) {
 
-        // 디버깅 로그 추가
-        System.out.println("Received strategyId: " + strategyId);
-
         // 1. 데이터 유효성 검사
         // 수기 데이터가 비어있는지 확인
         if (payload.getPayload() == null || payload.getPayload().isEmpty()) {
@@ -226,23 +223,17 @@ public class StrategyController {
 
         // 2. 수기 데이터를 저장
         // 수기 데이터를 하나씩 처리하여 저장
-        List<Long> savedIds = payload.getPayload().stream().map(entry -> {
-            try {
-                /// 각 데이터 항목을 기반으로 수기 데이터를 처리하는 서비스 메서드 호출
-                dailyStatisticsService.processDailyStatistics(
-                        strategyId,  // 전략 ID를 서비스 메서드에 전달
-                        DailyStatisticsReqDto.builder()
-                                .date(entry.getDate())  // 수기 데이터의 날짜
-                                .dailyProfitLoss(entry.getDailyProfitLoss())  // 일손익
-                                .depWdPrice(entry.getDepWdPrice())  // 입출금 금액
-                                .build()
-                );
-
-                return strategyId; // 실제로 저장된 데이터의 ID를 반환하도록 수정 가능
-            } catch (Exception e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "알 수 없는 오류가 발생했습니다.", e);
-            }
-        }).collect(Collectors.toList());
+        payload.getPayload().forEach(entry -> {
+            /// 각 데이터 항목을 기반으로 수기 데이터를 처리하는 서비스 메서드 호출
+            dailyStatisticsService.processDailyStatistics(
+                    strategyId,  // 전략 ID를 서비스 메서드에 전달
+                    DailyStatisticsReqDto.builder()
+                            .date(entry.getDate())  // 수기 데이터의 날짜
+                            .dailyProfitLoss(entry.getDailyProfitLoss())  // 일손익
+                            .depWdPrice(entry.getDepWdPrice())  // 입출금 금액
+                            .build()
+            );
+        });
 
         // 3. 응답 데이터 구성
         Map<String, Object> responseMap = new HashMap<>();
@@ -253,7 +244,7 @@ public class StrategyController {
     }
 
     /**
-     * 11. 특정 전략의 일간 통계 데이터를 최신일자순으로 페이징하여 반환합니다.
+     * 11. 특정 전략의 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다.
      *
      * @param strategyId 전략 ID.
      * @param page       페이지 번호 (기본값: 0).
@@ -317,6 +308,36 @@ public class StrategyController {
         );
 
         return ResponseEntity.ok(response); // HTTP 200 상태로 응답 반환
+    }
+
+    /**
+     * 전략 수기 데이터 수정 API
+     *
+     * @param strategyId  수정할 전략 ID
+     * @param dailyDataId 수정할 데이터 ID
+     * @param reqDto      수정 요청 데이터 (날짜, 입출금, 일손익)
+     * @return 성공 메시지
+     */
+    @Operation(summary = "전략 수기 데이터 수정", description = "수정된 날짜 이후 데이터까지 재등록하여 지표를 갱신합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "데이터 또는 전략 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @PutMapping("/{strategyId}/daily-data/{dailyDataId}")
+    public ResponseEntity<Map<String, String>> updateDailyData(
+            @PathVariable Long strategyId,
+            @PathVariable Long dailyDataId,
+            @RequestBody DailyStatisticsReqDto reqDto) {
+
+        // 서비스 호출하여 수정 로직 수행
+        dailyStatisticsService.updateDailyData(strategyId, dailyDataId, reqDto);
+
+        // 성공 응답
+        Map<String, String> response = Map.of("msg", "UPDATE_SUCCESS");
+        return ResponseEntity.ok(response);
     }
 
     /**

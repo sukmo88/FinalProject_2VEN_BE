@@ -46,7 +46,7 @@ public class StrategyService {
     private final StrategyIACHistoryRepository strategyIACHistoryRepository;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
-
+    private final DailyStatisticsService dailyStatisticsService;
 
     //1. 전략 생성
     /**
@@ -158,7 +158,6 @@ public class StrategyService {
         strategyHistoryEntity.setStrategyStatusCode(createdEntity.getStrategyStatusCode());
         strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_CREATED");
         strategyHistoryEntity.setMinInvestmentAmount(createdEntity.getMinInvestmentAmount());
-        strategyHistoryEntity.setFollowersCount(createdEntity.getFollowersCount());
         strategyHistoryEntity.setStrategyTitle(createdEntity.getStrategyTitle());
         strategyHistoryEntity.setWriterId(createdEntity.getWriterId());
         strategyHistoryEntity.setIsPosted(createdEntity.getIsPosted());
@@ -291,6 +290,10 @@ public class StrategyService {
         responseDto.setTraderName("곽두팔");
         responseDto.setTraderImage("트레이더프로필이미지");
 
+        // 최신 팔로워 수 조회
+        Long followersCount = dailyStatisticsService.getLatestFollowersCount(strategyEntity.getStrategyId());
+        responseDto.setFollowersCount(followersCount);
+
         return responseDto;
     }
 
@@ -322,7 +325,6 @@ public class StrategyService {
         strategyHistoryEntity.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
         strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_DELETED");
         strategyHistoryEntity.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
-        strategyHistoryEntity.setFollowersCount(strategyEntity.getFollowersCount());
         strategyHistoryEntity.setStrategyTitle(strategyEntity.getStrategyTitle());
         strategyHistoryEntity.setWriterId(strategyEntity.getWriterId());
         strategyHistoryEntity.setIsPosted(strategyEntity.getIsPosted());
@@ -560,7 +562,6 @@ public class StrategyService {
         strategyHistoryEntity.setStrategyStatusCode(strategyEntity.getStrategyStatusCode());
         strategyHistoryEntity.setStrategyHistoryStatusCode("STRATEGY_STATUS_UPDATED");
         strategyHistoryEntity.setMinInvestmentAmount(strategyEntity.getMinInvestmentAmount());
-        strategyHistoryEntity.setFollowersCount(strategyEntity.getFollowersCount());
         strategyHistoryEntity.setStrategyTitle(strategyEntity.getStrategyTitle());
         strategyHistoryEntity.setWriterId(strategyEntity.getWriterId());
         strategyHistoryEntity.setIsPosted(strategyEntity.getIsPosted());
@@ -713,6 +714,7 @@ public class StrategyService {
         responseMap.put("data", rejectionDto);
         return responseMap;
     }
+
 
 }
 

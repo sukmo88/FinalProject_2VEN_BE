@@ -42,7 +42,7 @@ public class SignupDTO {
 
     // nickname 형식 : 2~10자의 문자열 (특수문자 X, 한글 포함)
     @Pattern(
-            regexp = "^[A-Za-z\\d가-힣]{2,10}$",
+            regexp = "^[A-Za-z\\dㄱ-ㅎㅏ-ㅣ가-힣]{2,10}$",
             message = "닉네임은 2~10자 이내의 문자(한글, 영어, 숫자)여야 합니다."
     )
     @NotNull(message = "닉네임은 필수 입력 값입니다.")
