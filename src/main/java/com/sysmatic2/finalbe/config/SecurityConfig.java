@@ -17,6 +17,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.session.web.http.CookieSerializer;
+import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
@@ -43,7 +45,8 @@ public class SecurityConfig {
             configuration.addAllowedOriginPattern("*"); // 로컬 환경에서만 모든 출처 허용
             configuration.setAllowCredentials(false); // JWT와 같은 인증 정보 포함 허용
         } else {
-            configuration.addAllowedOriginPattern("https://2ven.shop"); // HTTPS 출처만 허용
+            configuration.addAllowedOriginPattern("https://*"); // HTTPS 출처만 허용
+            configuration.addAllowedOriginPattern("http://*"); // HTTP 출처만 허용
             configuration.setAllowCredentials(true); // JWT와 같은 인증 정보 포함 허용
         }
 

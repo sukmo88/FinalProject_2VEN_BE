@@ -39,17 +39,17 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     List<BigDecimal> findDailyProfitLossesByStrategyId(@Param("strategyId") Long strategyId);
 
     /**
-     * 특정 전략의 최근 1년 전 날짜 기준으로 가장 가까운 잔고(balance)를 조회합니다.
+     * 특정 전략의 최근 1년 전 날짜 기준으로 가장 가까운 기준가(referencePrice)를 오름차순으로 조회합니다.
      *
      * @param strategyId 조회할 전략의 ID
      * @param oneYearAgo 1년 전 기준 날짜
-     * @return 최근 1년 전의 잔고 (Optional로 반환)
+     * @return 최근 1년 전의 기준가 리스트 (날짜 오름차순으로 정렬)
      */
-    @Query("SELECT d.balance FROM DailyStatisticsEntity d " +
+    @Query("SELECT d.referencePrice FROM DailyStatisticsEntity d " +
             "WHERE d.strategyEntity.strategyId = :strategyId " +
-            "AND d.date <= :oneYearAgo " +
-            "ORDER BY d.date DESC")
-    Optional<BigDecimal> findBalanceOneYearAgo(@Param("strategyId") Long strategyId, @Param("oneYearAgo") LocalDate oneYearAgo);
+            "AND d.date >= :oneYearAgo " +
+            "ORDER BY d.date ASC")
+    List<BigDecimal> findReferencePricesOneYearAgo(@Param("strategyId") Long strategyId, @Param("oneYearAgo") LocalDate oneYearAgo);
 
     /**
      * 특정 전략의 모든 기준가(referencePrice)를 날짜 오름차순으로 조회합니다.
