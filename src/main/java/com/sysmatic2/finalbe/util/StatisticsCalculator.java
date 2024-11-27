@@ -23,7 +23,7 @@ public class StatisticsCalculator {
         if (dailyProfitLosses == null || dailyProfitLosses.isEmpty()) {
             throw new IllegalArgumentException("일손익 데이터 리스트는 비어 있을 수 없습니다.");
         }
-        if (averageProfitLoss.compareTo(BigDecimal.ZERO) <= 0) {
+        if (averageProfitLoss.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
 
@@ -54,7 +54,10 @@ public class StatisticsCalculator {
      */
     public static BigDecimal calculateWinRate(int totalProfitDays, int tradingDays) {
         return tradingDays > 0
-                ? BigDecimal.valueOf(totalProfitDays).divide(BigDecimal.valueOf(tradingDays), 4, BigDecimal.ROUND_HALF_UP)
+                ? BigDecimal.valueOf(totalProfitDays)
+                .divide(BigDecimal.valueOf(tradingDays), 4, RoundingMode.HALF_UP) // 비율 계산
+                .multiply(BigDecimal.valueOf(100)) // 백분율로 변환
+                .setScale(2, RoundingMode.HALF_UP) // 소수점 둘째 자리까지 표현
                 : BigDecimal.ZERO;
     }
 
@@ -88,16 +91,40 @@ public class StatisticsCalculator {
     }
 
     /**
-     * Sharp Ratio 계산.
-     * @param averageProfitLoss   평균손익
-     * @param stdDevProfitLoss 일손익의 표준편차
+     * Sharp Ratio 계산 (평균손익 / 일손익의 표준편차).
+     * @param dailyProfitLosses 일손익 리스트
+     * @param averageProfitLoss 평균손익
      * @return Sharp Ratio (소수점 10자리까지 표시)
      */
-    public static BigDecimal calculateSharpRatio(BigDecimal averageProfitLoss, BigDecimal stdDevProfitLoss) {
+    public static BigDecimal calculateSharpRatio(List<BigDecimal> dailyProfitLosses, BigDecimal averageProfitLoss) {
+        if (dailyProfitLosses == null || dailyProfitLosses.isEmpty()) {
+            throw new IllegalArgumentException("일손익 데이터 리스트는 비어 있을 수 없습니다.");
+        }
+
+        if (averageProfitLoss == null || averageProfitLoss.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO; // 평균손익이 0이면 Sharp Ratio는 정의되지 않음
+        }
+
+        // 평균 계산
+        BigDecimal mean = dailyProfitLosses.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 10, RoundingMode.HALF_UP);
+
+        // 분산 계산
+        BigDecimal variance = dailyProfitLosses.stream()
+                .map(value -> value.subtract(mean).pow(2)) // (X - 평균)^2
+                .reduce(BigDecimal.ZERO, BigDecimal::add) // 분산 합산
+                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 10, RoundingMode.HALF_UP); // 분산 평균
+
+        // 표준편차 계산 (분산의 제곱근)
+        BigDecimal stdDevProfitLoss = BigDecimal.valueOf(Math.sqrt(variance.doubleValue()))
+                .setScale(10, RoundingMode.HALF_UP);
+
+        // Sharp Ratio 계산
         return stdDevProfitLoss.compareTo(BigDecimal.ZERO) > 0
-                ? averageProfitLoss.divide(stdDevProfitLoss, 11, RoundingMode.HALF_UP) // 소수점 11자리로 계산 및 반올림
+                ? averageProfitLoss.divide(stdDevProfitLoss, 11, RoundingMode.HALF_UP)
                 .setScale(10, RoundingMode.HALF_UP) // 최종적으로 소수점 10자리 제한
-                : BigDecimal.ZERO; // 표준편차가 0이면 0 반환
+                : BigDecimal.ZERO;
     }
 
     /**
@@ -239,13 +266,13 @@ public class StatisticsCalculator {
      * 기준가 계산.
      * @param balance 잔고
      * @param principal 원금
-     * @return 계산된 기준가 (반올림 없이 소수점 네 번째 자리까지 표현)
+     * @return 계산된 기준가 (셋째 자리에서 반올림하여 소수점 둘째 자리까지 표현)
      */
     public static BigDecimal calculateReferencePrice(BigDecimal balance, BigDecimal principal) {
         return principal.compareTo(BigDecimal.ZERO) > 0
                 ? balance.divide(principal, 10, RoundingMode.DOWN) // 10자리까지 계산 후
                 .multiply(BigDecimal.valueOf(1000))
-                .setScale(4, RoundingMode.DOWN) // 최종적으로 4자리까지 설정
+                .setScale(2, RoundingMode.HALF_UP) // 소수점 셋째 자리에서 반올림, 둘째 자리까지 표현
                 : BigDecimal.ZERO;
     }
 
@@ -262,31 +289,6 @@ public class StatisticsCalculator {
                 .multiply(BigDecimal.valueOf(100)) // 백분율 변환
                 .setScale(4, RoundingMode.HALF_UP) // 최종적으로 소수점 4자리로 반올림
                 : BigDecimal.ZERO;
-    }
-
-    /**
-     * 표준편차(Standard Deviation)를 계산하는 메서드.
-     * @param values 값들의 리스트 (예: 일손익 리스트)
-     * @return 계산된 표준편차
-     */
-    public static BigDecimal calculateStdDev(List<BigDecimal> values) {
-        if (values == null || values.isEmpty()) {
-            return BigDecimal.ZERO; // 빈 리스트 기본값 처리
-        }
-
-        // 평균 계산
-        BigDecimal mean = values.stream()
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(values.size()), 4, BigDecimal.ROUND_HALF_UP);
-
-        // 분산 계산
-        BigDecimal variance = values.stream()
-                .map(value -> value.subtract(mean).pow(2)) // (X - 평균)^2
-                .reduce(BigDecimal.ZERO, BigDecimal::add) // 분산 합산
-                .divide(BigDecimal.valueOf(values.size()), 4, BigDecimal.ROUND_HALF_UP); // 분산 평균
-
-        // 표준편차는 분산의 제곱근
-        return BigDecimal.valueOf(Math.sqrt(variance.doubleValue()));
     }
 
     /**
@@ -399,30 +401,45 @@ public class StatisticsCalculator {
     }
 
     /**
-     * 최대 일 손실률 계산 (백분율로 반환).
-     * @param dailyPlRates 오늘까지의 모든 일손익률 리스트 (등록된 순서대로 정렬, 단위: %)
-     * @param currentDailyPlRate 현재 입력되는 일손익률 (단위: %)
-     * @return 최대 일 손실률 (백분율, 최소값 포함)
+     * 주어진 일별 손익률 리스트에서 최대값을 계산하고 음수일 경우 0으로 처리합니다.
+     *
+     * @param dailyPlRate 일별 손익률(BigDecimal) 리스트
+     * @return 최대 일 이익률 (음수일 경우 0 반환, 소수점 4자리까지 반올림)
+     */
+    public static BigDecimal calculateMaxDailyProfitRate(List<BigDecimal> dailyPlRate) {
+        // 최대값 계산 (리스트가 비어있는 경우 대비 기본값 설정)
+        BigDecimal maxDailyProfitRate = dailyPlRate.stream()
+                .max(BigDecimal::compareTo) // 리스트에서 최대값 찾기
+                .orElse(BigDecimal.ZERO);  // 리스트가 비어있으면 0 반환
+
+        // 최대값이 음수일 경우 0으로 처리하고, 소수점 4자리까지 반올림
+        return maxDailyProfitRate.max(BigDecimal.ZERO).setScale(4, BigDecimal.ROUND_HALF_UP);
+    }
+
+    /**
+     * 최대 일 손실률 계산.
+     * @param dailyPlRates 오늘까지의 모든 일손익률 리스트 (등록된 순서대로 정렬)
+     * @param currentDailyPlRate 현재 입력되는 일손익률
+     * @return 최대 일 손실률 (최소값 포함)
      */
     public static BigDecimal calculateMaxDailyLossRate(List<BigDecimal> dailyPlRates, BigDecimal currentDailyPlRate) {
         if (dailyPlRates == null || dailyPlRates.isEmpty()) {
             return currentDailyPlRate != null
-                    ? currentDailyPlRate.multiply(BigDecimal.valueOf(100))
-                    : BigDecimal.ZERO; // 현재 값만 있는 경우 백분율 변환하여 반환
+                    ? currentDailyPlRate
+                    : BigDecimal.ZERO; // 현재 값만 있는 경우 그대로 반환
         }
 
         if (currentDailyPlRate == null) {
             return dailyPlRates.stream()
                     .min(BigDecimal::compareTo) // 기존 리스트의 최소값 찾기
-                    .map(minRate -> minRate.multiply(BigDecimal.valueOf(100))) // 백분율 변환
-                    .orElse(BigDecimal.ZERO);
+                    .orElse(BigDecimal.ZERO); // 리스트에 값이 없으면 0 반환
         }
 
-        // 현재 입력 값 포함하여 최소값 계산 후 백분율 변환
+        // 현재 입력 값 포함하여 최소값 계산
         return dailyPlRates.stream()
                 .min(BigDecimal::compareTo) // 리스트 최소값 찾기
-                .map(minRate -> minRate.min(currentDailyPlRate).multiply(BigDecimal.valueOf(100))) // 최소값과 현재 값 비교 후 백분율 변환
-                .orElse(currentDailyPlRate.multiply(BigDecimal.valueOf(100))); // 현재 값만 있는 경우 반환
+                .map(minRate -> minRate.min(currentDailyPlRate)) // 최소값과 현재 값 비교
+                .orElse(currentDailyPlRate); // 현재 값만 있는 경우 반환
     }
 
     /**
@@ -591,6 +608,41 @@ public class StatisticsCalculator {
         }
 
         return sum.divide(BigDecimal.valueOf(dailyBalances.size()), 4, RoundingMode.HALF_EVEN);
+    }
+
+    /**
+     * 최근 1년 수익률을 계산합니다.
+     * 수익률 계산 공식: ((오늘 기준가 / 1년 전 기준가) - 1) * 100
+     *
+     * - 1년 전 기준가가 없어도 상관없으며, 기준가는 리스트의 첫 번째 값과 마지막 값으로 설정됩니다.
+     * - 리스트의 첫 번째 값: 가장 오래된 기준가
+     * - 리스트의 마지막 값: 가장 최신 기준가
+     * - 결과는 소수점 셋째 자리에서 반올림하여 둘째 자리까지 표현됩니다.
+     *
+     * @param referencePrices 기준가 리스트 (날짜 오름차순으로 정렬된 값)
+     * @return 최근 1년 수익률 (백분율, 소수점 둘째 자리까지 표현)
+     */
+    public static BigDecimal calculateRecentOneYearReturn(List<BigDecimal> referencePrices) {
+        if (referencePrices == null || referencePrices.size() < 2) {
+            // 기준가가 2개 미만일 경우 계산 불가, 0 반환
+            return BigDecimal.ZERO;
+        }
+
+        // 리스트의 첫 번째 값 (가장 오래된 기준가)
+        BigDecimal oldestReferencePrice = referencePrices.get(0);
+        // 리스트의 마지막 값 (가장 최신 기준가)
+        BigDecimal latestReferencePrice = referencePrices.get(referencePrices.size() - 1);
+
+        if (oldestReferencePrice.compareTo(BigDecimal.ZERO) <= 0) {
+            // 1년 전 기준가가 0 이하일 경우 계산 불가, 0 반환
+            return BigDecimal.ZERO;
+        }
+
+        // 수익률 계산: ((오늘 기준가 / 1년 전 기준가) - 1) * 100
+        return latestReferencePrice.divide(oldestReferencePrice, 4, RoundingMode.HALF_UP)
+                .subtract(BigDecimal.ONE)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP); // 소수점 셋째 자리에서 반올림하여 둘째 자리까지 표현
     }
 
 }
