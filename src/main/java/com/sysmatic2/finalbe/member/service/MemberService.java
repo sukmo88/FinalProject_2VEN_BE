@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -183,6 +184,16 @@ public class MemberService {
         // 3. 비밀번호 암호화 후 member 수정해서 저장
         member.setPassword(passwordEncoder.encode(passwordResetDTO.getNewPassword()));
         memberRepository.save(member);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmailResponseDTO> findEmail(String phoneNumber) {
+        List<EmailResponseDTO> emailByPhoneNumber = memberRepository.findEmailByPhoneNumber(phoneNumber);
+        if (emailByPhoneNumber.isEmpty()) {
+            throw new MemberNotFoundException();
+        }
+
+        return emailByPhoneNumber;
     }
 
 }
