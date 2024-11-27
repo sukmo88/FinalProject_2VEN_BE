@@ -21,24 +21,21 @@ public class IconService {
      * 새로운 아이콘 이미지 등록
      */
     @Transactional
-    public Map<String, ?> uploadIcon(MultipartFile file) {
+    public FileMetadataDto uploadIcon(MultipartFile file) {
         String category = "icon";
         String uploaderId = "admin";
 
         // 새로운 아이콘 등록
-        FileMetadataDto dto = fileService.uploadFile(file, uploaderId, category, null);
+        return fileService.uploadFile(file, uploaderId, category, null);
 
-        return Map.of(
-                "fileUrl", dto.getFilePath(),
-                "message", "File successfully uploaded"
-        );
+
     }
 
     /**
      * 기존 아이콘 이미지 수정
      */
     @Transactional
-    public Map<String, ?> modifyIcon(MultipartFile file, String filePath) {
+    public FileMetadataDto modifyIcon(MultipartFile file, String filePath) {
         String category = "icon";
         String uploaderId = "admin";
 
@@ -50,31 +47,38 @@ public class IconService {
         }
 
         // 아이콘 정보 업데이트
-        FileMetadataDto dto = fileService.modifyFile(file, existingMetadataDto.getId(), uploaderId, category);
-
-        return Map.of(
-                "fileUrl", dto.getFilePath(),
-                "message", "File successfully modified"
-        );
+        return fileService.modifyFile(file, existingMetadataDto.getId(), uploaderId, category);
     }
 
     /**
-     * 아이콘 파일 삭제
+     * 아이콘 파일 S3, DB 삭제
      */
     @Transactional
-    public Map<String, ?> deleteIcon(String filePath) {
+    public void deleteIcon(String filePath) {
         String category = "icon";
         String uploaderId = "admin";
 
         FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
 
+        // 제안서 메타데이터 초기화 및 S3 파일 삭제
+        fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  true);
 
-        // 프로필 메타데이터 초기화 및 S3 파일 삭제
+    }
+
+    /**
+     * 아이콘 파일 S3 삭제 및 DB 메타데이터 초기화
+     */
+    @Transactional
+    public FileMetadataDto initIconMetadata(String filePath) {
+        String category = "icon";
+        String uploaderId = "admin";
+
+        FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
+
+        // 제안서 메타데이터 초기화 및 S3 파일 삭제
         fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  false);
 
-        // 기존 메타데이터 조회
-        FileMetadata metadata = fileMetadataRepository.findById(existingMetadataDto.getId())
-                .orElseThrow(() -> new IllegalArgumentException("File metadata not found for ID: " + existingMetadataDto.getId()));
+        FileMetadata metadata = FileMetadataDto.toEntity(existingMetadataDto);
         metadata.setFileSize(null);
         metadata.setContentType(null);
         metadata.setDisplayName(null);
@@ -84,10 +88,7 @@ public class IconService {
         // 메타데이터 저장
         fileMetadataRepository.save(metadata);
 
-        return Map.of(
-                "message", "File successfully deleted"
-        );
+        return FileMetadataDto.fromEntity(metadata);
     }
-
 
 }
