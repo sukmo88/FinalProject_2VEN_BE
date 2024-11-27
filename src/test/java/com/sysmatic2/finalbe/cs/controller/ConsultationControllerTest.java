@@ -172,7 +172,7 @@ class ConsultationControllerTest {
             .investorProfileUrl("http://example.com/inv123.png")
             .traderName("트레이더닉네임")
             .traderProfileUrl("http://example.com/trd456.png")
-            .strategyId(1L)
+//            .strategyId(1L)
             .strategyName("성장 전략")
             .investmentDate(LocalDateTime.now())
             .title("투자 문의")
