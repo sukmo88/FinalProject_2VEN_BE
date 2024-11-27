@@ -51,10 +51,25 @@ public class IconService {
     }
 
     /**
-     * 아이콘 파일 삭제
+     * 아이콘 파일 S3, DB 삭제
      */
     @Transactional
-    public FileMetadataDto deleteIcon(String filePath) {
+    public void deleteIcon(String filePath) {
+        String category = "icon";
+        String uploaderId = "admin";
+
+        FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
+
+        // 제안서 메타데이터 초기화 및 S3 파일 삭제
+        fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  true);
+
+    }
+
+    /**
+     * 아이콘 파일 S3 삭제 및 DB 메타데이터 초기화
+     */
+    @Transactional
+    public FileMetadataDto initIconMetadata(String filePath) {
         String category = "icon";
         String uploaderId = "admin";
 
