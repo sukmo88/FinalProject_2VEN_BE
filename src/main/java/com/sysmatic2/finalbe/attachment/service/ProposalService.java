@@ -52,35 +52,15 @@ public class ProposalService {
      * 제안서 파일 삭제
      */
     @Transactional
-    public FileMetadataDto deleteProposal(String filePath, String uploaderId) {
+    public String deleteProposal(String filePath, String uploaderId) {
         String category = "proposal";
 
         FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
 
         // 제안서 메타데이터 초기화 및 S3 파일 삭제
-        fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  false);
+        fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  true);
 
-        FileMetadata metadata = FileMetadataDto.toEntity(existingMetadataDto);
-        metadata.setFileSize(null);
-        metadata.setContentType(null);
-        metadata.setDisplayName(null);
-        metadata.setFileName(null);
-        metadata.setFilePath(null);
-
-        // 초기화 된 메타데이터 저장
-        fileMetadataRepository.save(metadata);
-
-        return FileMetadataDto.fromEntity(metadata);
+        return existingMetadataDto.getId().toString();
     }
-
-    /**
-     * 제안서 메타데이터 조회
-     */
-    public FileMetadataDto getProposalFileMetadata(String filePath) {
-        String category = "proposal";
-
-        return fileService.getFileMetadataByFilePath(filePath);
-    }
-
 
 }
