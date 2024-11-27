@@ -18,16 +18,14 @@ import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
+import com.sysmatic2.finalbe.util.ParseCsvToList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -193,6 +191,59 @@ public class StrategyService {
         Page<StrategyListDto> strategyPage = strategyRepo.findStrategiesByFilters(tradingCycleId, investmentAssetClassesId, pageable);
         return createPageResponse(strategyPage); // 유틸 메서드를 사용해 Map 형태로 변환
     }
+
+    /**
+     * 2-2. 상세 필터를 적용한 전략 목록을 반환(페이지네이션)
+     *
+     * @param searchOptionsPayload 필터 객체
+     * @param page                 현재 페이지
+     * @param pageSize             페이지크기
+     */
+    @Transactional
+    public Map<String, Object> advancedSearch(SearchOptionsPayloadDto searchOptionsPayload, Integer page, Integer pageSize) {
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //1)문자열들 리스트로 만들기
+        //투자자산 분류 id 리스트
+        List<Integer> iacIds = ParseCsvToList.parseCsvToIntegerList(searchOptionsPayload.getInvestmentAssetClassesIdList());
+        //전략 운용코드 리스트
+        List<String> operationStatusList = ParseCsvToList.parseCsvToStringList(searchOptionsPayload.getStrategyOperationStatusList());
+        //매매유형 id 리스트
+        List<Integer> tradingTypeIds = ParseCsvToList.parseCsvToIntegerList(searchOptionsPayload.getTradingTypeIdList());
+        //총운용일수 리스트
+        List<Integer> operationDays = ParseCsvToList.parseCsvToIntegerList(searchOptionsPayload.getOperationDaysList());
+        //매매주기 id 리스트
+        List<Integer> tradingCycleIds = ParseCsvToList.parseCsvToIntegerList(searchOptionsPayload.getTradingCylcleIdList());
+        //수익률 리스트
+        List<Integer> returnRates = ParseCsvToList.parseCsvToIntegerList(searchOptionsPayload.getReturnRateList());
+
+        //Repository 전달용 dto생성
+        SearchOptionsDto searchOptionsDto = new SearchOptionsDto();
+        //전달용 dto에 값 넣기
+        searchOptionsDto.setInvestmentAssetClassesIdList(iacIds);
+        searchOptionsDto.setStrategyOperationStatusList(operationStatusList);
+        searchOptionsDto.setTradingTypeIdList(tradingTypeIds);
+        searchOptionsDto.setOperationDaysList(operationDays);
+        searchOptionsDto.setTradingCylcleIdList(tradingCycleIds);
+        searchOptionsDto.setMinInvestmentAmount(searchOptionsPayload.getMinInvestmentAmount());
+        searchOptionsDto.setMinPrincipal(searchOptionsPayload.getMinPrincipal());
+        searchOptionsDto.setMaxPrincipal(searchOptionsPayload.getMaxPrincipal());
+        searchOptionsDto.setMinSmscore(searchOptionsPayload.getMinSmscore());
+        searchOptionsDto.setMaxSmscore(searchOptionsPayload.getMaxSmscore());
+        searchOptionsDto.setMinMdd(searchOptionsPayload.getMinMdd());
+        searchOptionsDto.setMaxMdd(searchOptionsPayload.getMaxMdd());
+        searchOptionsDto.setStartDate(searchOptionsPayload.getStartDate());
+        searchOptionsDto.setEndDate(searchOptionsPayload.getEndDate());
+        searchOptionsDto.setReturnRateList(returnRates);
+
+        //2)필터객체, 페이지 객체넣고 db에서 데이터 가져오기
+        Page<AdvancedSearchResultDto> strategyPage = strategyRepo.findStrategiesByDetailSearchOptions(searchOptionsDto, pageable);
+
+        //필요한 값들만 담아 응답 map생성
+        return createPageResponse(strategyPage);
+    }
+
 
     //3. 전략 상세
     /**

@@ -10,18 +10,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -315,5 +317,72 @@ public class StrategyController {
         );
 
         return ResponseEntity.ok(response); // HTTP 200 상태로 응답 반환
+    }
+
+    /**
+     * 전략 상세 필터링
+     *
+     * @param investmentAssetClassesList   투자자산 분류 id 목록(1,2,3)
+     * @param strategyOperationStatusList  전략 운용 상태 id 목록
+     * @param tradingTypeList              매매유형 id 목록
+     * @param operationDaysList            총운용일수 목록
+     * @param tradingCycleList             매매주기 id 목록
+     * @param minInvestmentAmount          최소운용가능금액
+     * @param minPrincipal                 원금 필터 최소값
+     * @param maxPrincipal                 원금 필터 최대값
+     * @param minSmscore                   SM-score 필터 최소값
+     * @param maxSmscore                   SM-score 필터 최대값
+     * @param minMdd                       Mdd 필터 최소값
+     * @param maxMdd                       Mdd 필터 최대값
+     * @param startDate                    수익률 기간 시작일
+     * @param EndDate                      수익률 기간 종료일
+     * @param returnRateList               수익률 범위 목록
+     * @param page                         현재 페이지
+     * @param pageSize                     페이지 사이즈
+     *
+     * @return 필터링된 전략 리스트, 필터링되는 전략 갯수
+     */
+    @GetMapping("/advanced-search")
+    @Operation(summary = "필터링 적용한 전략 목록 조회")
+    public ResponseEntity<Map<String, Object>> getFilteredStrategies(
+            @RequestParam(required = false) String investmentAssetClassesList,
+            @RequestParam(required = false) String strategyOperationStatusList,
+            @RequestParam(required = false) String tradingTypeList,
+            @RequestParam(required = false) String operationDaysList,
+            @RequestParam(required = false) String tradingCycleList,
+            @RequestParam(required = false) String minInvestmentAmount,
+            @RequestParam(required = false) BigDecimal minPrincipal,
+            @RequestParam(required = false) BigDecimal maxPrincipal,
+            @RequestParam(required = false) Integer minSmscore,
+            @RequestParam(required = false) Integer maxSmscore,
+            @RequestParam(required = false) BigDecimal minMdd,
+            @RequestParam(required = false) BigDecimal maxMdd,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate EndDate,
+            @RequestParam(required = false) String returnRateList,
+            @RequestParam(defaultValue = "0") @Min(0) Integer page,
+            @RequestParam(defaultValue = "30") @Min(1) Integer pageSize)
+    {
+        //쿼리파라미터 옵션들 Dto에 담기
+        SearchOptionsPayloadDto optionsPayload = new SearchOptionsPayloadDto();
+        optionsPayload.setInvestmentAssetClassesIdList(investmentAssetClassesList);
+        optionsPayload.setStrategyOperationStatusList(strategyOperationStatusList);
+        optionsPayload.setTradingTypeIdList(tradingTypeList);
+        optionsPayload.setOperationDaysList(operationDaysList);
+        optionsPayload.setTradingCylcleIdList(tradingCycleList);
+        optionsPayload.setMinInvestmentAmount(minInvestmentAmount);
+        optionsPayload.setMinPrincipal(minPrincipal);
+        optionsPayload.setMaxPrincipal(maxPrincipal);
+        optionsPayload.setMinSmscore(minSmscore);
+        optionsPayload.setMaxSmscore(maxSmscore);
+        optionsPayload.setMinMdd(minMdd);
+        optionsPayload.setMaxMdd(maxMdd);
+        optionsPayload.setStartDate(startDate);
+        optionsPayload.setEndDate(EndDate);
+        optionsPayload.setReturnRateList(returnRateList);
+
+        Map<String, Object> responseData = strategyService.advancedSearch(optionsPayload, page, pageSize);
+
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 }
