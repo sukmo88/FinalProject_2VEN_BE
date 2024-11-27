@@ -1,11 +1,8 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
-import com.sysmatic2.finalbe.exception.StrategyNotFoundException;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
-import com.sysmatic2.finalbe.strategy.service.ExcelGeneratorService;
-import com.sysmatic2.finalbe.strategy.service.StatisticsExportService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import com.sysmatic2.finalbe.util.CreatePageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,7 +13,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -24,10 +20,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
-import org.springframework.core.io.InputStreamResource; // 추가
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -44,8 +36,6 @@ public class StrategyController {
     private final StrategyService strategyService;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsService dailyStatisticsService;
-    private final ExcelGeneratorService excelGeneratorService;
-    private final StatisticsExportService statisticsExportService;
 
     // 1. 전략 생성페이지(GET)
     //TODO) 관리자와 트레이더만 수정할 수 있다.
@@ -217,9 +207,6 @@ public class StrategyController {
             @PathVariable("id") Long strategyId,
             @RequestBody @Valid DailyDataPayloadDto payload) {
 
-        // 디버깅 로그 추가
-        System.out.println("Received strategyId: " + strategyId);
-
         // 1. 데이터 유효성 검사
         // 수기 데이터가 비어있는지 확인
         if (payload.getPayload() == null || payload.getPayload().isEmpty()) {
@@ -234,109 +221,120 @@ public class StrategyController {
 
         // 2. 수기 데이터를 저장
         // 수기 데이터를 하나씩 처리하여 저장
-        List<Long> savedIds = payload.getPayload().stream().map(entry -> {
-            try {
-                /// 각 데이터 항목을 기반으로 수기 데이터를 처리하는 서비스 메서드 호출
-                dailyStatisticsService.processDailyStatistics(
-                        strategyId,  // 전략 ID를 서비스 메서드에 전달
-                        DailyStatisticsReqDto.builder()
-                                .date(entry.getDate())  // 수기 데이터의 날짜
-                                .dailyProfitLoss(entry.getDailyProfitLoss())  // 일손익
-                                .depWdPrice(entry.getDepWdPrice())  // 입출금 금액
-                                .build()
-                );
-
-                return strategyId; // 실제로 저장된 데이터의 ID를 반환하도록 수정 가능
-            } catch (Exception e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "알 수 없는 오류가 발생했습니다.", e);
-            }
-        }).collect(Collectors.toList());
+        payload.getPayload().forEach(entry -> {
+            /// 각 데이터 항목을 기반으로 수기 데이터를 처리하는 서비스 메서드 호출
+            dailyStatisticsService.processDailyStatistics(
+                    strategyId,  // 전략 ID를 서비스 메서드에 전달
+                    DailyStatisticsReqDto.builder()
+                            .date(entry.getDate())  // 수기 데이터의 날짜
+                            .dailyProfitLoss(entry.getDailyProfitLoss())  // 일손익
+                            .depWdPrice(entry.getDepWdPrice())  // 입출금 금액
+                            .build()
+            );
+        });
 
         // 3. 응답 데이터 구성
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "CREATE_SUCCESS");
-        responseMap.put("data", savedIds.stream()
-                .map(id -> Map.of("dailyDataId", id))
-                .collect(Collectors.toList()));
+        responseMap.put("timestamp", Instant.now());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
+
     /**
-     * 11. 일간 지표 다운로드 엔드포인트
+     * 11. 특정 전략의 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다.
      *
-     * @return 일간 통계 엑셀 파일 다운로드
+     * @param strategyId 전략 ID.
+     * @param page       페이지 번호 (기본값: 0).
+     * @param pageSize   페이지 크기 (기본값: 5).
+     * @return 페이징된 일간 통계 데이터를 포함한 Map.
      */
-    @Operation(summary = "일간 지표 다운로드", description = "일간 지표를 엑셀 파일로 다운로드합니다.")
+    @Operation(
+            summary = "특정 전략의 일간 통계 데이터 조회",
+            description = "특정 전략 ID에 대한 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다."
+    )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "엑셀 파일 다운로드 성공"),
-            @ApiResponse(responseCode = "404", description = "해당 전략의 일간 통계가 없음"),
+            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    @GetMapping("/download/daily-indicators")
-    public ResponseEntity<byte[]> downloadDailyStatisticsExcel(@RequestParam Long strategyId, @RequestParam(defaultValue = "false") boolean includeAnalysis) {
-        // 엑셀 바이트 배열 생성
-        byte[] excelBytes = statisticsExportService.exportDailyStatisticsToExcel(strategyId, includeAnalysis);
+    @GetMapping("/{strategyId}/daily-analyses")
+    public ResponseEntity<Map<String, Object>> getDailyAnalyses(
+            @PathVariable Long strategyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int pageSize) {
 
-        // HTTP 헤더 설정
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Disposition", "attachment; filename=daily_statistics.xlsx");
-        headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        // 서비스에서 페이징된 결과를 가져옴
+        Page<DailyStatisticsResponseDto> result = dailyStatisticsService.getDailyStatisticsByStrategy(strategyId, page, pageSize);
 
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(excelBytes);
+        // CreatePageResponse 유틸리티를 사용하여 결과를 Map 형태로 변환
+        Map<String, Object> response = CreatePageResponse.createPageResponse(result);
+
+        // 변환된 Map 반환
+        return ResponseEntity.ok(response);
     }
 
     /**
-     * 12. 일간 분석 지표 다운로드 엔드포인트
+     * 전략 통계를 반환합니다.
      *
-     * @return 일간 분석 지표 포함 엑셀 파일 다운로드
+     * @param strategyId 전략 ID
+     * @return 전략 통계 데이터
      */
-    @Operation(summary = "일간 분석 지표 다운로드", description = "일간 분석 지표를 포함한 엑셀 파일을 다운로드합니다.")
+    @Operation(
+            summary = "특정 전략의 통계 데이터 조회",
+            description = "특정 전략 ID에 대한 최신 통계 데이터를 반환합니다."
+    )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "엑셀 파일 다운로드 성공"),
-            @ApiResponse(responseCode = "404", description = "해당 전략의 일간 분석 통계가 없음"),
+            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    @GetMapping("/download/daily-analysis-indicators")
-    public ResponseEntity<byte[]> downloadDailyAnalysisIndicatorsExcel(@RequestParam Long strategyId) {
-        // 엑셀 바이트 배열 생성 (분석 포함)
-        byte[] excelBytes = statisticsExportService.exportDailyAnalysisIndicatorsToExcel(strategyId);
+    @GetMapping("/{strategyId}/statistics")
+    public ResponseEntity<Map<String, Object>> getStrategyStatistics(
+            @PathVariable Long strategyId) {
+        // 서비스 호출: Map<String, Object> 형태의 통계 데이터 반환
+        Map<String, Object> statistics = dailyStatisticsService.getDailyStatistics(strategyId);
 
-        // HTTP 헤더 설정
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Disposition", "attachment; filename=daily_analysis_indicators.xlsx");
-        headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        // 응답 데이터 포맷
+        Map<String, Object> response = Map.of(
+                "data", statistics,
+                "timestamp", Instant.now().toString() // 현재 타임스탬프 추가
+        );
 
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(excelBytes);
+        return ResponseEntity.ok(response); // HTTP 200 상태로 응답 반환
     }
 
     /**
-     * 13. 월간 지표 다운로드 엔드포인트
+     * 전략 수기 데이터 수정 API
      *
-     * @return 월간 통계 엑셀 파일 다운로드
+     * @param strategyId  수정할 전략 ID
+     * @param dailyDataId 수정할 데이터 ID
+     * @param reqDto      수정 요청 데이터 (날짜, 입출금, 일손익)
+     * @return 성공 메시지
      */
-    @Operation(summary = "월간 지표 다운로드", description = "월간 지표를 엑셀 파일로 다운로드합니다.")
+    @Operation(summary = "전략 수기 데이터 수정", description = "수정된 날짜 이후 데이터까지 재등록하여 지표를 갱신합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "엑셀 파일 다운로드 성공"),
-            @ApiResponse(responseCode = "404", description = "해당 전략의 월간 통계가 없음"),
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "데이터 또는 전략 ID를 찾을 수 없음"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    @GetMapping("/download/monthly-indicators")
-    public ResponseEntity<byte[]> downloadMonthlyStatisticsExcel(@RequestParam Long strategyId) {
-        // 엑셀 바이트 배열 생성
-        byte[] excelBytes = statisticsExportService.exportMonthlyStatisticsToExcel(strategyId);
+    @PutMapping("/{strategyId}/daily-data/{dailyDataId}")
+    public ResponseEntity<Map<String, String>> updateDailyData(
+            @PathVariable Long strategyId,
+            @PathVariable Long dailyDataId,
+            @RequestBody DailyStatisticsReqDto reqDto) {
 
-        // HTTP 헤더 설정
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Disposition", "attachment; filename=monthly_statistics.xlsx");
-        headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        // 서비스 호출하여 수정 로직 수행
+        dailyStatisticsService.updateDailyData(strategyId, dailyDataId, reqDto);
 
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(excelBytes);
+        // 성공 응답
+        Map<String, String> response = Map.of("msg", "UPDATE_SUCCESS");
+        return ResponseEntity.ok(response);
     }
-
 }

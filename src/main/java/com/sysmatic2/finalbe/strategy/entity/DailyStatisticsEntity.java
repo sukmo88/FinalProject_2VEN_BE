@@ -184,6 +184,14 @@ public class DailyStatisticsEntity extends Auditable {
     private BigDecimal maxDDInRate; // DD기간 내 최대 자본인하율
 
     @Column(name = "followers_count", nullable = false)
+    private Long followersCount; // 팔로워수 default = 0
+
+    @PrePersist
+    public void prePersist() {
+        if (followersCount == null) {
+            followersCount = 0L;
+        }
+    }
     private Long followersCount = 0L; // 팔로워수 default = 0
 
     /**
