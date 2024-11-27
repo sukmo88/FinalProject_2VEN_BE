@@ -12,51 +12,48 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class IconService {
+public class ProposalService {
 
     private final FileService fileService;
     private final FileMetadataRepository fileMetadataRepository;
 
+
     /**
-     * 새로운 아이콘 이미지 등록
+     * 새로운 제안서 파일 등록
      */
     @Transactional
-    public FileMetadataDto uploadIcon(MultipartFile file) {
-        String category = "icon";
-        String uploaderId = "admin";
+    public FileMetadataDto uploadProposal(MultipartFile file, String uploaderId, String strategyId) {
+        String category = "proposal";
 
-        // 새로운 아이콘 등록
-        return fileService.uploadFile(file, uploaderId, category, null);
-
+        // 새로운 제안서 등록
+        return fileService.uploadFile(file, uploaderId, category,  strategyId);
 
     }
 
     /**
-     * 기존 아이콘 이미지 수정
+     * 제안서 파일 수정
      */
     @Transactional
-    public FileMetadataDto modifyIcon(MultipartFile file, String filePath) {
-        String category = "icon";
-        String uploaderId = "admin";
+    public FileMetadataDto modifyProposal(MultipartFile file, String filePath, String uploaderId, String strategyId) {
+        String category = "proposal";
 
         // 기존 아이콘 파일 조회
         FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
 
         if (!existingMetadataDto.getFileCategory().equals(category)) {
-            throw new IllegalArgumentException("Invalid category: Expected 'icon', got " + existingMetadataDto.getFileCategory());
+            throw new IllegalArgumentException("Invalid category: Expected 'proposal', got " + existingMetadataDto.getFileCategory());
         }
 
-        // 아이콘 정보 업데이트
         return fileService.modifyFile(file, existingMetadataDto.getId(), uploaderId, category);
     }
 
+
     /**
-     * 아이콘 파일 삭제
+     * 제안서 파일 삭제
      */
     @Transactional
-    public FileMetadataDto deleteIcon(String filePath) {
-        String category = "icon";
-        String uploaderId = "admin";
+    public FileMetadataDto deleteProposal(String filePath, String uploaderId) {
+        String category = "proposal";
 
         FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
 
@@ -70,10 +67,20 @@ public class IconService {
         metadata.setFileName(null);
         metadata.setFilePath(null);
 
-        // 메타데이터 저장
+        // 초기화 된 메타데이터 저장
         fileMetadataRepository.save(metadata);
 
         return FileMetadataDto.fromEntity(metadata);
     }
+
+    /**
+     * 제안서 메타데이터 조회
+     */
+    public FileMetadataDto getProposalFileMetadata(String filePath) {
+        String category = "proposal";
+
+        return fileService.getFileMetadataByFilePath(filePath);
+    }
+
 
 }
