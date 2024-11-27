@@ -32,6 +32,30 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler;
 
     /**
+     * CORS 설정 공통 메서드
+     * @param allowAllOrigins 모든 출처 허용 여부 (로컬 환경에서만 true 가능)
+     * @return UrlBasedCorsConfigurationSource 객체
+     */
+    private UrlBasedCorsConfigurationSource createCorsConfiguration(boolean allowAllOrigins) {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        if (allowAllOrigins) {
+            configuration.addAllowedOriginPattern("*"); // 로컬 환경에서만 모든 출처 허용
+        } else {
+            configuration.addAllowedOriginPattern("https://*"); // HTTPS 출처만 허용
+        }
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.addAllowedHeader("*");
+        configuration.addExposedHeader("Authorization");
+        configuration.setAllowCredentials(true); // JWT와 같은 인증 정보 포함 허용
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    /**
      * 로컬 환경 (local)에서 HTTPS 강제 설정 없이 동작하는 SecurityFilterChain 설정
      * @param http HttpSecurity 객체
      * @return SecurityFilterChain 객체
@@ -40,19 +64,8 @@ public class SecurityConfig {
     @Bean
     @Profile("local") // 로컬 환경에서 활성화
     public SecurityFilterChain securityFilterChainLocal(HttpSecurity http) throws Exception {
-        // CORS 설정
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOriginPattern("*"); // HTTP 요청 허용
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.addAllowedHeader("*");
-        configuration.addExposedHeader("Authorization");
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-
         http
-                .cors(cors -> cors.configurationSource(source))
+                .cors(cors -> cors.configurationSource(createCorsConfiguration(true))) // 로컬 환경에서 모든 출처 허용
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
@@ -81,19 +94,8 @@ public class SecurityConfig {
     @Bean
     @Profile("prod") // 프로덕션 환경에서 활성화
     public SecurityFilterChain securityFilterChainProd(HttpSecurity http) throws Exception {
-        // CORS 설정
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOriginPattern("https://*"); // HTTPS 요청 허용
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.addAllowedHeader("*");
-        configuration.addExposedHeader("Authorization");
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-
         http
-                .cors(cors -> cors.configurationSource(source))
+                .cors(cors -> cors.configurationSource(createCorsConfiguration(false))) // HTTPS 출처만 허용
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
