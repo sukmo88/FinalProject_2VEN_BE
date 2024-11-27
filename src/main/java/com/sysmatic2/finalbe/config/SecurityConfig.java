@@ -41,14 +41,15 @@ public class SecurityConfig {
 
         if (allowAllOrigins) {
             configuration.addAllowedOriginPattern("*"); // 로컬 환경에서만 모든 출처 허용
+            configuration.setAllowCredentials(false); // JWT와 같은 인증 정보 포함 허용
         } else {
             configuration.addAllowedOriginPattern("https://*"); // HTTPS 출처만 허용
+            configuration.setAllowCredentials(true); // JWT와 같은 인증 정보 포함 허용
         }
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.addAllowedHeader("*");
         configuration.addExposedHeader("Authorization");
-        configuration.setAllowCredentials(true); // JWT와 같은 인증 정보 포함 허용
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
