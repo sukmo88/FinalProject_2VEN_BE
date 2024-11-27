@@ -5,16 +5,13 @@ import com.sysmatic2.finalbe.exception.CustomAuthenticationEntryPoint;
 import com.sysmatic2.finalbe.jwt.JWTFilter;
 import com.sysmatic2.finalbe.jwt.JWTUtil;
 import com.sysmatic2.finalbe.jwt.LoginFilter;
-import com.sysmatic2.finalbe.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,22 +19,115 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @Configuration
-@EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final AuthenticationConfiguration authenticationConfiguration;
-    private final JWTUtil jwtUtil;
-    private final CorsConfig corsConfig;
 
+    private final JWTUtil jwtUtil;
+    private final AuthenticationConfiguration authenticationConfiguration;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
 
-    //AuthenticationManager Bean 등록
+    /**
+     * CORS 설정 공통 메서드
+     * @param allowAllOrigins 모든 출처 허용 여부 (로컬 환경에서만 true 가능)
+     * @return UrlBasedCorsConfigurationSource 객체
+     */
+    private UrlBasedCorsConfigurationSource createCorsConfiguration(boolean allowAllOrigins) {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        if (allowAllOrigins) {
+            configuration.addAllowedOriginPattern("*"); // 로컬 환경에서만 모든 출처 허용
+            configuration.setAllowCredentials(false); // JWT와 같은 인증 정보 포함 허용
+        } else {
+            configuration.addAllowedOriginPattern("https://*"); // HTTPS 출처만 허용
+            configuration.addAllowedOriginPattern("http://*"); // HTTP 출처만 허용
+            configuration.setAllowCredentials(true); // JWT와 같은 인증 정보 포함 허용
+        }
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.addAllowedHeader("*");
+        configuration.addExposedHeader("Authorization");
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    /**
+     * 로컬 환경 (local)에서 HTTPS 강제 설정 없이 동작하는 SecurityFilterChain 설정
+     * @param http HttpSecurity 객체
+     * @return SecurityFilterChain 객체
+     * @throws Exception Spring Security 설정 중 예외 발생 시
+     */
+    @Bean
+    @Profile("local") // 로컬 환경에서 활성화
+    public SecurityFilterChain securityFilterChainLocal(HttpSecurity http) throws Exception {
+        http
+                .cors(cors -> cors.configurationSource(createCorsConfiguration(true))) // 로컬 환경에서 모든 출처 허용
+                .csrf(csrf -> csrf.disable()) // CSRF 비활성화
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/**").permitAll()
+                )
+                .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화
+                .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 비활성화
+                .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class)
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                );
+
+        return http.build();
+    }
+
+    /**
+     * 운영 환경 (prod)에서 HTTPS를 강제하는 SecurityFilterChain 설정
+     * @param http HttpSecurity 객체
+     * @return SecurityFilterChain 객체
+     * @throws Exception Spring Security 설정 중 예외 발생 시
+     */
+    @Bean
+    @Profile("prod") // 프로덕션 환경에서 활성화
+    public SecurityFilterChain securityFilterChainProd(HttpSecurity http) throws Exception {
+        http
+                .cors(cors -> cors.configurationSource(createCorsConfiguration(false))) // HTTPS 출처만 허용
+                .csrf(csrf -> csrf.disable()) // CSRF 비활성화
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/swagger-ui/**", "/api/**").permitAll()
+                        .requestMatchers("/**").permitAll()
+                )
+                .requiresChannel(channel -> channel.anyRequest().requiresSecure()) // HTTPS 강제
+                .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화
+                .httpBasic(httpBasic -> httpBasic.disable()) // HTTP Basic 비활성화
+                .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class)
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                );
+
+        return http.build();
+    }
+
+    /**
+     * AuthenticationManager Bean 등록
+     * @return AuthenticationManager 객체
+     * @throws Exception Spring Security 설정 중 예외 발생 시
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-
         return configuration.getAuthenticationManager();
     }
 
@@ -48,106 +138,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * 운영 환경 (prod)에서 HTTPS를 강제하는 SecurityFilterChain 설정
-     * @param http HttpSecurity 객체
-     * @return SecurityFilterChain 객체
-     * @throws Exception Spring Security 설정 중 예외 발생 시
-     */
-    @Bean
-    @Profile("prod") // 프로파일이 'prod'일 때만 활성화
-    public SecurityFilterChain securityFilterChainProd(HttpSecurity http) throws Exception {
-        http
-                // 모든 요청을 허용하지만 HTTPS를 강제
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/members/details", "/api/members/change-password", "api/members/withdrawal").authenticated()
-                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/**").permitAll() // 모든 경로를 허용
-                )
-                .requiresChannel(channel -> channel
-                        .anyRequest().requiresSecure() // HTTPS 강제 설정
-                )
-                .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
-                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource())); // CORS 설정 추가
-
-
-        http
-                .formLogin((auth) -> auth.disable()); //From 로그인 방식 disable
-
-        http
-                .httpBasic((auth) -> auth.disable()); //http basic 인증 방식 disable
-
-        //LoginFilter(로그인 필터)실행하기 전에 JWTFilter가 먼저 실행되도록 설정
-        http
-                .addFilterBefore(new JWTFilter(jwtUtil),LoginFilter.class);
-
-        //필터 추가 LoginFilter()는 인자를 받음 (AuthenticationManager() 메소드에 authenticationConfiguration 객체를 넣어야 함) 따라서 등록 필요
-        http
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration),jwtUtil), UsernamePasswordAuthenticationFilter.class);
-
-
-        //JWT 사용으로 세션 비활성화 설정
-//        http.sessionManagement((session) -> session
-//                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-
-        // Security filter 관련 에러(AuthenticationException, AccessDeniedException)가 GlobalExceptionHandler에서 처리되도록 설정
-        http.exceptionHandling(e -> e
-                .authenticationEntryPoint(authenticationEntryPoint)
-                .accessDeniedHandler(accessDeniedHandler));
-
-        return http.build();
-    }
-
-    /**
-     * 로컬 환경 (local)에서 HTTPS 강제 설정 없이 동작하는 SecurityFilterChain 설정
-     * @param http HttpSecurity 객체
-     * @return SecurityFilterChain 객체
-     * @throws Exception Spring Security 설정 중 예외 발생 시
-     */
-    @Bean
-    @Profile("local") // 프로파일이 'local'일 때만 활성화
-    public SecurityFilterChain securityFilterChainLocal(HttpSecurity http) throws Exception {
-        http
-                // 모든 요청을 허용하고 HTTPS 강제 설정 없음
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/members/details", "/api/members/change-password", "api/members/withdrawal").authenticated()
-                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/**").permitAll() // 모든 경로를 허용
-//                        .requestMatchers("/api/members/login").permitAll()
-//                        .requestMatchers("/api/auth/**").hasAuthority("ROLE_ADMIN")
-//                        .requestMatchers("/api/auth/").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
-                .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
-                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource())); // CORS 설정 추가
-
-        http
-                .formLogin((auth) -> auth.disable()); //From 로그인 방식 disable
-
-        http
-                .httpBasic((auth) -> auth.disable()); //http basic 인증 방식 disable
-
-        //LoginFilter(로그인 필터)실행하기 전에 JWTFilter가 먼저 실행되도록 설정
-        http
-                .addFilterBefore(new JWTFilter(jwtUtil),LoginFilter.class);
-        
-        //필터 추가 LoginFilter()는 인자를 받음 (AuthenticationManager() 메소드에 authenticationConfiguration 객체를 넣어야 함) 따라서 등록 필요
-        http
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration),jwtUtil), UsernamePasswordAuthenticationFilter.class);
-
-        //JWT 사용으로 세션 비활성화 설정
-        http.sessionManagement((session) -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        // Security filter 관련 에러(AuthenticationException, AccessDeniedException)가 GlobalExceptionHandler에서 처리되도록 설정
-        http.exceptionHandling(e -> e
-                .authenticationEntryPoint(authenticationEntryPoint)
-                .accessDeniedHandler(accessDeniedHandler));
-
-        return http.build();
     }
 
     /**

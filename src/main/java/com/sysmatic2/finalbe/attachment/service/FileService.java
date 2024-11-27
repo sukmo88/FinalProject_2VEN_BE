@@ -182,20 +182,6 @@ public class FileService {
     }
 
     /**
-     * 파일 메타데이터 목록 조회
-     *
-     * @param uploaderId 파일 업로더 ID
-     * @param category   파일 카테고리
-     * @return 파일 메타데이터 목록
-     */
-//    public List<FileMetadataDto> getFileMetadataList(String uploaderId, String category) {
-//        List<FileMetadata> metadataList = fileMetadataRepository.findByUploaderIdAndFileCategory(uploaderId, category);
-//        return metadataList.stream()
-//                .map(FileMetadataDto::fromEntity)
-//                .collect(Collectors.toList());
-//    }
-
-    /**
      * 파일 메타데이터 조회
      *
      * @param uploaderId 파일 업로더 ID
@@ -216,20 +202,6 @@ public class FileService {
      */
     public FileMetadataDto getFileMetadataByFilePath(String filePath) {
         return fileMetadataRepository.findByFilePath(filePath)
-                .map(FileMetadataDto::fromEntity)
-                .orElse(null); // 값이 없으면 null 반환
-    }
-
-    /**
-     * 파일 메타데이터 조회
-     *
-     * @param fileId 파일 ID
-     * @param uploaderId 파일 업로더 ID
-     * @param category   파일 카테고리
-     * @return 파일 메타데이터
-     */
-    public FileMetadataDto getFileMetadataByFileIdAndUploaderIdAndCategory(Long fileId, String uploaderId, String category) {
-        return fileMetadataRepository.findByIdAndUploaderIdAndFileCategory(fileId, uploaderId, category)
                 .map(FileMetadataDto::fromEntity)
                 .orElse(null); // 값이 없으면 null 반환
     }
