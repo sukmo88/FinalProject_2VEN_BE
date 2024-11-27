@@ -1,4 +1,4 @@
-// src/test/java/com/sysmatic2/finalbe/strategy/service/ExcelGeneratorServiceTest.java
+// ExcelGeneratorServiceTest.java
 package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.exception.ExcelFileCreationException;
@@ -9,14 +9,21 @@ import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.MonthlyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.util.ExcelGenerator;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
-import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,443 +38,359 @@ class ExcelGeneratorServiceTest {
   @Mock
   private MonthlyStatisticsRepository monthlyStatisticsRepository;
 
+  @Mock
+  private ExcelGenerator excelGenerator; // ExcelGenerator 모킹
+
   @InjectMocks
   private ExcelGeneratorService excelGeneratorService;
 
-  private StrategyEntity strategy;
   private List<DailyStatisticsEntity> dailyStatistics;
   private List<MonthlyStatisticsEntity> monthlyStatistics;
+  private StrategyEntity strategy;
 
   @BeforeEach
   void setUp() {
     // StrategyEntity 설정
     strategy = new StrategyEntity();
     strategy.setStrategyId(1L);
-    // 필요한 다른 필드도 설정
+    strategy.setStrategyStatusCode("운용중");
+    strategy.setIsPosted("Y");
+    strategy.setIsApproved("P");
+    strategy.setStrategyTitle("Test Strategy");
+    strategy.setMinInvestmentAmount("1000000");
+    strategy.setStrategyOverview("This is a test strategy.");
+    strategy.setWriterId("admin");
+    strategy.setWritedAt(LocalDate.now().atStartOfDay());
 
-    // DailyStatisticsEntity 설정
+    // Sample DailyStatisticsEntity 데이터 설정
     DailyStatisticsEntity daily1 = new DailyStatisticsEntity();
     daily1.setDailyStatisticsId(1L);
     daily1.setStrategyEntity(strategy);
-    // 필요한 다른 필드도 설정
+    daily1.setDate(LocalDate.of(2024, 4, 1));
+    daily1.setDepWdPrice(new BigDecimal("1000.00"));
+    daily1.setDailyProfitLoss(new BigDecimal("150.00"));
+    daily1.setDailyPlRate(new BigDecimal("0.15"));
+    daily1.setCumulativeProfitLoss(new BigDecimal("150.00"));
+    daily1.setCumulativeProfitLossRate(new BigDecimal("0.15"));
+    daily1.setKpRatio(new BigDecimal("1.2"));
+    daily1.setSmScore(new BigDecimal("75.50"));
+    daily1.setReferencePrice(new BigDecimal("10000.00"));
+    daily1.setCumulativeDepWdPrice(new BigDecimal("5000.00"));
+    daily1.setDepositAmount(new BigDecimal("1000.00"));
+    daily1.setCumulativeDepositAmount(new BigDecimal("3000.00"));
+    daily1.setWithdrawAmount(new BigDecimal("0.00"));
+    daily1.setCumulativeWithdrawAmount(new BigDecimal("0.00"));
+    daily1.setMaxDailyProfit(new BigDecimal("200.00"));
+    daily1.setMaxDailyProfitRate(new BigDecimal("0.20"));
+    daily1.setMaxDailyLoss(new BigDecimal("-50.00"));
+    daily1.setMaxDailyLossRate(new BigDecimal("-0.05"));
+    daily1.setTotalProfit(new BigDecimal("150.00"));
+    daily1.setTotalProfitDays(1);
+    daily1.setAverageProfit(new BigDecimal("150.00"));
+    daily1.setTotalLoss(new BigDecimal("-50.00"));
+    daily1.setTotalLossDays(1);
+    daily1.setAverageLoss(new BigDecimal("-50.00"));
+    daily1.setCumulativeProfitLossRate(new BigDecimal("0.15"));
+    daily1.setMaxCumulativeProfitLoss(new BigDecimal("150.00"));
+    daily1.setMaxCumulativeProfitLossRate(new BigDecimal("0.15"));
+    daily1.setAverageProfitLoss(new BigDecimal("100.00"));
+    daily1.setAverageProfitLossRate(new BigDecimal("0.10"));
+    daily1.setPeak(new BigDecimal("150.00"));
+    daily1.setPeakRate(new BigDecimal("0.15"));
+    daily1.setDaysSincePeak(5);
+    daily1.setCurrentDrawdownAmount(new BigDecimal("0.00"));
+    daily1.setCurrentDrawdownRate(new BigDecimal("0.00"));
+    daily1.setMaxDrawdownAmount(new BigDecimal("-50.00"));
+    daily1.setMaxDrawdownRate(new BigDecimal("-0.05"));
+    daily1.setWinRate(new BigDecimal("0.50"));
+    daily1.setProfitFactor(new BigDecimal("3.00"));
+    daily1.setRoa(new BigDecimal("0.02"));
+    daily1.setAverageProfitLossRatio(new BigDecimal("3.00"));
+    daily1.setCoefficientOfVariation(new BigDecimal("10.00"));
+    daily1.setSharpRatio(new BigDecimal("1.50"));
+    daily1.setCurrentConsecutivePlDays(1);
+    daily1.setMaxConsecutiveProfitDays(3);
+    daily1.setMaxConsecutiveLossDays(2);
+    daily1.setRecentOneYearReturn(new BigDecimal("0.25"));
+    daily1.setStrategyOperationDays(100);
 
-    dailyStatistics = List.of(daily1);
+    DailyStatisticsEntity daily2 = new DailyStatisticsEntity();
+    daily2.setDailyStatisticsId(2L);
+    daily2.setStrategyEntity(strategy);
+    daily2.setDate(LocalDate.of(2024, 4, 2));
+    daily2.setDepWdPrice(new BigDecimal("2000.00"));
+    daily2.setDailyProfitLoss(new BigDecimal("250.00"));
+    daily2.setDailyPlRate(new BigDecimal("0.25"));
+    daily2.setCumulativeProfitLoss(new BigDecimal("400.00"));
+    daily2.setCumulativeProfitLossRate(new BigDecimal("0.40"));
+    daily2.setKpRatio(new BigDecimal("1.3"));
+    daily2.setSmScore(new BigDecimal("80.00"));
+    daily2.setReferencePrice(new BigDecimal("10500.00"));
+    daily2.setCumulativeDepWdPrice(new BigDecimal("7000.00"));
+    daily2.setDepositAmount(new BigDecimal("2000.00"));
+    daily2.setCumulativeDepositAmount(new BigDecimal("5000.00"));
+    daily2.setWithdrawAmount(new BigDecimal("0.00"));
+    daily2.setCumulativeWithdrawAmount(new BigDecimal("0.00"));
+    daily2.setMaxDailyProfit(new BigDecimal("250.00"));
+    daily2.setMaxDailyProfitRate(new BigDecimal("0.25"));
+    daily2.setMaxDailyLoss(new BigDecimal("-50.00"));
+    daily2.setMaxDailyLossRate(new BigDecimal("-0.05"));
+    daily2.setTotalProfit(new BigDecimal("400.00"));
+    daily2.setTotalProfitDays(2);
+    daily2.setAverageProfit(new BigDecimal("200.00"));
+    daily2.setTotalLoss(new BigDecimal("-50.00"));
+    daily2.setTotalLossDays(1);
+    daily2.setAverageLoss(new BigDecimal("-50.00"));
+    daily2.setCumulativeProfitLossRate(new BigDecimal("0.40"));
+    daily2.setMaxCumulativeProfitLoss(new BigDecimal("400.00"));
+    daily2.setMaxCumulativeProfitLossRate(new BigDecimal("0.40"));
+    daily2.setAverageProfitLoss(new BigDecimal("175.00"));
+    daily2.setAverageProfitLossRate(new BigDecimal("0.20"));
+    daily2.setPeak(new BigDecimal("400.00"));
+    daily2.setPeakRate(new BigDecimal("0.40"));
+    daily2.setDaysSincePeak(3);
+    daily2.setCurrentDrawdownAmount(new BigDecimal("0.00"));
+    daily2.setCurrentDrawdownRate(new BigDecimal("0.00"));
+    daily2.setMaxDrawdownAmount(new BigDecimal("-50.00"));
+    daily2.setMaxDrawdownRate(new BigDecimal("-0.05"));
+    daily2.setWinRate(new BigDecimal("0.60"));
+    daily2.setProfitFactor(new BigDecimal("4.00"));
+    daily2.setRoa(new BigDecimal("0.03"));
+    daily2.setAverageProfitLossRatio(new BigDecimal("4.00"));
+    daily2.setCoefficientOfVariation(new BigDecimal("12.00"));
+    daily2.setSharpRatio(new BigDecimal("1.80"));
+    daily2.setCurrentConsecutivePlDays(2);
+    daily2.setMaxConsecutiveProfitDays(4);
+    daily2.setMaxConsecutiveLossDays(1);
+    daily2.setRecentOneYearReturn(new BigDecimal("0.30"));
+    daily2.setStrategyOperationDays(100);
 
-    // MonthlyStatisticsEntity 설정
+    dailyStatistics = Arrays.asList(daily1, daily2);
+
+    // Sample MonthlyStatisticsEntity 데이터 설정
     MonthlyStatisticsEntity monthly1 = new MonthlyStatisticsEntity();
     monthly1.setMonthlyStatisticsId(1L);
     monthly1.setStrategyEntity(strategy);
-    // 필요한 다른 필드도 설정
+    monthly1.setAnalysisMonth(YearMonth.of(2024, 4));
+    monthly1.setMonthlyAvgPrincipal(new BigDecimal("15000.00"));
+    monthly1.setMonthlyDepWdAmount(new BigDecimal("3000.00"));
+    monthly1.setMonthlyProfitLoss(new BigDecimal("400.00"));
+    monthly1.setMonthlyReturn(new BigDecimal("0.04"));
+    monthly1.setMonthlyCumulativeProfitLoss(new BigDecimal("400.00"));
+    monthly1.setMonthlyCumulativeReturn(new BigDecimal("0.04"));
+    monthly1.setMonthlyAvgBalance(new BigDecimal("12000.00"));
 
-    monthlyStatistics = List.of(monthly1);
+    monthlyStatistics = Arrays.asList(monthly1);
   }
 
-  /**
-   * 1. exportDailyStatisticsToExcel - 성공 케이스
-   */
   @Test
+  @DisplayName("일간 통계 엑셀 생성 성공 테스트")
   void testExportDailyStatisticsToExcel_Success() throws Exception {
     Long strategyId = 1L;
-    boolean includeAnalysis = true;
+    int pageNumber = 0;
+    int pageSize = 10;
 
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 통계 반환
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(dailyStatistics);
+    // 리포지토리 메서드 모킹
+    Page<DailyStatisticsEntity> dailyStatsPage = new PageImpl<>(dailyStatistics);
+    when(dailyStatisticsRepository.findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize)))
+            .thenReturn(dailyStatsPage);
 
-    // ExcelGenerator의 정적 메서드 모킹
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      Workbook mockWorkbook = mock(Workbook.class);
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateDailyStatisticsExcel(dailyStatistics, includeAnalysis))
-              .thenReturn(mockWorkbook);
+    // ExcelGenerator Mock: 실제로 시트가 있는 Workbook 반환
+    Workbook mockWorkbook = new XSSFWorkbook();
+    mockWorkbook.createSheet("일간 통계"); // 시트 추가
+    when(excelGenerator.generateDailyStatisticsExcel(dailyStatistics))
+            .thenReturn(mockWorkbook);
 
-      // Workbook의 write 메서드 모킹: 특정 바이트를 출력하도록 설정
-      byte[] expectedBytes = "dummy bytes".getBytes();
-      doAnswer(invocation -> {
-        ByteArrayOutputStream out = invocation.getArgument(0);
-        out.write(expectedBytes);
-        return null;
-      }).when(mockWorkbook).write(any(ByteArrayOutputStream.class));
+    // 엑셀 생성 서비스 호출
+    byte[] excelBytes = excelGeneratorService.exportDailyStatisticsToExcel(strategyId, false, pageNumber, pageSize);
 
-      // 서비스 메서드 호출
-      byte[] result = excelGeneratorService.exportDailyStatisticsToExcel(strategyId, includeAnalysis);
+    // 검증: 엑셀 바이트 배열이 null이 아니며 길이가 0보다 큼
+    assertNotNull(excelBytes, "엑셀 바이트 배열이 null이어서는 안 됩니다.");
+    assertTrue(excelBytes.length > 0, "엑셀 바이트 배열의 길이는 0보다 커야 합니다.");
 
-      // 결과 검증
-      assertNotNull(result);
-      assertArrayEquals(expectedBytes, result);
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateDailyStatisticsExcel(dailyStatistics, includeAnalysis), times(1));
-      // Workbook의 write 및 close 메서드 호출 검증
-      verify(mockWorkbook, times(1)).write(any(ByteArrayOutputStream.class));
-      verify(mockWorkbook, times(1)).close();
+    // 엑셀 파일의 내용 검증
+    try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(excelBytes))) {
+      org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheet("일간 통계");
+      assertNotNull(sheet, "엑셀 시트가 존재해야 합니다.");
+    } catch (IOException e) {
+      fail("엑셀 파일 검증 중 예외 발생: " + e.getMessage());
     }
+
+    // 리포지토리 호출 검증
+    verify(dailyStatisticsRepository, times(1))
+            .findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize));
+
+    // ExcelGenerator 호출 검증
+    verify(excelGenerator, times(1)).generateDailyStatisticsExcel(dailyStatistics);
   }
 
   /**
-   * 2. exportDailyStatisticsToExcel - 데이터 없음
+   * 2. 월간 통계 엑셀 생성 테스트 - 성공
    */
   @Test
+  @DisplayName("월간 통계 엑셀 생성 성공 테스트")
+  void testExportMonthlyStatisticsToExcel_Success() throws Exception {
+    Long strategyId = 1L;
+    int pageNumber = 0;
+    int pageSize = 10;
+
+    // 리포지토리 메서드 모킹
+    Page<MonthlyStatisticsEntity> monthlyStatsPage = new PageImpl<>(monthlyStatistics);
+    when(monthlyStatisticsRepository.findByStrategyEntityStrategyIdOrderByAnalysisMonthAsc(strategyId, PageRequest.of(pageNumber, pageSize)))
+            .thenReturn(monthlyStatsPage);
+
+    // ExcelGenerator Mock: 실제로 시트가 있는 Workbook 반환
+    Workbook mockWorkbook = new XSSFWorkbook();
+    mockWorkbook.createSheet("월간 통계"); // 시트 추가
+    when(excelGenerator.generateMonthlyStatisticsExcel(monthlyStatistics))
+            .thenReturn(mockWorkbook);
+
+    // 엑셀 생성 서비스 호출
+    byte[] excelBytes = excelGeneratorService.exportMonthlyStatisticsToExcel(strategyId, pageNumber, pageSize);
+
+    // 검증: 엑셀 바이트 배열이 null이 아니며 길이가 0보다 큼
+    assertNotNull(excelBytes, "엑셀 바이트 배열이 null이어서는 안 됩니다.");
+    assertTrue(excelBytes.length > 0, "엑셀 바이트 배열의 길이는 0보다 커야 합니다.");
+
+    // 엑셀 파일의 내용 검증
+    try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(excelBytes))) {
+      org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheet("월간 통계");
+      assertNotNull(sheet, "엑셀 시트가 존재해야 합니다.");
+    } catch (IOException e) {
+      fail("엑셀 파일 검증 중 예외 발생: " + e.getMessage());
+    }
+
+    // 리포지토리 호출 검증
+    verify(monthlyStatisticsRepository, times(1))
+            .findByStrategyEntityStrategyIdOrderByAnalysisMonthAsc(strategyId, PageRequest.of(pageNumber, pageSize));
+
+    // ExcelGenerator 호출 검증
+    verify(excelGenerator, times(1)).generateMonthlyStatisticsExcel(monthlyStatistics);
+  }
+
+  /**
+   * 3. 일간 분석 지표 엑셀 생성 테스트 - 성공
+   */
+  @Test
+  @DisplayName("일간 분석 지표 엑셀 생성 성공 테스트")
+  void testExportDailyAnalysisIndicatorsToExcel_Success() throws Exception {
+    Long strategyId = 1L;
+    int pageNumber = 0;
+    int pageSize = 10;
+
+    // 리포지토리 메서드 모킹: 전략 ID에 해당하는 일간 통계 페이징 반환
+    Page<DailyStatisticsEntity> dailyStatsPage = new PageImpl<>(dailyStatistics);
+    when(dailyStatisticsRepository.findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize)))
+            .thenReturn(dailyStatsPage);
+
+    // ExcelGenerator 유틸리티 메서드 모킹
+    Workbook realWorkbook = new XSSFWorkbook();
+    realWorkbook.createSheet("일간 분석 지표"); // 시트를 추가하여 엑셀 데이터 준비
+    when(excelGenerator.generateDailyAnalysisIndicatorsExcel(dailyStatistics)).thenReturn(realWorkbook);
+
+    // 엑셀 생성 서비스 호출
+    byte[] excelBytes = excelGeneratorService.exportDailyAnalysisIndicatorsToExcel(strategyId, pageNumber, pageSize);
+
+    // 검증: 엑셀 바이트 배열이 null이 아니며 길이가 0보다 큼
+    assertNotNull(excelBytes, "엑셀 바이트 배열이 null이어서는 안 됩니다.");
+    assertTrue(excelBytes.length > 0, "엑셀 바이트 배열의 길이는 0보다 커야 합니다.");
+
+    // 엑셀 파일의 내용 검증
+    try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(excelBytes))) {
+      org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheet("일간 분석 지표");
+      assertNotNull(sheet, "엑셀 시트가 존재해야 합니다.");
+    } catch (IOException e) {
+      fail("엑셀 파일 검증 중 예외 발생: " + e.getMessage());
+    }
+
+    // 리포지토리 메서드 호출 검증
+    verify(dailyStatisticsRepository, times(1))
+            .findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize));
+
+    // ExcelGenerator 메서드 호출 검증
+    verify(excelGenerator, times(1)).generateDailyAnalysisIndicatorsExcel(dailyStatistics);
+  }
+
+
+  /**
+   * 4. 월간 통계 엑셀 생성 테스트 - 실패 (데이터 없음)
+   */
+  @Test
+  @DisplayName("월간 통계 엑셀 생성 실패 테스트 - 데이터 없음")
+  void testExportMonthlyStatisticsToExcel_NoData() {
+    Long strategyId = 1L;
+    int pageNumber = 0;
+    int pageSize = 10;
+
+    // 리포지토리 메서드 모킹: 빈 페이지 반환
+    Page<MonthlyStatisticsEntity> emptyPage = new PageImpl<>(List.of());
+    when(monthlyStatisticsRepository.findByStrategyEntityStrategyIdOrderByAnalysisMonthAsc(strategyId, PageRequest.of(pageNumber, pageSize)))
+            .thenReturn(emptyPage);
+
+    // 예외 발생 확인
+    ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
+      excelGeneratorService.exportMonthlyStatisticsToExcel(strategyId, pageNumber, pageSize);
+    });
+
+    assertEquals("Strategy ID 1에 해당하는 월간 통계가 없습니다.", exception.getMessage(), "예외 메시지가 예상과 다릅니다.");
+
+    // 리포지토리 메서드 호출 검증
+    verify(monthlyStatisticsRepository, times(1))
+            .findByStrategyEntityStrategyIdOrderByAnalysisMonthAsc(strategyId, PageRequest.of(pageNumber, pageSize));
+  }
+
+  /**
+   * 5. 일간 통계 엑셀 생성 테스트 - 실패 (데이터 없음)
+   */
+  @Test
+  @DisplayName("일간 통계 엑셀 생성 실패 테스트 - 데이터 없음")
   void testExportDailyStatisticsToExcel_NoData() {
     Long strategyId = 1L;
     boolean includeAnalysis = true;
+    int pageNumber = 0;
+    int pageSize = 10;
 
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 통계 없음
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(List.of());
+    // 리포지토리 메서드 모킹: 빈 페이지 반환
+    Page<DailyStatisticsEntity> emptyPage = new PageImpl<>(List.of());
+    when(dailyStatisticsRepository.findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize)))
+            .thenReturn(emptyPage);
 
-    // 서비스 메서드 호출 시 예외 발생 확인
+    // 예외 발생 확인
     ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-      excelGeneratorService.exportDailyStatisticsToExcel(strategyId, includeAnalysis);
+      excelGeneratorService.exportDailyStatisticsToExcel(strategyId, includeAnalysis, pageNumber, pageSize);
     });
 
-    assertEquals("Strategy ID 1에 해당하는 일간 통계가 없습니다.", exception.getMessage());
+    assertEquals("Strategy ID 1에 해당하는 일간 통계가 없습니다.", exception.getMessage(), "예외 메시지가 예상과 다릅니다.");
 
-    // 리포지토리 호출 검증
-    verify(dailyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
+    // 리포지토리 메서드 호출 검증
+    verify(dailyStatisticsRepository, times(1))
+            .findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize));
   }
 
   /**
-   * 3. exportDailyStatisticsToExcel - ExcelGenerator 예외 발생
+   * 6. 일간 분석 지표 엑셀 생성 테스트 - 실패 (데이터 없음)
    */
   @Test
-  void testExportDailyStatisticsToExcel_ExcelGeneratorThrowsException() throws Exception {
-    Long strategyId = 1L;
-    boolean includeAnalysis = true;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 통계 반환
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(dailyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹: 예외 발생
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateDailyStatisticsExcel(dailyStatistics, includeAnalysis))
-              .thenThrow(new RuntimeException("Generation error"));
-
-      // 서비스 메서드 호출 시 예외 발생 확인
-      ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-        excelGeneratorService.exportDailyStatisticsToExcel(strategyId, includeAnalysis);
-      });
-
-      assertEquals("엑셀 파일 생성 중 오류가 발생했습니다.", exception.getMessage());
-      assertTrue(exception.getCause() instanceof RuntimeException);
-      assertEquals("Generation error", exception.getCause().getMessage());
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateDailyStatisticsExcel(dailyStatistics, includeAnalysis), times(1));
-    }
-
-    // 리포지토리 호출 검증
-    verify(dailyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
-  }
-
-  /**
-   * 4. exportDailyStatisticsToExcel - Workbook.write IOException 발생
-   */
-  @Test
-  void testExportDailyStatisticsToExcel_WorkbookWriteThrowsIOException() throws Exception {
-    Long strategyId = 1L;
-    boolean includeAnalysis = true;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 통계 반환
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(dailyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      Workbook mockWorkbook = mock(Workbook.class);
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateDailyStatisticsExcel(dailyStatistics, includeAnalysis))
-              .thenReturn(mockWorkbook);
-
-      // Workbook의 write 메서드 모킹: IOException 발생
-      doThrow(new IOException("Write error")).when(mockWorkbook).write(any(ByteArrayOutputStream.class));
-
-      // 서비스 메서드 호출 시 예외 발생 확인
-      ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-        excelGeneratorService.exportDailyStatisticsToExcel(strategyId, includeAnalysis);
-      });
-
-      assertEquals("엑셀 파일 생성 중 I/O 오류가 발생했습니다.", exception.getMessage());
-      assertTrue(exception.getCause() instanceof IOException);
-      assertEquals("Write error", exception.getCause().getMessage());
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateDailyStatisticsExcel(dailyStatistics, includeAnalysis), times(1));
-      // Workbook의 write 및 close 메서드 호출 검증
-      verify(mockWorkbook, times(1)).write(any(ByteArrayOutputStream.class));
-      verify(mockWorkbook, times(1)).close();
-    }
-
-    // 리포지토리 호출 검증
-    verify(dailyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
-  }
-
-  /**
-   * 5. exportMonthlyStatisticsToExcel - 성공 케이스
-   */
-  @Test
-  void testExportMonthlyStatisticsToExcel_Success() throws Exception {
-    Long strategyId = 1L;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 월간 통계 반환
-    when(monthlyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(monthlyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      Workbook mockWorkbook = mock(Workbook.class);
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateMonthlyStatisticsExcel(monthlyStatistics))
-              .thenReturn(mockWorkbook);
-
-      // Workbook의 write 메서드 모킹: 특정 바이트를 출력하도록 설정
-      byte[] expectedBytes = "monthly dummy bytes".getBytes();
-      doAnswer(invocation -> {
-        ByteArrayOutputStream out = invocation.getArgument(0);
-        out.write(expectedBytes);
-        return null;
-      }).when(mockWorkbook).write(any(ByteArrayOutputStream.class));
-
-      // 서비스 메서드 호출
-      byte[] result = excelGeneratorService.exportMonthlyStatisticsToExcel(strategyId);
-
-      // 결과 검증
-      assertNotNull(result);
-      assertArrayEquals(expectedBytes, result);
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateMonthlyStatisticsExcel(monthlyStatistics), times(1));
-      // Workbook의 write 및 close 메서드 호출 검증
-      verify(mockWorkbook, times(1)).write(any(ByteArrayOutputStream.class));
-      verify(mockWorkbook, times(1)).close();
-    }
-  }
-
-  /**
-   * 6. exportMonthlyStatisticsToExcel - 데이터 없음
-   */
-  @Test
-  void testExportMonthlyStatisticsToExcel_NoData() {
-    Long strategyId = 1L;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 월간 통계 없음
-    when(monthlyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(List.of());
-
-    // 서비스 메서드 호출 시 예외 발생 확인
-    ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-      excelGeneratorService.exportMonthlyStatisticsToExcel(strategyId);
-    });
-
-    assertEquals("Strategy ID 1에 해당하는 월간 통계가 없습니다.", exception.getMessage());
-
-    // 리포지토리 호출 검증
-    verify(monthlyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
-  }
-
-  /**
-   * 7. exportMonthlyStatisticsToExcel - ExcelGenerator 예외 발생
-   */
-  @Test
-  void testExportMonthlyStatisticsToExcel_ExcelGeneratorThrowsException() throws Exception {
-    Long strategyId = 1L;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 월간 통계 반환
-    when(monthlyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(monthlyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹: 예외 발생
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateMonthlyStatisticsExcel(monthlyStatistics))
-              .thenThrow(new RuntimeException("Generation error"));
-
-      // 서비스 메서드 호출 시 예외 발생 확인
-      ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-        excelGeneratorService.exportMonthlyStatisticsToExcel(strategyId);
-      });
-
-      assertEquals("엑셀 파일 생성 중 오류가 발생했습니다.", exception.getMessage());
-      assertTrue(exception.getCause() instanceof RuntimeException);
-      assertEquals("Generation error", exception.getCause().getMessage());
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateMonthlyStatisticsExcel(monthlyStatistics), times(1));
-    }
-
-    // 리포지토리 호출 검증
-    verify(monthlyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
-  }
-
-  /**
-   * 8. exportMonthlyStatisticsToExcel - Workbook.write IOException 발생
-   */
-  @Test
-  void testExportMonthlyStatisticsToExcel_WorkbookWriteThrowsIOException() throws Exception {
-    Long strategyId = 1L;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 월간 통계 반환
-    when(monthlyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(monthlyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      Workbook mockWorkbook = mock(Workbook.class);
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateMonthlyStatisticsExcel(monthlyStatistics))
-              .thenReturn(mockWorkbook);
-
-      // Workbook의 write 메서드 모킹: IOException 발생
-      doThrow(new IOException("Write error")).when(mockWorkbook).write(any(ByteArrayOutputStream.class));
-
-      // 서비스 메서드 호출 시 예외 발생 확인
-      ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-        excelGeneratorService.exportMonthlyStatisticsToExcel(strategyId);
-      });
-
-      assertEquals("엑셀 파일 생성 중 I/O 오류가 발생했습니다.", exception.getMessage());
-      assertTrue(exception.getCause() instanceof IOException);
-      assertEquals("Write error", exception.getCause().getMessage());
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateMonthlyStatisticsExcel(monthlyStatistics), times(1));
-      // Workbook의 write 및 close 메서드 호출 검증
-      verify(mockWorkbook, times(1)).write(any(ByteArrayOutputStream.class));
-      verify(mockWorkbook, times(1)).close();
-    }
-
-    // 리포지토리 호출 검증
-    verify(monthlyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
-  }
-
-  /**
-   * 9. exportDailyAnalysisIndicatorsToExcel - 성공 케이스
-   */
-  @Test
-  void testExportDailyAnalysisIndicatorsToExcel_Success() throws Exception {
-    Long strategyId = 1L;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 분석 통계 반환
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(dailyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      Workbook mockWorkbook = mock(Workbook.class);
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateDailyAnalysisIndicatorsExcel(dailyStatistics))
-              .thenReturn(mockWorkbook);
-
-      // Workbook의 write 메서드 모킹: 특정 바이트를 출력하도록 설정
-      byte[] expectedBytes = "analysis dummy bytes".getBytes();
-      doAnswer(invocation -> {
-        ByteArrayOutputStream out = invocation.getArgument(0);
-        out.write(expectedBytes);
-        return null;
-      }).when(mockWorkbook).write(any(ByteArrayOutputStream.class));
-
-      // 서비스 메서드 호출
-      byte[] result = excelGeneratorService.exportDailyAnalysisIndicatorsToExcel(strategyId);
-
-      // 결과 검증
-      assertNotNull(result);
-      assertArrayEquals(expectedBytes, result);
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateDailyAnalysisIndicatorsExcel(dailyStatistics), times(1));
-      // Workbook의 write 및 close 메서드 호출 검증
-      verify(mockWorkbook, times(1)).write(any(ByteArrayOutputStream.class));
-      verify(mockWorkbook, times(1)).close();
-    }
-  }
-
-  /**
-   * 10. exportDailyAnalysisIndicatorsToExcel - 데이터 없음
-   */
-  @Test
+  @DisplayName("일간 분석 지표 엑셀 생성 실패 테스트 - 데이터 없음")
   void testExportDailyAnalysisIndicatorsToExcel_NoData() {
     Long strategyId = 1L;
+    int pageNumber = 0;
+    int pageSize = 10;
 
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 분석 통계 없음
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(List.of());
+    // 리포지토리 메서드 모킹: 빈 페이지 반환
+    Page<DailyStatisticsEntity> emptyPage = new PageImpl<>(List.of());
+    when(dailyStatisticsRepository.findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize)))
+            .thenReturn(emptyPage);
 
-    // 서비스 메서드 호출 시 예외 발생 확인
+    // 예외 발생 확인
     ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-      excelGeneratorService.exportDailyAnalysisIndicatorsToExcel(strategyId);
+      excelGeneratorService.exportDailyAnalysisIndicatorsToExcel(strategyId, pageNumber, pageSize);
     });
 
-    assertEquals("Strategy ID 1에 해당하는 일간 분석 통계가 없습니다.", exception.getMessage());
+    assertEquals("Strategy ID 1에 해당하는 일간 분석 통계가 없습니다.", exception.getMessage(), "예외 메시지가 예상과 다릅니다.");
 
-    // 리포지토리 호출 검증
-    verify(dailyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
-  }
-
-  /**
-   * 11. exportDailyAnalysisIndicatorsToExcel - ExcelGenerator 예외 발생
-   */
-  @Test
-  void testExportDailyAnalysisIndicatorsToExcel_ExcelGeneratorThrowsException() throws Exception {
-    Long strategyId = 1L;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 분석 통계 반환
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(dailyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹: 예외 발생
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateDailyAnalysisIndicatorsExcel(dailyStatistics))
-              .thenThrow(new RuntimeException("Generation error"));
-
-      // 서비스 메서드 호출 시 예외 발생 확인
-      ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-        excelGeneratorService.exportDailyAnalysisIndicatorsToExcel(strategyId);
-      });
-
-      assertEquals("엑셀 파일 생성 중 오류가 발생했습니다.", exception.getMessage());
-      assertTrue(exception.getCause() instanceof RuntimeException);
-      assertEquals("Generation error", exception.getCause().getMessage());
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateDailyAnalysisIndicatorsExcel(dailyStatistics), times(1));
-    }
-
-    // 리포지토리 호출 검증
-    verify(dailyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
-  }
-
-  /**
-   * 12. exportDailyAnalysisIndicatorsToExcel - Workbook.write IOException 발생
-   */
-  @Test
-  void testExportDailyAnalysisIndicatorsToExcel_WorkbookWriteThrowsIOException() throws Exception {
-    Long strategyId = 1L;
-
-    // 리포지토리 모킹: 전략 ID에 해당하는 일간 분석 통계 반환
-    when(dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId))
-            .thenReturn(dailyStatistics);
-
-    // ExcelGenerator의 정적 메서드 모킹
-    try (MockedStatic<ExcelGenerator> mockedExcelGenerator = mockStatic(ExcelGenerator.class)) {
-      Workbook mockWorkbook = mock(Workbook.class);
-      mockedExcelGenerator.when(() -> ExcelGenerator.generateDailyAnalysisIndicatorsExcel(dailyStatistics))
-              .thenReturn(mockWorkbook);
-
-      // Workbook의 write 메서드 모킹: IOException 발생
-      doThrow(new IOException("Write error")).when(mockWorkbook).write(any(ByteArrayOutputStream.class));
-
-      // 서비스 메서드 호출 시 예외 발생 확인
-      ExcelFileCreationException exception = assertThrows(ExcelFileCreationException.class, () -> {
-        excelGeneratorService.exportDailyAnalysisIndicatorsToExcel(strategyId);
-      });
-
-      assertEquals("엑셀 파일 생성 중 I/O 오류가 발생했습니다.", exception.getMessage());
-      assertTrue(exception.getCause() instanceof IOException);
-      assertEquals("Write error", exception.getCause().getMessage());
-
-      // ExcelGenerator의 메서드 호출 검증
-      mockedExcelGenerator.verify(() -> ExcelGenerator.generateDailyAnalysisIndicatorsExcel(dailyStatistics), times(1));
-      // Workbook의 write 및 close 메서드 호출 검증
-      verify(mockWorkbook, times(1)).write(any(ByteArrayOutputStream.class));
-      verify(mockWorkbook, times(1)).close();
-    }
-
-    // 리포지토리 호출 검증
-    verify(dailyStatisticsRepository, times(1)).findByStrategyEntity_StrategyId(strategyId);
+    // 리포지토리 메서드 호출 검증
+    verify(dailyStatisticsRepository, times(1))
+            .findByStrategyEntityStrategyIdOrderByDateDesc(strategyId, PageRequest.of(pageNumber, pageSize));
   }
 }

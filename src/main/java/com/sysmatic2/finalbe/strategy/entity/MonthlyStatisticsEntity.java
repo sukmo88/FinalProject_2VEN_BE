@@ -16,6 +16,7 @@ import java.time.YearMonth;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder //테스트용
 public class MonthlyStatisticsEntity extends Auditable {
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)

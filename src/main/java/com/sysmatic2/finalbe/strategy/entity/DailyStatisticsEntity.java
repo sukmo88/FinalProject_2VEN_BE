@@ -192,7 +192,7 @@ public class DailyStatisticsEntity extends Auditable {
             followersCount = 0L;
         }
     }
-    private Long followersCount = 0L; // 팔로워수 default = 0
+//    private Long followersCount = 0L; // 팔로워수 default = 0
 
     /**
      * 엔티티 데이터를 리스트로 매핑하는 메서드
