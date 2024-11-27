@@ -139,16 +139,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
-    /**
-     * SameSite=None 및 Secure 속성을 추가하는 쿠키 설정
-     */
-    @Bean
-    public CookieSerializer cookieSerializer() {
-        DefaultCookieSerializer serializer = new DefaultCookieSerializer();
-        serializer.setCookieName("SESSIONID"); // 쿠키 이름 설정
-        serializer.setSameSite("None"); // Cross-Origin 요청에서 쿠키 전송 가능
-        serializer.setUseSecureCookie(true); // HTTPS에서만 쿠키 전송
-        return serializer;
-    }
 }
