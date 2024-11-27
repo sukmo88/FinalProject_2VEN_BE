@@ -30,6 +30,18 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // 500: Excel 파일 생성 중 예외 처리
+    @ExceptionHandler(ExcelFileCreationException.class)
+    public ResponseEntity<Object> handleExcelFileCreationException(ExcelFileCreationException ex) {
+        logger.error("ExcelFileCreationException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "EXCEL_CREATION_ERROR",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
     @ExceptionHandler(ExcelValidationException.class)
     public ResponseEntity<Object> handleExcelValidationException(ExcelValidationException ex) {
         logger.warn("ExcelValidationException 발생: {}", ex.getMessage());

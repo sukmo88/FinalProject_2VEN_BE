@@ -135,5 +135,7 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     @Query("SELECT MIN(d.date) FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId")
     Optional<LocalDate> findEarliestDateByStrategyId(@Param("strategyId") Long strategyId);
 
+    List<DailyStatisticsEntity> findByStrategyEntity_StrategyId(Long strategyId);
+
 
 }

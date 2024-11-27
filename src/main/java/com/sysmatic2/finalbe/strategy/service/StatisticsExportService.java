@@ -1,11 +1,14 @@
+// StatisticsExportService.java
 package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.exception.ExcelFileCreationException;
+import com.sysmatic2.finalbe.exception.StrategyNotFoundException;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.MonthlyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.MonthlyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.util.ExcelGenerator;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.stereotype.Service;
 
@@ -14,19 +17,14 @@ import java.io.IOException;
 import java.util.List;
 
 @Service
-public class ExcelGeneratorService {
+@RequiredArgsConstructor
+public class StatisticsExportService {
 
   private final DailyStatisticsRepository dailyStatisticsRepository;
   private final MonthlyStatisticsRepository monthlyStatisticsRepository;
 
-  public ExcelGeneratorService(DailyStatisticsRepository dailyStatisticsRepository,
-                               MonthlyStatisticsRepository monthlyStatisticsRepository) {
-    this.dailyStatisticsRepository = dailyStatisticsRepository;
-    this.monthlyStatisticsRepository = monthlyStatisticsRepository;
-  }
-
   /**
-   * 일간 통계 엑셀 파일 생성
+   * 일간 통계를 엑셀로 변환하는 메서드
    *
    * @param strategyId      전략 ID
    * @param includeAnalysis 분석 지표 포함 여부
@@ -34,20 +32,21 @@ public class ExcelGeneratorService {
    * @throws ExcelFileCreationException 엑셀 생성 중 발생하는 예외
    */
   public byte[] exportDailyStatisticsToExcel(Long strategyId, boolean includeAnalysis) {
-    List<DailyStatisticsEntity> statistics = dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId);
-    if (statistics.isEmpty()) {
+    List<DailyStatisticsEntity> dailyStats = dailyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId);
+    if (dailyStats.isEmpty()) {
       throw new ExcelFileCreationException("Strategy ID " + strategyId + "에 해당하는 일간 통계가 없습니다.");
     }
 
     Workbook workbook;
     try {
-      workbook = ExcelGenerator.generateDailyStatisticsExcel(statistics, includeAnalysis);
+      workbook = ExcelGenerator.generateDailyStatisticsExcel(dailyStats, includeAnalysis);
     } catch (Exception e) {
       throw new ExcelFileCreationException("엑셀 파일 생성 중 오류가 발생했습니다.", e);
     }
 
-    try (Workbook wb = workbook; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-      wb.write(out);
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+      workbook.write(out);
+      workbook.close();
       return out.toByteArray();
     } catch (IOException e) {
       throw new ExcelFileCreationException("엑셀 파일 생성 중 I/O 오류가 발생했습니다.", e);
@@ -55,27 +54,28 @@ public class ExcelGeneratorService {
   }
 
   /**
-   * 월간 통계 엑셀 파일 생성
+   * 월간 통계를 엑셀로 변환하는 메서드
    *
    * @param strategyId 전략 ID
    * @return 엑셀 파일 바이트 배열
    * @throws ExcelFileCreationException 엑셀 생성 중 발생하는 예외
    */
   public byte[] exportMonthlyStatisticsToExcel(Long strategyId) {
-    List<MonthlyStatisticsEntity> statistics = monthlyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId);
-    if (statistics.isEmpty()) {
+    List<MonthlyStatisticsEntity> monthlyStats = monthlyStatisticsRepository.findByStrategyEntity_StrategyId(strategyId);
+    if (monthlyStats.isEmpty()) {
       throw new ExcelFileCreationException("Strategy ID " + strategyId + "에 해당하는 월간 통계가 없습니다.");
     }
 
     Workbook workbook;
     try {
-      workbook = ExcelGenerator.generateMonthlyStatisticsExcel(statistics);
+      workbook = ExcelGenerator.generateMonthlyStatisticsExcel(monthlyStats);
     } catch (Exception e) {
       throw new ExcelFileCreationException("엑셀 파일 생성 중 오류가 발생했습니다.", e);
     }
 
-    try (Workbook wb = workbook; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-      wb.write(out);
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+      workbook.write(out);
+      workbook.close();
       return out.toByteArray();
     } catch (IOException e) {
       throw new ExcelFileCreationException("엑셀 파일 생성 중 I/O 오류가 발생했습니다.", e);
@@ -102,8 +102,9 @@ public class ExcelGeneratorService {
       throw new ExcelFileCreationException("엑셀 파일 생성 중 오류가 발생했습니다.", e);
     }
 
-    try (Workbook wb = workbook; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-      wb.write(out);
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+      workbook.write(out);
+      workbook.close();
       return out.toByteArray();
     } catch (IOException e) {
       throw new ExcelFileCreationException("엑셀 파일 생성 중 I/O 오류가 발생했습니다.", e);

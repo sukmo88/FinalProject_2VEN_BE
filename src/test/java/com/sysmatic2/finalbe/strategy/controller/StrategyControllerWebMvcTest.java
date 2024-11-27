@@ -2,11 +2,13 @@ package com.sysmatic2.finalbe.strategy.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
+import com.sysmatic2.finalbe.exception.ExcelFileCreationException;
 import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.ExcelGeneratorService;
+import com.sysmatic2.finalbe.strategy.service.StatisticsExportService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -47,6 +49,9 @@ class StrategyControllerWebMvcTest {
 
     @MockBean
     private DailyStatisticsService dailyStatisticsService; // 추가
+
+    @MockBean
+    private StatisticsExportService statisticsExportService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -135,79 +140,155 @@ class StrategyControllerWebMvcTest {
                 .andExpect(jsonPath("$.errors").exists());
     }
 
-    // 11. 일간 지표 다운로드 테스트
+    /**
+     * 11. 일간 지표 다운로드 테스트 - 성공
+     */
     @Test
     @DisplayName("일간 지표 다운로드 - 성공")
     @WithMockUser
     void testDownloadDailyStatisticsExcel_Success() throws Exception {
-        // Given
+        // 엑셀 데이터 설정
         byte[] mockExcelData = "Excel Data".getBytes();
-        ByteArrayInputStream mockInputStream = new ByteArrayInputStream(mockExcelData);
-        when(excelGeneratorService.generateDailyStatisticsExcel()).thenReturn(mockInputStream);
 
-        // When & Then
-        mockMvc.perform(get("/api/strategies/download/daily-indicators"))
+        // 서비스 메서드 모킹: 엑셀 생성 시 바이트 배열 반환
+        when(statisticsExportService.exportDailyStatisticsToExcel(eq(1L), eq(false)))
+                .thenReturn(mockExcelData);
+
+        // 엑셀 다운로드 요청 및 검증
+        mockMvc.perform(get("/api/strategies/download/daily-indicators")
+                        .param("strategyId", "1")
+                        .param("includeAnalysis", "false"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", "attachment; filename=daily_statistics.xlsx"))
-                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
+                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))) // 수정
                 .andExpect(content().bytes(mockExcelData));
 
-        verify(excelGeneratorService, times(1)).generateDailyStatisticsExcel();
+        // 서비스 메서드 호출 여부 확인
+        verify(statisticsExportService, times(1)).exportDailyStatisticsToExcel(eq(1L), eq(false));
     }
 
-    // 12. 일간 분석 지표 다운로드 테스트
+    /**
+     * 11. 일간 지표 다운로드 테스트 - 서버 오류 발생 시 예외 처리
+     */
+    @Test
+    @DisplayName("일간 지표 다운로드 시 서버 오류 발생 테스트")
+    @WithMockUser
+    void testDownloadDailyStatisticsExcel_ServerError() throws Exception {
+        // 서비스 메서드 모킹: 엑셀 생성 시 ExcelFileCreationException 발생
+        when(statisticsExportService.exportDailyStatisticsToExcel(eq(1L), eq(false)))
+                .thenThrow(new ExcelFileCreationException("엑셀 파일 생성 중 오류가 발생했습니다."));
+
+        // 엑셀 다운로드 요청 및 예외 검증
+        mockMvc.perform(get("/api/strategies/download/daily-indicators")
+                        .param("strategyId", "1")
+                        .param("includeAnalysis", "false"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errorType").value("ExcelFileCreationException"))
+                .andExpect(jsonPath("$.error").value("EXCEL_CREATION_ERROR")) // 수정
+                .andExpect(jsonPath("$.message").value("엑셀 파일 생성 중 오류가 발생했습니다."))
+                .andExpect(jsonPath("$.timestamp").exists());
+
+        // 서비스 메서드 호출 여부 확인
+        verify(statisticsExportService, times(1)).exportDailyStatisticsToExcel(eq(1L), eq(false));
+    }
+
+    /**
+     * 12. 일간 분석 지표 다운로드 테스트 - 성공
+     */
     @Test
     @DisplayName("일간 분석 지표 다운로드 - 성공")
     @WithMockUser
     void testDownloadDailyAnalysisIndicatorsExcel_Success() throws Exception {
-        // Given
+        // 엑셀 데이터 설정
         byte[] mockExcelData = "Daily Analysis Excel Data".getBytes();
-        ByteArrayInputStream mockInputStream = new ByteArrayInputStream(mockExcelData);
-        when(excelGeneratorService.generateDailyAnalysisIndicatorsExcel()).thenReturn(mockInputStream);
 
-        // When & Then
-        mockMvc.perform(get("/api/strategies/download/daily-analysis-indicators"))
+        // 서비스 메서드 모킹: 엑셀 생성 시 바이트 배열 반환
+        when(statisticsExportService.exportDailyAnalysisIndicatorsToExcel(eq(1L)))
+                .thenReturn(mockExcelData);
+
+        // 엑셀 다운로드 요청 및 검증
+        mockMvc.perform(get("/api/strategies/download/daily-analysis-indicators")
+                        .param("strategyId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", "attachment; filename=daily_analysis_indicators.xlsx"))
-                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
+                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))) // 수정
                 .andExpect(content().bytes(mockExcelData));
 
-        verify(excelGeneratorService, times(1)).generateDailyAnalysisIndicatorsExcel();
+        // 서비스 메서드 호출 여부 확인
+        verify(statisticsExportService, times(1)).exportDailyAnalysisIndicatorsToExcel(eq(1L));
     }
 
-    // 13. 월간 지표 다운로드 테스트
+    /**
+     * 12. 일간 분석 지표 다운로드 테스트 - 서버 오류 발생 시 예외 처리
+     */
+    @Test
+    @DisplayName("일간 분석 지표 다운로드 시 서버 오류 발생 테스트")
+    @WithMockUser
+    void testDownloadDailyAnalysisIndicatorsExcel_ServerError() throws Exception {
+        // 서비스 메서드 모킹: 엑셀 생성 시 ExcelFileCreationException 발생
+        when(statisticsExportService.exportDailyAnalysisIndicatorsToExcel(eq(1L)))
+                .thenThrow(new ExcelFileCreationException("엑셀 파일 생성 중 오류가 발생했습니다."));
+
+        // 엑셀 다운로드 요청 및 예외 검증
+        mockMvc.perform(get("/api/strategies/download/daily-analysis-indicators")
+                        .param("strategyId", "1"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errorType").value("ExcelFileCreationException"))
+                .andExpect(jsonPath("$.error").value("EXCEL_CREATION_ERROR")) // 수정
+                .andExpect(jsonPath("$.message").value("엑셀 파일 생성 중 오류가 발생했습니다."))
+                .andExpect(jsonPath("$.timestamp").exists());
+
+        // 서비스 메서드 호출 여부 확인
+        verify(statisticsExportService, times(1)).exportDailyAnalysisIndicatorsToExcel(eq(1L));
+    }
+
+    /**
+     * 13. 월간 지표 다운로드 테스트 - 성공
+     */
     @Test
     @DisplayName("월간 지표 다운로드 - 성공")
     @WithMockUser
     void testDownloadMonthlyStatisticsExcel_Success() throws Exception {
-        // Given
+        // 엑셀 데이터 설정
         byte[] mockExcelData = "Monthly Statistics Excel Data".getBytes();
-        ByteArrayInputStream mockInputStream = new ByteArrayInputStream(mockExcelData);
-        when(excelGeneratorService.generateMonthlyStatisticsExcel()).thenReturn(mockInputStream);
 
-        // When & Then
-        mockMvc.perform(get("/api/strategies/download/monthly-indicators"))
+        // 서비스 메서드 모킹: 엑셀 생성 시 바이트 배열 반환
+        when(statisticsExportService.exportMonthlyStatisticsToExcel(eq(1L)))
+                .thenReturn(mockExcelData);
+
+        // 엑셀 다운로드 요청 및 검증
+        mockMvc.perform(get("/api/strategies/download/monthly-indicators")
+                        .param("strategyId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", "attachment; filename=monthly_statistics.xlsx"))
-                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")))
+                .andExpect(header().string("Content-Type", startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))) // 수정
                 .andExpect(content().bytes(mockExcelData));
 
-        verify(excelGeneratorService, times(1)).generateMonthlyStatisticsExcel();
+        // 서비스 메서드 호출 여부 확인
+        verify(statisticsExportService, times(1)).exportMonthlyStatisticsToExcel(eq(1L));
     }
 
-    // 예외 케이스 테스트 (수정)
+    /**
+     * 13. 월간 지표 다운로드 테스트 - 서버 오류 발생 시 예외 처리
+     */
     @Test
-    @DisplayName("일간 지표 다운로드 - 서버 오류")
+    @DisplayName("월간 지표 다운로드 시 서버 오류 발생 테스트")
     @WithMockUser
-    void testDownloadDailyStatisticsExcel_ServerError() throws Exception {
-        // Given
-        when(excelGeneratorService.generateDailyStatisticsExcel()).thenThrow(new IOException("파일 생성 오류"));
+    void testDownloadMonthlyStatisticsExcel_ServerError() throws Exception {
+        // 서비스 메서드 모킹: 엑셀 생성 시 ExcelFileCreationException 발생
+        when(statisticsExportService.exportMonthlyStatisticsToExcel(eq(1L)))
+                .thenThrow(new ExcelFileCreationException("엑셀 파일 생성 중 오류가 발생했습니다."));
 
-        // When & Then
-        mockMvc.perform(get("/api/strategies/download/daily-indicators"))
+        // 엑셀 다운로드 요청 및 예외 검증
+        mockMvc.perform(get("/api/strategies/download/monthly-indicators")
+                        .param("strategyId", "1"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("알 수 없는 오류가 발생했습니다."));
+                .andExpect(jsonPath("$.errorType").value("ExcelFileCreationException"))
+                .andExpect(jsonPath("$.error").value("EXCEL_CREATION_ERROR")) // 수정
+                .andExpect(jsonPath("$.message").value("엑셀 파일 생성 중 오류가 발생했습니다."))
+                .andExpect(jsonPath("$.timestamp").exists());
 
-        verify(excelGeneratorService, times(1)).generateDailyStatisticsExcel();
+        // 서비스 메서드 호출 여부 확인
+        verify(statisticsExportService, times(1)).exportMonthlyStatisticsToExcel(eq(1L));
     }
 }

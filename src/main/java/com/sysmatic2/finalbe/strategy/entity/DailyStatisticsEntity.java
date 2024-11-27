@@ -2,6 +2,8 @@ package com.sysmatic2.finalbe.strategy.entity;
 
 import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -183,4 +185,79 @@ public class DailyStatisticsEntity extends Auditable {
 
     @Column(name = "followers_count", nullable = false)
     private Long followersCount = 0L; // 팔로워수 default = 0
+
+    /**
+     * 엔티티 데이터를 리스트로 매핑하는 메서드
+     *
+     * @return 필드 값 리스트
+     */
+    public List<Object> toList() {
+        List<Object> data = new ArrayList<>();
+        data.add(this.getDailyStatisticsId());
+        data.add(this.getStrategyEntity().getStrategyId());
+        data.add(this.getDate());
+        data.add(this.getDailyProfitLoss());
+        data.add(this.getDepWdPrice());
+        data.add(this.getTradingDays());
+        data.add(this.getPrincipal());
+        data.add(this.getBalance());
+        data.add(this.getUnrealizedProfitLoss());
+        data.add(this.getKpRatio());
+        data.add(this.getSmScore());
+        data.add(this.getReferencePrice());
+        data.add(this.getCumulativeDepWdPrice());
+        data.add(this.getDepositAmount());
+        data.add(this.getCumulativeDepositAmount());
+        data.add(this.getWithdrawAmount());
+        data.add(this.getCumulativeWithdrawAmount());
+        data.add(this.getDailyPlRate());
+        return data;
+    }
+
+    /**
+     * 추가 분석 지표 데이터를 리스트로 매핑하는 메서드
+     *
+     * @return 추가 분석 지표 필드 값 리스트
+     */
+    public List<Object> toAnalysisList() {
+        List<Object> analysisData = new ArrayList<>();
+        analysisData.add(this.getMaxDailyProfit());
+        analysisData.add(this.getMaxDailyProfitRate());
+        analysisData.add(this.getMaxDailyLoss());
+        analysisData.add(this.getMaxDailyLossRate());
+        analysisData.add(this.getTotalProfit());
+        analysisData.add(this.getTotalProfitDays());
+        analysisData.add(this.getAverageProfit());
+        analysisData.add(this.getTotalLoss());
+        analysisData.add(this.getTotalLossDays());
+        analysisData.add(this.getAverageLoss());
+        analysisData.add(this.getCumulativeProfitLoss());
+        analysisData.add(this.getCumulativeProfitLossRate());
+        analysisData.add(this.getMaxCumulativeProfitLoss());
+        analysisData.add(this.getMaxCumulativeProfitLossRate());
+        analysisData.add(this.getAverageProfitLoss());
+        analysisData.add(this.getAverageProfitLossRate());
+        analysisData.add(this.getPeak());
+        analysisData.add(this.getPeakRate());
+        analysisData.add(this.getDaysSincePeak());
+        analysisData.add(this.getCurrentDrawdownAmount());
+        analysisData.add(this.getCurrentDrawdownRate());
+        analysisData.add(this.getMaxDrawdownAmount());
+        analysisData.add(this.getMaxDrawdownRate());
+        analysisData.add(this.getWinRate());
+        analysisData.add(this.getProfitFactor());
+        analysisData.add(this.getRoa());
+        analysisData.add(this.getAverageProfitLossRatio());
+        analysisData.add(this.getCoefficientOfVariation());
+        analysisData.add(this.getSharpRatio());
+        analysisData.add(this.getCurrentConsecutivePlDays());
+        analysisData.add(this.getMaxConsecutiveProfitDays());
+        analysisData.add(this.getMaxConsecutiveLossDays());
+        analysisData.add(this.getRecentOneYearReturn());
+        analysisData.add(this.getStrategyOperationDays());
+        analysisData.add(this.getDdDay());
+        analysisData.add(this.getMaxDDInRate());
+        analysisData.add(this.getFollowersCount());
+        return analysisData;
+    }
 }
