@@ -48,7 +48,7 @@ public class StrategyService {
     private final StrategyIACHistoryRepository strategyIACHistoryRepository;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
-
+    private final DailyStatisticsService dailyStatisticsService;
 
     //1. 전략 생성
     /**
@@ -238,6 +238,10 @@ public class StrategyService {
         responseDto.setTraderId("1");
         responseDto.setTraderName("곽두팔");
         responseDto.setTraderImage("트레이더프로필이미지");
+
+        // 최신 팔로워 수 조회
+        Long followersCount = dailyStatisticsService.getLatestFollowersCount(strategyEntity.getStrategyId());
+        responseDto.setFollowersCount(followersCount);
 
         return responseDto;
     }
@@ -659,6 +663,7 @@ public class StrategyService {
         responseMap.put("data", rejectionDto);
         return responseMap;
     }
+
 
 }
 

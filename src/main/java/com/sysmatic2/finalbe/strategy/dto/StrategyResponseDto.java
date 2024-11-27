@@ -32,6 +32,5 @@ public class StrategyResponseDto {
     private LocalDateTime writedAt;     //작성일시
     private String isPosted;            //공개여부
     private String isApproved;           //승인여부
-
-
+    private Long followersCount;       //팔로워수
 }
