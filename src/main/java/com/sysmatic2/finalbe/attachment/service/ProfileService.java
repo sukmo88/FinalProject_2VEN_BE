@@ -57,7 +57,6 @@ public class ProfileService {
 
         // 메타데이터 저장
         fileMetadataRepository.save(metadata);
-
     }
 
     /**
