@@ -16,14 +16,14 @@ public class StatisticsCalculator {
     /**
      * 변동계수(Coefficient of Variation, CV)를 계산하는 메서드.
      * @param dailyProfitLosses 오늘까지의 모든 일손익 데이터 리스트
-     * @param averageProfit     기준일까지의 평균손익
+     * @param averageProfitLoss     기준일까지의 평균손익
      * @return 변동계수 (단위: %, 소수점 8자리까지 표시)
      */
-    public static BigDecimal calculateCoefficientOfVariation(List<BigDecimal> dailyProfitLosses, BigDecimal averageProfit) {
+    public static BigDecimal calculateCoefficientOfVariation(List<BigDecimal> dailyProfitLosses, BigDecimal averageProfitLoss) {
         if (dailyProfitLosses == null || dailyProfitLosses.isEmpty()) {
             throw new IllegalArgumentException("일손익 데이터 리스트는 비어 있을 수 없습니다.");
         }
-        if (averageProfit.compareTo(BigDecimal.ZERO) <= 0) {
+        if (averageProfitLoss.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
 
@@ -41,7 +41,7 @@ public class StatisticsCalculator {
                 .setScale(9, RoundingMode.HALF_UP); // 표준편차 계산 후 소수점 9자리 반올림
 
         // 변동계수 계산
-        return stdDevProfitLoss.divide(averageProfit, 9, BigDecimal.ROUND_HALF_UP) // 비율 계산 중간 단계는 9자리
+        return stdDevProfitLoss.divide(averageProfitLoss, 9, BigDecimal.ROUND_HALF_UP) // 비율 계산 중간 단계는 9자리
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(8, RoundingMode.HALF_UP); // 최종 결과는 8자리
     }
@@ -89,13 +89,13 @@ public class StatisticsCalculator {
 
     /**
      * Sharp Ratio 계산.
-     * @param averageProfit   평균손익
+     * @param averageProfitLoss   평균손익
      * @param stdDevProfitLoss 일손익의 표준편차
      * @return Sharp Ratio (소수점 10자리까지 표시)
      */
-    public static BigDecimal calculateSharpRatio(BigDecimal averageProfit, BigDecimal stdDevProfitLoss) {
+    public static BigDecimal calculateSharpRatio(BigDecimal averageProfitLoss, BigDecimal stdDevProfitLoss) {
         return stdDevProfitLoss.compareTo(BigDecimal.ZERO) > 0
-                ? averageProfit.divide(stdDevProfitLoss, 11, RoundingMode.HALF_UP) // 소수점 11자리로 계산 및 반올림
+                ? averageProfitLoss.divide(stdDevProfitLoss, 11, RoundingMode.HALF_UP) // 소수점 11자리로 계산 및 반올림
                 .setScale(10, RoundingMode.HALF_UP) // 최종적으로 소수점 10자리 제한
                 : BigDecimal.ZERO; // 표준편차가 0이면 0 반환
     }
@@ -136,18 +136,28 @@ public class StatisticsCalculator {
     /**
      * 입금 계산.
      * @param depWdPrice 입출금
+     * @param isFirstEntry 첫입력여부
      * @return 입금액
      */
-    public static BigDecimal calculateDepositAmount(BigDecimal depWdPrice) {
+    public static BigDecimal calculateDepositAmount(BigDecimal depWdPrice, boolean isFirstEntry) {
+        // 첫 번째 입력이면 0 반환
+        if (isFirstEntry) {
+            return BigDecimal.ZERO;
+        }
         return depWdPrice.compareTo(BigDecimal.ZERO) > 0 ? depWdPrice : BigDecimal.ZERO;
     }
 
     /**
      * 출금 계산.
      * @param depWdPrice 입출금
+     * @param isFirstEntry 첫입력여부
      * @return 출금액
      */
-    public static BigDecimal calculateWithdrawAmount(BigDecimal depWdPrice) {
+    public static BigDecimal calculateWithdrawAmount(BigDecimal depWdPrice, boolean isFirstEntry) {
+        // 첫 번째 입력이면 0 반환
+        if (isFirstEntry) {
+            return BigDecimal.ZERO;
+        }
         return depWdPrice.compareTo(BigDecimal.ZERO) < 0 ? depWdPrice.abs() : BigDecimal.ZERO;
     }
 

@@ -144,8 +144,19 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
      * @param pageable   페이징 객체 (최대 1개의 데이터만 반환)
      * @return 기준 날짜 이전의 가장 최신 데이터 리스트 (최대 1개 데이터 반환)
      */
-    @Query("SELECT d FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId AND d.date < :fromDate ORDER BY d.date ASC")
+    @Query("SELECT d FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId AND d.date < :fromDate ORDER BY d.date DESC")
     List<DailyStatisticsEntity> findLatestBeforeDate(@Param("strategyId") Long strategyId, @Param("fromDate") LocalDate fromDate, Pageable pageable);
+
+    /**
+     * 특정 날짜 기준으로 이후 날짜 중 가장 오래된 데이터를 조회합니다.
+     *
+     * @param strategyId 전략 ID
+     * @param fromDate   기준 날짜
+     * @param pageable   페이징 객체 (최대 1개의 데이터만 반환)
+     * @return 기준 날짜 이전의 가장 최신 데이터 리스트 (최대 1개 데이터 반환)
+     */
+    @Query("SELECT d FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId AND d.date > :fromDate ORDER BY d.date ASC")
+    List<DailyStatisticsEntity> findOldestAfterDate(@Param("strategyId") Long strategyId, @Param("fromDate") LocalDate fromDate, Pageable pageable);
 
     /**
      * 특정 날짜부터 데이터를 조회합니다.
@@ -166,4 +177,16 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     @Modifying
     @Query("DELETE FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId AND d.date >= :fromDate")
     void deleteFromDate(@Param("strategyId") Long strategyId, @Param("fromDate") LocalDate fromDate);
+
+    /**
+     * 특정 전략의 가장 최근 팔로워 수를 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @param pageable   페이징 객체 (최신 1개의 데이터를 조회하도록 설정)
+     * @return 최신 팔로워 수 (리스트로 반환, 크기 1)
+     */
+    @Query("SELECT d.followersCount FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date DESC")
+    List<Long> findLatestFollowersCountByStrategyId(@Param("strategyId") Long strategyId, Pageable pageable);
 }

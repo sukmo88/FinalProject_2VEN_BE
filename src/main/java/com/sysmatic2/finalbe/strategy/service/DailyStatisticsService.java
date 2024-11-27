@@ -176,53 +176,58 @@ public class DailyStatisticsService {
             throw new DuplicateDateException("Date already exists: " + reqDto.getDate());
         }
 
+//        System.out.println("Target Date: " + targetData.getDate());
+//        System.out.println("Request Date: " + reqDto.getDate());
+//        System.out.println("isDateEarlier: " + targetData.getDate().isBefore(reqDto.getDate()));
         // 3. 날짜 비교: 수정 전 날짜 vs 수정 후 날짜
         boolean isDateEarlier = targetData.getDate().isBefore(reqDto.getDate());
 
         // 직전 최신 데이터 조회
         Pageable pageable = PageRequest.of(0, 1); // 1개 데이터만 반환
-        List<DailyStatisticsEntity> previousDataList = dsp.findLatestBeforeDate(strategyId, targetData.getDate(), pageable);
+        List<DailyStatisticsEntity> previousDataList = dsp.findLatestBeforeDate(
+                strategyId,
+                isDateEarlier ? targetData.getDate() : reqDto.getDate(),
+                pageable
+        );
+        // 직후 오래된 데이터 조회
+        List<DailyStatisticsEntity> afterDataList = dsp.findOldestAfterDate(
+                strategyId,
+                targetData.getDate(),
+                pageable
+        );
+
         // 가장 처음 데이터일 경우 null
         DailyStatisticsEntity previousData = previousDataList.isEmpty() ? null : previousDataList.get(0);
+        // 가장 처음 데이터일 경우 null
+        DailyStatisticsEntity afterData = afterDataList.isEmpty() ? null : afterDataList.get(0);
 
+        // 수정된 데이터 업데이트
+        targetData.setDate(reqDto.getDate());
+        targetData.setDailyProfitLoss(reqDto.getDailyProfitLoss());
+        targetData.setDepWdPrice(reqDto.getDepWdPrice());
+        dsp.save(targetData);
+
+        List<DailyStatisticsEntity> affectedRows = null;
+        LocalDate fromDate = null; // 기준이 되는 날짜
         if (isDateEarlier) {
             // (1) 수정 전 날짜가 빠른 경우
 
-            // 수정된 데이터 업데이트
-            targetData.setDate(reqDto.getDate());
-            targetData.setDailyProfitLoss(reqDto.getDailyProfitLoss());
-            targetData.setDepWdPrice(reqDto.getDepWdPrice());
-            dsp.save(targetData);
-
             // 직전 최신 데이터부터 리스트 조회
             // 가장 처음 데이터면 현재 데이터부터 리스트 조회
-            List<DailyStatisticsEntity> affectedRows = dsp.findFromDate(
-                    strategyId,
-                    previousData == null ? reqDto.getDate() : previousData.getDate()
-            );
-
             // 직전 최신 데이터부터 삭제
             // 가장 처음 데이터면 현재 데이터부터 삭제
-            dsp.deleteFromDate(strategyId, previousData == null ? reqDto.getDate() : previousData.getDate());
-
-            // 리스트 데이터 재등록 및 재계산
-            recalculateAndSave(affectedRows, previousData, strategyId);
+            fromDate = afterData.getDate();
         } else {
             // (2) 수정 전 날짜가 느린 경우
 
-            // 수정된 데이터 업데이트
-            targetData.setDate(reqDto.getDate());
-            targetData.setDailyProfitLoss(reqDto.getDailyProfitLoss());
-            targetData.setDepWdPrice(reqDto.getDepWdPrice());
-            dsp.save(targetData);
-
             // 수정된 데이터부터 리스트 조회
-            List<DailyStatisticsEntity> affectedRows = dsp.findFromDate(strategyId, reqDto.getDate());
-
             // 수정된 데이터부터 삭제 및 재등록
-            dsp.deleteFromDate(strategyId, reqDto.getDate());
-            recalculateAndSave(affectedRows, previousData, strategyId);
+            fromDate = reqDto.getDate();
         }
+        affectedRows = dsp.findFromDate(strategyId, fromDate);
+        dsp.deleteFromDate(strategyId, fromDate);
+        // 리스트 데이터 재등록 및 재계산
+        recalculateAndSave(affectedRows, previousData, strategyId);
     }
 
     /**
@@ -399,21 +404,13 @@ public class DailyStatisticsService {
         BigDecimal roa = StatisticsCalculator.calculateROA(cumulativeProfitLoss, maxDrawdownAmount);
 
         // 평균 손익비 = 평균 이익 / |평균 손실|
-        BigDecimal averageProfitLossRatio = averageLoss.compareTo(BigDecimal.ZERO) > 0
-                ? averageProfit.divide(averageLoss.abs(), 11, BigDecimal.ROUND_HALF_UP) // 11번째 자리까지 계산
+        BigDecimal averageProfitLossRatio = averageLoss.compareTo(BigDecimal.ZERO) != 0
+                ? averageProfit.divide(averageLoss.abs(), 11, RoundingMode.HALF_UP) // 11번째 자리까지 계산
                 .setScale(10, RoundingMode.HALF_UP) // 10번째 자리로 반올림
                 : BigDecimal.ZERO;
 
         // `dailyProfitLosses` 리스트 가져오기
         List<BigDecimal> dailyProfitLosses = dsp.findDailyProfitLossesByStrategyId(strategyId);
-
-        // 변동계수(Coefficient of Variation) 계산
-        BigDecimal coefficientOfVariation = dailyProfitLosses.isEmpty()
-                ? BigDecimal.ZERO
-                : StatisticsCalculator.calculateCoefficientOfVariation(dailyProfitLosses, averageProfit);
-
-        // Sharp Ratio = 평균손익 / 표준편차
-        BigDecimal sharpRatio = StatisticsCalculator.calculateSharpRatio(averageProfit, StatisticsCalculator.calculateStdDev(dailyProfitLosses));
 
         // 평가손익 = 원금 - 잔고
         BigDecimal unrealizedProfitLoss = StatisticsCalculator.calculateUnrealizedProfitLoss(principal, balance);
@@ -427,12 +424,12 @@ public class DailyStatisticsService {
                 reqDto.getDepWdPrice()
         );
 
-        BigDecimal depositAmount = StatisticsCalculator.calculateDepositAmount(depWdPrice); // 입금 = 오늘 입출금 금액이 양수인 경우
+        BigDecimal depositAmount = StatisticsCalculator.calculateDepositAmount(depWdPrice, isFirstEntry); // 입금 = 오늘 입출금 금액이 양수인 경우
         BigDecimal cumulativeDepositAmount = StatisticsCalculator.calculateCumulativeDeposit(
                 previousState.map(DailyStatisticsEntity::getCumulativeDepositAmount).orElse(BigDecimal.ZERO),
                 depositAmount); // 누적 입금 = 이전 누적 입금 + 오늘 입금 금액
 
-        BigDecimal withdrawAmount = StatisticsCalculator.calculateWithdrawAmount(depWdPrice); // 출금 = 오늘 입출금 금액이 음수인 경우
+        BigDecimal withdrawAmount = StatisticsCalculator.calculateWithdrawAmount(depWdPrice, isFirstEntry); // 출금 = 오늘 입출금 금액이 음수인 경우
         BigDecimal cumulativeWithdrawAmount = StatisticsCalculator.calculateCumulativeWithdraw(
                 previousState.map(DailyStatisticsEntity::getCumulativeWithdrawAmount).orElse(BigDecimal.ZERO),
                 withdrawAmount); // 누적 출금 = 이전 누적 출금 + 오늘 출금 금액
@@ -467,6 +464,16 @@ public class DailyStatisticsService {
                 ? cumulativeProfitLossRate.divide(BigDecimal.valueOf(tradingDays), 10, RoundingMode.DOWN) // 중간 계산에서 높은 정밀도로 계산
                 .setScale(4, RoundingMode.DOWN) // 최종적으로 4자리까지 표현 (반올림 없이)
                 : BigDecimal.ZERO;
+
+        // 변동계수(Coefficient of Variation) 계산
+        // (일손익 합산의 표준편차) / 평균손익 * 100
+        BigDecimal coefficientOfVariation = dailyProfitLosses.isEmpty()
+                ? BigDecimal.ZERO
+                : StatisticsCalculator.calculateCoefficientOfVariation(dailyProfitLosses, averageProfitLoss);
+
+        // Sharp Ratio = 평균손익 / 표준편차
+        BigDecimal sharpRatio = StatisticsCalculator.calculateSharpRatio(averageProfitLoss, StatisticsCalculator.calculateStdDev(dailyProfitLosses));
+
 
         // 현재 연속 손익일수 계산
         Integer currentConsecutivePlDays;
@@ -585,5 +592,23 @@ public class DailyStatisticsService {
                 .cumulativeWithdrawAmount(cumulativeWithdrawAmount)
                 .strategyEntity(strategyEntity)  // StrategyEntity 설정
                 .build();
+    }
+
+    /**
+     * 특정 전략의 가장 최근 팔로워 수를 조회합니다.
+     *
+     * @param strategyId 조회할 전략 ID
+     * @return 최신 팔로워 수
+     */
+    @Transactional(readOnly = true)
+    public Long getLatestFollowersCount(Long strategyId) {
+        Pageable pageable = PageRequest.of(0, 1); // 최신 1개 데이터만 요청
+        List<Long> latestFollowersCount = dsp.findLatestFollowersCountByStrategyId(strategyId, pageable);
+
+        if (latestFollowersCount.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No followers count found for strategy with ID " + strategyId);
+        }
+
+        return latestFollowersCount.get(0); // 최신 팔로워 수 반환
     }
 }
