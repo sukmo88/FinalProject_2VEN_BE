@@ -48,13 +48,11 @@ public class ProposalController {
      * 제안서 파일 삭제
      *
      * @param fileUrl      삭제할 파일의 url
-     * @param strategyId   전략 ID
      * @param userDetails  요청한 사용자 ID (JWT 토큰에서 추출)
      * @return 성공 메시지
      */
     @DeleteMapping
     public ResponseEntity<?> deleteProposal(@RequestParam("fileUrl") String fileUrl,
-                                               @RequestParam("strategyId") String strategyId,
                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // uploaderId 추출 (로그인한 사람)
@@ -64,7 +62,6 @@ public class ProposalController {
 
         return ResponseEntity.ok(Map.of(
                 "fileId", deletedFileId,
-                "strategyId", strategyId,
                 "message", "File successfully deleted"
         ));
 
