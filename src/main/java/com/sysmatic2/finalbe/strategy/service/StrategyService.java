@@ -183,13 +183,17 @@ public class StrategyService {
         // 5. 전략 제안서가 서버에 업로드 된 경우, 제안서 데이터 등록 (sbwoo)
         Optional<FileMetadataDto> existingProposal = proposalService.getProposalUrlByFilePath(strategyPayloadDto.getStrategyProposalLink());
 
+        System.out.println("existing Proposal: " + existingProposal.isPresent());
+
         // file_path가 전략에 등록되었는지 확인
         if (strategyProposalService.getProposalByFilePath(strategyPayloadDto.getStrategyProposalLink()).isEmpty()) {
-            // 제안서가 존재하지 않는 경우에만 작업 수행
+
             System.out.println("No proposal found for file path: " + strategyPayloadDto.getStrategyProposalLink());
 
-            // 제안서가 있으면
-            existingProposal.ifPresent(proposalMetadataDto -> {
+            // existingProposal이 존재할 경우에만 실행
+            if (existingProposal.isPresent()) {
+                FileMetadataDto proposalMetadataDto = existingProposal.get(); // Optional에서 값 추출
+
                 // 제안서 엔티티 생성
                 StrategyProposalEntity proposalEntity = new StrategyProposalEntity();
                 proposalEntity.setStrategy(createdEntity);
@@ -207,8 +211,11 @@ public class StrategyService {
                 // 제안서 파일 메타데이터에 전략 ID 저장
                 proposalMetadataDto.setFileCategoryItemId(createdEntity.getStrategyId().toString());
                 fileMetadataRepository.save(FileMetadataDto.toEntity(proposalMetadataDto));
-            });
 
+                System.out.println("Proposal entity and metadata saved successfully.");
+            } else {
+                System.out.println("No proposal metadata found. Skipping operation.");
+            }
         } else {
 
             // 제안서 테이블에 proposal link가 중복되는 경우
