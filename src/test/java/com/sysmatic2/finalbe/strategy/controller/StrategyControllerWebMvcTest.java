@@ -1,19 +1,19 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sysmatic2.finalbe.strategy.dto.StrategyPayloadDto;
+import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.strategy.dto.StrategyRegistrationDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
+import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
+import com.sysmatic2.finalbe.strategy.service.ExcelGeneratorService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +31,15 @@ class StrategyControllerWebMvcTest {
 
     @MockBean
     private StrategyService strategyService;
+
+    @MockBean
+    private ExcelGeneratorService excelGeneratorService; // 추가
+
+    @MockBean
+    private StrategyApprovalRequestsRepository strategyApprovalRequestsRepository; // 추가
+
+    @MockBean
+    private DailyStatisticsService dailyStatisticsService; // 추가
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -118,4 +127,6 @@ class StrategyControllerWebMvcTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
     }
+
+
 }

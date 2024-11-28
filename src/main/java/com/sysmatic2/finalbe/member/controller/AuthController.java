@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -33,7 +34,7 @@ public class AuthController {
 
     //이메일로 인증번호 전송
     //관리자 인증번호 전송
-    @PostMapping("/send-verification-code")
+    @PostMapping("/admin/send-verification-code")
     public ResponseEntity<Map<String, String>>  sendVerificationCode(HttpServletRequest req) {
         //이메일을 바디로 보내주는걸로 알고 있겠지?
         BufferedReader reader = null;
@@ -96,17 +97,18 @@ public class AuthController {
     }
 
     //관리자 인증번호 검증
-    @PostMapping("/admin-check-verification-code")
-    public ResponseEntity<Map<String, String>> adminCheckVerificationCode(
+    @PostMapping("/admin/check-verification-code")
+    public ResponseEntity<Map<String, Object>> adminCheckVerificationCode(
             @Valid @RequestBody
             EmailVerificationDTO emailVerificationDTO, HttpServletRequest req) {
         HttpSession session = req.getSession(false);
-        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("admin_info");
+
         // 세션, 만료시간, 인증코드 값이 null이면 이메일 인증 불가 (잘못된 접근이라고 예외를 세분화해야 하나?)
         if (session == null || session.getAttribute("expiryTime") == null || session.getAttribute("verificationCode") == null) {
             throw new EmailVerificationFailedException("이메일 인증에 실패하였습니다.");
         }
 
+        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("adminInfo");
         String savedVerificationCode = (String) session.getAttribute("verificationCode");
         LocalDateTime expiryTime = (LocalDateTime) session.getAttribute("expiryTime");
 
@@ -116,24 +118,26 @@ public class AuthController {
         // 세션에 인증 성공 정보 추가
         session.setAttribute("verified", true);
         // 인증 완료 처리
+
         adminSessionDTO = new AdminSessionDTO();
         adminSessionDTO.setAuthorized(true);
         adminSessionDTO.setAuthorizationStatus("AUTHORIZED");
         adminSessionDTO.setAuthorizedAt(LocalDateTime.now().toString());
-        adminSessionDTO.setExpiresAt(LocalDateTime.now().plusMinutes(1).toString());
+        adminSessionDTO.setExpiresAt(LocalDateTime.now().plusMinutes(30).toString());
 
-        session.setAttribute("admin_info", adminSessionDTO);
+        session.setAttribute("adminInfo", adminSessionDTO);
         // 응답코드 200번, 성공 메시지 전송
         return ResponseEntity.ok(Map.of(
                 "status", "success",
-                "message", "이메일 인증에 성공하였습니다."
+                "message", "이메일 인증에 성공하였습니다.",
+                "adminInfo", adminSessionDTO
         ));
     }
 
     // 인증 상태 확인
-    @GetMapping("/admin-status")
+    @GetMapping("/admin/status")
     public AdminSessionDTO  adminStatus(HttpSession session) {
-        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("admin_info");
+        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("adminInfo");
         if (adminSessionDTO == null) {
             throw new IllegalStateException("Admin session not found");
         }
@@ -144,14 +148,14 @@ public class AuthController {
             if (LocalDateTime.now().isAfter(expirationTime)) {
                 adminSessionDTO.setAuthorizationStatus("EXPIRED");
                 adminSessionDTO.setAuthorized(false);
-                session.setAttribute("admin_info", adminSessionDTO);
+                session.setAttribute("adminInfo", adminSessionDTO);
             }
         }
         return adminSessionDTO;
     }
 
     //관리자 로그아웃
-    @PostMapping("/admin-logout")
+    @PostMapping("/admin/logout")
     public ResponseEntity<Map<String, String>> adminLogout(HttpSession session){
         session.invalidate();
         // 응답코드 200번, 성공 메시지 전송

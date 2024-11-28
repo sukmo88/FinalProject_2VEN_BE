@@ -3,6 +3,8 @@ package com.sysmatic2.finalbe.admin.controller;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminRequestDto;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.admin.service.TradingTypeService;
+import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
+import com.sysmatic2.finalbe.attachment.service.FileService;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class TradingTypeController {
 
     private final TradingTypeService tradingTypeService;
+    private final FileService fileService;
 
     // 1. 매매유형 목록
     @GetMapping("/trading-types")
@@ -49,10 +52,15 @@ public class TradingTypeController {
         // 타임스탬프를 추가
         Instant timestamp = Instant.now();
 
+        // 이미지 displayname 조회 및 response 추가
+        FileMetadataDto iconMetadata = fileService.getFileMetadataByFilePath(tradingTypeAdminResponseDto.getTradingTypeIcon());
+
+
         // 조회한 매매유형 JSON 형태로 반환. 상태값 200
         return ResponseEntity.ok(Map.of(
                 "data", tradingTypeAdminResponseDto,
-                "timestamp", timestamp.toString()
+                "timestamp", timestamp.toString(),
+                "displayName", iconMetadata.getDisplayName()
         ));
     }
 
