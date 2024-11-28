@@ -405,4 +405,26 @@ public class StrategyController {
 
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
+
+    /**
+     * 특정 전략의 일간 분석 데이터를 삭제하고 필요한 데이터를 재계산합니다.
+     *
+     * @param strategyId        삭제할 데이터가 포함된 전략의 ID
+     * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
+     * @return 삭제 및 재계산 결과
+     */
+//    @PostMapping("/{strategyId}/daily-analyses/delete")
+//    public ResponseEntity<?> deleteDailyAnalyses(
+//            @PathVariable Long strategyId,
+//            @RequestBody List<Long> dailyStatisticsIds
+//    ) {
+//        // 서비스 호출: 삭제 및 재계산
+//        dailyStatisticsService.deleteAndRecalculate(strategyId, dailyStatisticsIds);
+//
+//        // 성공 응답 반환
+//        return ResponseEntity.ok(Map.of(
+//                "msg", "DELETE_SUCCESS",
+//                "timestamp", Instant.now()
+//        ));
+//    }
 }
