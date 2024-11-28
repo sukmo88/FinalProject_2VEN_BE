@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
@@ -33,7 +32,7 @@ public class InvestmentAssetClassesService {
 
     //1. 투자자산 분류 전체목록 메서드 페이지네이션, 소팅 적용
     @Transactional(readOnly = true)
-    public Map<String, Object> getList(int page, int size) throws Exception{
+    public Map<String, Object> getList(int page, int size) throws Exception {
         //현재 페이지, 페이지 사이즈, 정렬 정보 담은 pageable 객체 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by("order").ascending());
 
