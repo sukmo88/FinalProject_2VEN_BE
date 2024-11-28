@@ -106,7 +106,7 @@ public class MemberService {
         data.put("email", member.getEmail());
         data.put("nickname", member.getNickname());
         data.put("role",role);
-        data.put("fileId", member.getFileId());
+        data.put("profilePath", member.getProfilePath());
         if(role.equals("ROLE_ADMIN")){
             AdminSessionDTO adminSessionDTO = new AdminSessionDTO();
             adminSessionDTO.setAuthorized(false);
