@@ -315,15 +315,61 @@ public class StrategyService {
      * @param page                 현재 페이지
      * @param pageSize             페이지크기
      */
-//    @Transactional(readOnly = true)
-//    public Map<String, Object> getStrategyListByKeyword(String keyword, Integer page, Integer pageSize) {
-//        //페이지 객체 생성
-//        Pageable pageable = PageRequest.of(page, pageSize);
-//
-//        //keyword로 해당 전략 엔티티 객체들 가져오기
-//        Page<StrategyEntity> findStrategyPage = strategyRepo.findByStrategyTitleContaining(keyword, pageable);
-//
-//    }
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListByKeyword(String keyword, Integer page, Integer pageSize) {
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //전략명에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기 - isPosted = Y, isApproved = Y
+        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "Y", pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
+        //전략 id 리스트 생성
+        List<Long> strategyIds = findStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        //전략 id로 최신 dailystatistics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        //DTO에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = findStrategyPage.stream()
+                .map(strategyEntity -> {
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(), //전략id
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()), //투자자산분류 아이콘
+                            strategyEntity.getStrategyTitle(),     //전략명
+                            BigDecimal.ZERO, //누적손익률
+                            BigDecimal.ZERO, //최근1년손익률
+                            BigDecimal.ZERO, //sm-score
+                            0L               //팔로워수
+                    );
+
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if (latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setSmScore(latestStatistics.getSmScore());
+                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                    }
+
+                    return dto;
+
+                }).collect(Collectors.toList());
+        //페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
+    }
 
     //3. 전략 상세
     /**
