@@ -14,13 +14,6 @@ public class MemberHelper {
         this.memberRepository = memberRepository;
     }
 
-    public void updateMemberFileId(String uploaderId, String fileId) {
-        MemberEntity memberEntity = memberRepository.findById(uploaderId)
-                .orElseThrow(() -> new MemberNotFoundException("Member not found for uploaderId: " + uploaderId));
-        memberEntity.setFileId(fileId);
-        memberRepository.save(memberEntity);
-    }
-
     public void initMemberFileId(String uploaderId, String fileId, String filePath) {
         MemberEntity memberEntity = memberRepository.findById(uploaderId)
                 .orElseThrow(() -> new MemberNotFoundException("Member not found for uploaderId: " + uploaderId));
