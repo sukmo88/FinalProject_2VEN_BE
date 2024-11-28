@@ -149,6 +149,126 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
      * @param pageable 페이징 정보 (페이지 번호 및 크기)
      * @return 필터링된 전략 목록 (Page 객체 포함)
      */
+
+//
+//        // 전체 데이터 개수 (페이지네이션 전)
+//        long totalCnt = queryFactory
+//                .select(strategyQ.count())
+//                .from(strategyQ)
+//                .join(dailyStatisticsQ).on(dailyStatisticsQ.strategyEntity.eq(strategyQ))
+//                .where(builder)
+//                .fetchOne();
+//
+//        if (totalCnt == 0) {
+//            return new PageImpl<>(List.of(), pageable, 0);
+//        }
+//
+//        // 전략 ID 조회 (필터, 페이징 적용)
+//        List<Long> strategyIds = queryFactory
+//                .select(strategyQ.strategyId)
+//                .from(strategyQ)
+//                // dailyStatistics와 조인
+//                .leftJoin(dailyStatisticsQ).on(dailyStatisticsQ.strategyEntity.eq(strategyQ))
+//                // strategyIAC와 조인
+//                .join(strategyIACQ).on(strategyIACQ.strategyEntity.eq(strategyQ))
+//                .where(builder)
+//                .orderBy(strategyQ.writedAt.desc())
+//                .offset(pageable.getOffset())
+//                .limit(pageable.getPageSize())
+//                .fetch();
+//
+//        if (strategyIds.isEmpty()) {
+//            return new PageImpl<>(List.of(), pageable, 0);
+//        }
+//
+//        // 최신 followersCount 매핑
+//        Map<Long, Long> followersCountMap = queryFactory
+//                .select(dailyStatisticsQ.strategyEntity.strategyId, dailyStatisticsQ.followersCount)
+//                .from(dailyStatisticsQ)
+//                .where(
+//                        dailyStatisticsQ.date.in(
+//                                JPAExpressions.select(dailyStatisticsQ.date.max())
+//                                        .from(dailyStatisticsQ)
+//                                        .groupBy(dailyStatisticsQ.strategyEntity.strategyId)
+//                        )
+//                )
+//                .fetch()
+//                .stream()
+//                .collect(Collectors.toMap(
+//                        tuple -> tuple.get(dailyStatisticsQ.strategyEntity.strategyId),
+//                        tuple -> tuple.get(dailyStatisticsQ.followersCount)
+//                ));
+//
+//        // 해당 id의 전략의 정보들 가져옴
+//        List<Tuple> tuples = queryFactory
+//                .select(
+//                        strategyQ.strategyId,
+//                        strategyQ.tradingTypeEntity.tradingTypeIcon,
+//                        strategyQ.tradingCycleEntity.tradingCycleIcon,
+//                        strategyQ.strategyTitle
+//                )
+//                .from(strategyQ)
+//                .where(strategyQ.strategyId.in(strategyIds))
+//                .fetch();
+//
+//        // 투자자산 분류 아이콘 가져오기
+//        Map<Long, List<String>> assetIconsMap = queryFactory
+//                .select(strategyIACQ.strategyEntity.strategyId, iacQ.investmentAssetClassesIcon)
+//                .from(strategyIACQ)
+//                .join(strategyIACQ.investmentAssetClassesEntity, iacQ)
+//                .where(strategyIACQ.strategyEntity.strategyId.in(strategyIds))
+//                .fetch()
+//                .stream()
+//                .collect(Collectors.groupingBy(
+//                        tuple -> tuple.get(strategyIACQ.strategyEntity.strategyId),
+//                        Collectors.mapping(tuple -> tuple.get(iacQ.investmentAssetClassesIcon), Collectors.toList())
+//                ));
+//
+//        // DTO 리스트 생성
+//        List<AdvancedSearchResultDto> results = tuples.stream()
+//                .map(tuple -> {
+//                    // Strategy ID
+//                    Long strategyId = tuple.get(strategyQ.strategyId);
+//
+//                    // Trading Type Icon
+//                    String tradingTypeIcon = tuple.get(strategyQ.tradingTypeEntity.tradingTypeIcon);
+//
+//                    // Trading Cycle Icon
+//                    String tradingCycleIcon = tuple.get(strategyQ.tradingCycleEntity.tradingCycleIcon);
+//
+//                    // Investment Asset Classes Icons
+//                    List<String> investmentAssetClassesIcons = assetIconsMap.getOrDefault(strategyId, List.of());
+//
+//                    // Strategy Title
+//                    String strategyTitle = tuple.get(strategyQ.strategyTitle);
+//
+//                    // Followers Count (default to 0 if not found)
+//                    Long followersCount = followersCountMap.getOrDefault(strategyId, 0L);
+//
+//                    // Create and return DTO
+//                    return new AdvancedSearchResultDto(
+//                            strategyId,
+//                            tradingTypeIcon,
+//                            tradingCycleIcon,
+//                            investmentAssetClassesIcons,
+//                            strategyTitle,
+//                            followersCount
+//                    );
+//                })
+//                .toList();
+//
+//        // Return as a PageImpl
+//        return new PageImpl<>(results, pageable, totalCnt);
+//    }
+
+
+    /**
+     * 2. 필터 옵션 Dto를 받아 상세 필터링한 전략 목록 반환(페이지네이션)
+     *
+     * @param searchOptions 필터링 옵션 객체
+     * @param pageable 페이징 정보 (페이지 번호 및 크기)
+     * @return 필터링된 전략 목록 (Page 객체 포함)
+     */
     @Override
     public Page<AdvancedSearchResultDto> findStrategiesByDetailSearchOptions(SearchOptionsDto searchOptions, Pageable pageable) {
         //QueryDSL용 Q객체 생성
@@ -183,7 +303,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             builder.and(strategyQ.tradingCycleEntity.tradingCycleId.in(searchOptions.getTradingCylcleIdList()));
         }
 
-        // 6. 투자자산 분류 필터 - 중첩가능
+        // 6. 투자자산 분류 필터
         if (searchOptions.getInvestmentAssetClassesIdList() != null && !searchOptions.getInvestmentAssetClassesIdList().isEmpty()) {
             builder.and(strategyIACQ.investmentAssetClassesEntity.investmentAssetClassesId.in(searchOptions.getInvestmentAssetClassesIdList()));
         }
@@ -277,11 +397,11 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             builder.and(returnRateBuilder);
         }
 
-        // 전체 데이터 개수 (페이지네이션 전)
+        // 12. 전체 데이터 개수 (페이지네이션 전)
         long totalCnt = queryFactory
                 .select(strategyQ.count())
                 .from(strategyQ)
-                .join(dailyStatisticsQ).on(dailyStatisticsQ.strategyEntity.eq(strategyQ))
+                .leftJoin(strategyQ.strategyIACEntities, strategyIACQ)
                 .where(builder)
                 .fetchOne();
 
@@ -289,13 +409,13 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        // 전략 ID 조회 (필터, 페이징 적용)
+        // 13. 전략 ID 조회 (필터, 페이징 적용)
         List<Long> strategyIds = queryFactory
                 .select(strategyQ.strategyId)
                 .from(strategyQ)
-                .leftJoin(dailyStatisticsQ).on(dailyStatisticsQ.strategyEntity.eq(strategyQ))
+                .leftJoin(strategyQ.strategyIACEntities, strategyIACQ)
                 .where(builder)
-                .orderBy(strategyQ.writedAt.desc())
+                .distinct()
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -304,25 +424,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        // 최신 followersCount 매핑
-        Map<Long, Long> followersCountMap = queryFactory
-                .select(dailyStatisticsQ.strategyEntity.strategyId, dailyStatisticsQ.followersCount)
-                .from(dailyStatisticsQ)
-                .where(
-                        dailyStatisticsQ.date.in(
-                                JPAExpressions.select(dailyStatisticsQ.date.max())
-                                        .from(dailyStatisticsQ)
-                                        .groupBy(dailyStatisticsQ.strategyEntity.strategyId)
-                        )
-                )
-                .fetch()
-                .stream()
-                .collect(Collectors.toMap(
-                        tuple -> tuple.get(dailyStatisticsQ.strategyEntity.strategyId),
-                        tuple -> tuple.get(dailyStatisticsQ.followersCount)
-                ));
-
-        // 해당 id의 전략의 정보들 가져옴
+        // 14. 해당 id의 전략의 정보들 가져옴
         List<Tuple> tuples = queryFactory
                 .select(
                         strategyQ.strategyId,
@@ -334,7 +436,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                 .where(strategyQ.strategyId.in(strategyIds))
                 .fetch();
 
-        // 투자자산 분류 아이콘 가져오기
+        // 15. 투자자산 분류 아이콘 가져오기
         Map<Long, List<String>> assetIconsMap = queryFactory
                 .select(strategyIACQ.strategyEntity.strategyId, iacQ.investmentAssetClassesIcon)
                 .from(strategyIACQ)
@@ -347,41 +449,20 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                         Collectors.mapping(tuple -> tuple.get(iacQ.investmentAssetClassesIcon), Collectors.toList())
                 ));
 
-        // DTO 리스트 생성
+        // 16. DTO 리스트 생성
         List<AdvancedSearchResultDto> results = tuples.stream()
-                .map(tuple -> {
-                    // Strategy ID
-                    Long strategyId = tuple.get(strategyQ.strategyId);
-
-                    // Trading Type Icon
-                    String tradingTypeIcon = tuple.get(strategyQ.tradingTypeEntity.tradingTypeIcon);
-
-                    // Trading Cycle Icon
-                    String tradingCycleIcon = tuple.get(strategyQ.tradingCycleEntity.tradingCycleIcon);
-
-                    // Investment Asset Classes Icons
-                    List<String> investmentAssetClassesIcons = assetIconsMap.getOrDefault(strategyId, List.of());
-
-                    // Strategy Title
-                    String strategyTitle = tuple.get(strategyQ.strategyTitle);
-
-                    // Followers Count (default to 0 if not found)
-                    Long followersCount = followersCountMap.getOrDefault(strategyId, 0L);
-
-                    // Create and return DTO
-                    return new AdvancedSearchResultDto(
-                            strategyId,
-                            tradingTypeIcon,
-                            tradingCycleIcon,
-                            investmentAssetClassesIcons,
-                            strategyTitle,
-                            followersCount
-                    );
-                })
+                .map(tuple -> new AdvancedSearchResultDto(
+                        tuple.get(strategyQ.strategyId),
+                        tuple.get(strategyQ.tradingTypeEntity.tradingTypeIcon),
+                        tuple.get(strategyQ.tradingCycleEntity.tradingCycleIcon),
+                        assetIconsMap.getOrDefault(tuple.get(strategyQ.strategyId), List.of()),
+                        tuple.get(strategyQ.strategyTitle),
+                        tuple.get(dailyStatisticsQ.followersCount)
+                ))
                 .toList();
 
-        // Return as a PageImpl
         return new PageImpl<>(results, pageable, totalCnt);
-
     }
+
 }
+

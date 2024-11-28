@@ -344,7 +344,7 @@ public class StrategyController {
      * 전략 상세 필터링
      *
      * @param investmentAssetClassesList   투자자산 분류 id 목록(1,2,3)
-     * @param strategyOperationStatusList  전략 운용 상태 id 목록
+     * @param strategyOperationStatusList  전략 운용 상태 코드 목록
      * @param tradingTypeList              매매유형 id 목록
      * @param operationDaysList            총운용일수 목록
      * @param tradingCycleList             매매주기 id 목록
