@@ -5,6 +5,11 @@ import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
+import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
+import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
+import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.attachment.service.FileService;
+import com.sysmatic2.finalbe.attachment.service.ProposalService;
 import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
@@ -48,6 +53,11 @@ public class StrategyService {
     private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
     private final DailyStatisticsService dailyStatisticsService;
     private final DailyStatisticsRepository dailyStatisticsRepository;
+    private final ProposalService proposalService;
+    private final StrategyProposalRepository strategyProposalRepository;
+    private final FileService fileService;
+    private final FileMetadataRepository fileMetadataRepository;
+    private final StrategyProposalService strategyProposalService;
 
     //1. 전략 생성
     /**
@@ -169,7 +179,31 @@ public class StrategyService {
 
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        //5. 응답
+        // 5. 전략 제안서가 있는 경우, 제안서 데이터 등록 (sbwoo)
+        Optional<FileMetadataDto> existingProposal = proposalService.getProposalUrlByFilePath(strategyPayloadDto.getStrategyProposalLink());
+
+        // 제안서가 있으면
+        existingProposal.ifPresent(proposalMetadataDto -> {
+            // 제안서 엔티티 생성
+            StrategyProposalEntity proposalEntity = new StrategyProposalEntity();
+            proposalEntity.setStrategy(createdEntity);
+            proposalEntity.setWritedAt(LocalDateTime.now());
+            proposalEntity.setWriterId(createdEntity.getWriterId());
+            proposalEntity.setFileType(proposalMetadataDto.getContentType());
+            proposalEntity.setCreatedAt(LocalDateTime.now());
+            proposalEntity.setCreatedBy(createdEntity.getCreatedBy());
+            proposalEntity.setFileTitle(proposalMetadataDto.getDisplayName());
+            proposalEntity.setFileLink(proposalMetadataDto.getFilePath());
+
+            // 제안서 엔티티 저장
+            strategyProposalRepository.save(proposalEntity);
+
+            // 제안서 파일 메타데이터에 전략 ID 저장
+            proposalMetadataDto.setFileCategoryItemId(createdEntity.getStrategyId().toString());
+            fileMetadataRepository.save(FileMetadataDto.toEntity(proposalMetadataDto));
+        });
+
+        // 6. 응답
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         return responseMap;
@@ -421,6 +455,12 @@ public class StrategyService {
         Long followersCount = dailyStatisticsService.getLatestFollowersCount(strategyEntity.getStrategyId());
         responseDto.setFollowersCount(followersCount);
 
+        // 제안서 URL 조회 (sbwoo)
+        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
+                .orElse(null); // 값이 없으면 null 반환
+        responseDto.setStrategyProposalUrl(strategyProposal);
+
         return responseDto;
     }
 
@@ -478,12 +518,32 @@ public class StrategyService {
             strategyIACHistoryRepository.save(strategyIACHistoryEntity);
         }
 
-        //4. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        // 4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
+        Optional<FileMetadataDto> existingProposal = proposalService.getProposalUrlByStrategyId(strategyEntity.getStrategyId());
+
+        // 제안서가 존재할 경우 처리
+        existingProposal.ifPresent(proposalMetadataDto -> {
+            // FileMetadata 변환
+            FileMetadata proposalMetadata = FileMetadataDto.toEntity(proposalMetadataDto);
+
+            // StrategyProposalEntity 변환 및 삭제 처리
+            strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                    .ifPresent(strategyProposalDto -> {
+                        StrategyProposalEntity strategyProposalEntity = StrategyProposalDto.toEntity(strategyProposalDto, strategyEntity);
+
+                        // 제안서 파일 메타데이터 및 제안서 삭제
+                        fileMetadataRepository.delete(proposalMetadata);
+                        strategyProposalRepository.delete(strategyProposalEntity);
+                    });
+        });
+
+        //5. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //5. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //6. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
+
     }
 
     //5. 전략 수정
@@ -702,7 +762,33 @@ public class StrategyService {
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        //응답
+        // 10. 전략 제안서가 있는 경우, 제안서 데이터 수정
+        Optional<FileMetadataDto> optionalProposalMetadataDto = proposalService.getProposalUrlByFilePath(strategyPayloadDto.getStrategyProposalLink());
+        Optional<StrategyProposalDto> optionalStrategyProposalDto = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId());
+
+        // 두 데이터가 모두 존재하는 경우에만 처리
+        if (optionalProposalMetadataDto.isPresent() && optionalStrategyProposalDto.isPresent()) {
+            FileMetadata proposalMetadata = FileMetadataDto.toEntity(optionalProposalMetadataDto.get());
+            StrategyProposalEntity strategyProposalEntity = StrategyProposalDto.toEntity(optionalStrategyProposalDto.get(), strategyEntity);
+
+            // 전략 제안서 엔티티 수정
+            strategyProposalEntity.setUpdatedAt(LocalDateTime.now());
+            strategyProposalEntity.setUpdaterId(strategyEntity.getWriterId());
+            strategyProposalEntity.setFileTitle(proposalMetadata.getDisplayName());
+            strategyProposalEntity.setFileType(proposalMetadata.getContentType());
+            strategyProposalEntity.setFileLink(proposalMetadata.getFilePath());
+
+            // 제안서 엔티티 저장
+            strategyProposalRepository.save(strategyProposalEntity);
+
+            // 제안서 파일 메타데이터에 전략 ID 저장
+            proposalMetadata.setFileCategoryItemId(strategyEntity.getStrategyId().toString());
+            fileMetadataRepository.save(proposalMetadata);
+        } else {
+            System.out.println("Proposal metadata or strategy proposal is missing. Update skipped.");
+        }
+
+        // 11. 응답
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         return responseMap;

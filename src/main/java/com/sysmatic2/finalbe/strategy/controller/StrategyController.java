@@ -244,39 +244,7 @@ public class StrategyController {
 
     //11. 전략 수기 데이터 수정
     /**
-     * 전략 수기 데이터 수정 API
-     *
-     * @param strategyId  수정할 전략 ID
-     * @param dailyDataId 수정할 데이터 ID
-     * @param reqDto      수정 요청 데이터 (날짜, 입출금, 일손익)
-     * @return 성공 메시지
-     */
-    @Operation(summary = "전략 수기 데이터 수정", description = "수정된 날짜 이후 데이터까지 재등록하여 지표를 갱신합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "수정 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "데이터 또는 전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
-    @PutMapping("/{strategyId}/daily-data/{dailyDataId}")
-    public ResponseEntity<Map<String, String>> updateDailyData(
-            @PathVariable Long strategyId,
-            @PathVariable Long dailyDataId,
-            @RequestBody DailyStatisticsReqDto reqDto) {
-
-        // 서비스 호출하여 수정 로직 수행
-        dailyStatisticsService.updateDailyData(strategyId, dailyDataId, reqDto);
-
-        // 성공 응답
-        Map<String, String> response = Map.of("msg", "UPDATE_SUCCESS");
-        return ResponseEntity.ok(response);
-    }
-
-
-    //12. 일간 분석
-    /**
-     * 특정 전략의 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다.
+     * 11. 특정 전략의 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다.
      *
      * @param strategyId 전략 ID.
      * @param page       페이지 번호 (기본값: 0).
@@ -434,4 +402,29 @@ public class StrategyController {
     }
 
 
+
+    /**
+     * 특정 전략의 일간 분석 데이터를 삭제하고 필요한 데이터를 재계산합니다.
+     *
+     * @param strategyId        삭제할 데이터가 포함된 전략의 ID
+     * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
+     * @return 삭제 및 재계산 결과
+     */
+    @PostMapping("/{strategyId}/daily-analyses/delete")
+    public ResponseEntity<?> deleteDailyAnalyses(
+            @PathVariable Long strategyId,
+            @RequestBody DeleteDailyStatisticsRequestDto requestDto
+    ) {
+        // 요청 데이터에서 ID 리스트 추출
+        List<Long> dailyStatisticsIds = requestDto.getDailyStatisticsId();
+
+        // 서비스 호출: 삭제 및 재계산
+        dailyStatisticsService.deleteAndRecalculate(strategyId, dailyStatisticsIds);
+
+        // 성공 응답 반환
+        return ResponseEntity.ok(Map.of(
+                "msg", "DELETE_SUCCESS",
+                "timestamp", Instant.now()
+        ));
+    }
 }

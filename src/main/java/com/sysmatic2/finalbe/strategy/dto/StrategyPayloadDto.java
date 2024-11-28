@@ -20,7 +20,5 @@ public class StrategyPayloadDto {
     private String strategyOverview; //전략 소개
     private List<Integer> InvestmentAssetClassesIdList; //투자자자산 분류 id 목록
     private String isPosted;
-
-    //제안서 파일
-    //private String strategyProposalLink;
+    private String strategyProposalLink;     //제안서 파일
 }
