@@ -18,7 +18,7 @@ public class ConsultationListResponseDto {
   private String traderName;
   private String traderProfileUrl;
 
-  private Long strategyId; // 전략 ID 포함
+//  private Long strategyId; // 전략 ID 포함
   private String strategyName; // 전략 이름 포함
 
   private LocalDateTime investmentDate;

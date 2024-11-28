@@ -9,6 +9,7 @@ import com.sysmatic2.finalbe.cs.service.ConsultationService;
 import com.sysmatic2.finalbe.cs.mapper.ConsultationMapper;
 import com.sysmatic2.finalbe.exception.GlobalExceptionHandler;
 import com.sysmatic2.finalbe.exception.ReplyNotFoundException;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,7 +63,7 @@ class ConsultationControllerTest {
             .traderName("트레이더닉네임")
             .strategyId(1L)
             .strategyName("성장 전략")
-            .investmentAmount(5000.0)
+            .investmentAmount(BigDecimal.valueOf(5000.0))
             .investmentDate(LocalDateTime.now())
             .title("투자 문의")
             .content("성장 전략에 대해 더 알고 싶습니다.")
@@ -79,7 +80,7 @@ class ConsultationControllerTest {
             .traderId("trd456")
             .strategyId(1L) // 전략 ID 사용
             .strategyName("성장 전략") // 전략 이름 사용
-            .investmentAmount(5000.0)
+            .investmentAmount(BigDecimal.valueOf(5000.0))
             .investmentDate(LocalDateTime.now())
             .title("투자 문의")
             .content("성장 전략에 대해 더 알고 싶습니다.")
@@ -111,7 +112,7 @@ class ConsultationControllerTest {
     createDto.setTraderId(null);
     createDto.setStrategyId(null); // 전략 ID도 필수이므로 설정하지 않음
     createDto.setStrategyName(null); // 전략 이름도 필수이므로 설정하지 않음
-    createDto.setInvestmentAmount(-100.0); // 잘못된 값
+    createDto.setInvestmentAmount(BigDecimal.valueOf(-100.0)); // 잘못된 값
     createDto.setInvestmentDate(null);
     createDto.setTitle(null);
     createDto.setContent(null);
@@ -171,7 +172,7 @@ class ConsultationControllerTest {
             .investorProfileUrl("http://example.com/inv123.png")
             .traderName("트레이더닉네임")
             .traderProfileUrl("http://example.com/trd456.png")
-            .strategyId(1L)
+//            .strategyId(1L)
             .strategyName("성장 전략")
             .investmentDate(LocalDateTime.now())
             .title("투자 문의")
@@ -212,7 +213,7 @@ class ConsultationControllerTest {
             .content("업데이트된 내용")
             .strategyId(2L) // 전략 ID 업데이트
             .strategyName("성장 전략 업데이트") // 전략 이름 업데이트
-            .investmentAmount(6000.0)
+            .investmentAmount(BigDecimal.valueOf(6000.0))
             .investmentDate(LocalDateTime.now())
             .status(ConsultationStatus.COMPLETED)
             .build();
@@ -225,7 +226,7 @@ class ConsultationControllerTest {
             .traderName("트레이더닉네임")
             .strategyId(2L)
             .strategyName("성장 전략 업데이트")
-            .investmentAmount(6000.0)
+            .investmentAmount(BigDecimal.valueOf(6000.0))
             .investmentDate(LocalDateTime.now())
             .title("업데이트된 제목")
             .content("업데이트된 내용")
@@ -260,7 +261,7 @@ class ConsultationControllerTest {
             .content("업데이트된 내용")
             .strategyId(3L) // 전략 ID 업데이트
             .strategyName("존재하지 않는 전략") // 전략 이름 업데이트
-            .investmentAmount(1000.0) // 유효한 양수 값 설정
+            .investmentAmount(BigDecimal.valueOf(1000.0)) // 유효한 양수 값 설정
             .investmentDate(LocalDateTime.now())
             .status(ConsultationStatus.COMPLETED)
             .build();
@@ -321,7 +322,7 @@ class ConsultationControllerTest {
             .traderName("트레이더닉네임")
             .strategyId(1L)
             .strategyName("성장 전략")
-            .investmentAmount(5000.0)
+            .investmentAmount(BigDecimal.valueOf(5000.0))
             .investmentDate(LocalDateTime.now())
             .title("투자 문의")
             .content("성장 전략에 대해 더 알고 싶습니다.")
@@ -425,7 +426,7 @@ class ConsultationControllerTest {
             .traderName("트레이더닉네임")
             .strategyId(1L)
             .strategyName("성장 전략")
-            .investmentAmount(5000.0)
+            .investmentAmount(BigDecimal.valueOf(5000.0))
             .investmentDate(LocalDateTime.now())
             .title("투자 문의")
             .content("성장 전략에 대해 더 알고 싶습니다.")
@@ -515,7 +516,7 @@ class ConsultationControllerTest {
             .traderName("트레이더닉네임")
             .strategyId(1L)
             .strategyName("성장 전략")
-            .investmentAmount(5000.0)
+            .investmentAmount(BigDecimal.valueOf(5000.0))
             .investmentDate(LocalDateTime.now())
             .title("투자 문의")
             .content("성장 전략에 대해 더 알고 싶습니다.")

@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.cs.dto;
 
 import com.sysmatic2.finalbe.cs.entity.ConsultationStatus;
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.*;
 
@@ -20,7 +21,7 @@ public class ConsultationUpdateDto {
   private String strategyName; // 전략 이름 사용 (선택적)
 
   @Positive(message = "투자 금액은 양수여야 합니다.")
-  private Double investmentAmount;
+  private BigDecimal investmentAmount;
 
   private LocalDateTime investmentDate;
   private ConsultationStatus status;

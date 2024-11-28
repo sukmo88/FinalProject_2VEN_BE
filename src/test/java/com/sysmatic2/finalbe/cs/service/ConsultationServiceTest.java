@@ -15,6 +15,7 @@ import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,7 +82,7 @@ class ConsultationServiceTest {
     consultationEntity.setInvestor(investor);
     consultationEntity.setTrader(trader);
     consultationEntity.setStrategy(strategy);
-    consultationEntity.setInvestmentAmount(5000.0);
+    consultationEntity.setInvestmentAmount(BigDecimal.valueOf(5000.0));
     consultationEntity.setInvestmentDate(LocalDateTime.now());
     consultationEntity.setTitle("투자 문의");
     consultationEntity.setContent("성장 전략에 대해 더 알고 싶습니다.");
@@ -98,7 +99,7 @@ class ConsultationServiceTest {
     consultationDetailDto.setTraderName("트레이더닉네임");
     consultationDetailDto.setStrategyId(1L);
     consultationDetailDto.setStrategyName("성장 전략");
-    consultationDetailDto.setInvestmentAmount(5000.0);
+    consultationDetailDto.setInvestmentAmount(BigDecimal.valueOf(5000.0));
     consultationDetailDto.setInvestmentDate(consultationEntity.getInvestmentDate());
     consultationDetailDto.setTitle("투자 문의");
     consultationDetailDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
@@ -129,7 +130,7 @@ class ConsultationServiceTest {
     createDto.setTraderId("trd456");
     createDto.setStrategyId(1L);
     createDto.setStrategyName("성장 전략"); // 일치하도록 설정
-    createDto.setInvestmentAmount(5000.0);
+    createDto.setInvestmentAmount(BigDecimal.valueOf(5000.0));
     createDto.setInvestmentDate(LocalDateTime.now());
     createDto.setTitle("투자 문의");
     createDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
@@ -177,7 +178,7 @@ class ConsultationServiceTest {
     consultationEntity2.setInvestor(investor);
     consultationEntity2.setTrader(trader);
     consultationEntity2.setStrategy(strategy);
-    consultationEntity2.setInvestmentAmount(7000.0);
+    consultationEntity2.setInvestmentAmount(BigDecimal.valueOf(7000.0));
     consultationEntity2.setInvestmentDate(LocalDateTime.now());
     consultationEntity2.setTitle("추가 상담");
     consultationEntity2.setContent("추가 상담 내용입니다.");
@@ -266,7 +267,7 @@ class ConsultationServiceTest {
     consultationEntity2.setInvestor(investor);
     consultationEntity2.setTrader(trader);
     consultationEntity2.setStrategy(strategy);
-    consultationEntity2.setInvestmentAmount(7000.0);
+    consultationEntity2.setInvestmentAmount(BigDecimal.valueOf(7000.0));
     consultationEntity2.setInvestmentDate(LocalDateTime.now());
     consultationEntity2.setTitle("추가 상담");
     consultationEntity2.setContent("추가 상담 내용입니다.");
@@ -348,7 +349,7 @@ class ConsultationServiceTest {
     updateDto.setContent("업데이트된 내용");
     updateDto.setStrategyId(1L);
     updateDto.setStrategyName("성장 전략"); // 일치하도록 수정
-    updateDto.setInvestmentAmount(6000.0);
+    updateDto.setInvestmentAmount(BigDecimal.valueOf(6000.0));
     updateDto.setInvestmentDate(LocalDateTime.now());
     updateDto.setStatus(ConsultationStatus.COMPLETED);
 
@@ -357,7 +358,7 @@ class ConsultationServiceTest {
     updatedEntity.setInvestor(investor);
     updatedEntity.setTrader(trader);
     updatedEntity.setStrategy(strategy);
-    updatedEntity.setInvestmentAmount(6000.0);
+    updatedEntity.setInvestmentAmount(BigDecimal.valueOf(6000.0));
     updatedEntity.setInvestmentDate(updateDto.getInvestmentDate());
     updatedEntity.setTitle("업데이트된 제목");
     updatedEntity.setContent("업데이트된 내용");
@@ -373,7 +374,7 @@ class ConsultationServiceTest {
     updatedDto.setTraderName("트레이더닉네임");
     updatedDto.setStrategyId(1L); // 추가
     updatedDto.setStrategyName("성장 전략"); // 일치하도록 수정
-    updatedDto.setInvestmentAmount(6000.0);
+    updatedDto.setInvestmentAmount(BigDecimal.valueOf(6000.0));
     updatedDto.setInvestmentDate(updateDto.getInvestmentDate());
     updatedDto.setTitle("업데이트된 제목");
     updatedDto.setContent("업데이트된 내용");
@@ -415,7 +416,7 @@ class ConsultationServiceTest {
     updateDto.setTitle("업데이트된 제목");
     updateDto.setContent("업데이트된 내용");
     updateDto.setStrategyId(1L);
-    updateDto.setInvestmentAmount(1000.0);
+    updateDto.setInvestmentAmount(BigDecimal.valueOf(1000.0));
     updateDto.setInvestmentDate(LocalDateTime.now());
     updateDto.setStatus(ConsultationStatus.COMPLETED);
 
@@ -443,7 +444,7 @@ class ConsultationServiceTest {
     updateDto.setTitle("업데이트된 제목");
     updateDto.setContent("업데이트된 내용");
     updateDto.setStrategyId(999L); // 존재하지 않는 전략 ID
-    updateDto.setInvestmentAmount(1000.0);
+    updateDto.setInvestmentAmount(BigDecimal.valueOf(1000.0));
     updateDto.setInvestmentDate(LocalDateTime.now());
     updateDto.setStatus(ConsultationStatus.COMPLETED);
 
@@ -513,7 +514,7 @@ class ConsultationServiceTest {
     updatedEntity.setInvestor(investor);
     updatedEntity.setTrader(trader);
     updatedEntity.setStrategy(strategy);
-    updatedEntity.setInvestmentAmount(5000.0);
+    updatedEntity.setInvestmentAmount(BigDecimal.valueOf(5000.0));
     updatedEntity.setInvestmentDate(consultationEntity.getInvestmentDate());
     updatedEntity.setTitle("투자 문의");
     updatedEntity.setContent("성장 전략에 대해 더 알고 싶습니다.");
@@ -534,7 +535,7 @@ class ConsultationServiceTest {
     updatedDto.setTraderName("트레이더닉네임");
     updatedDto.setStrategyId(1L);
     updatedDto.setStrategyName("성장 전략");
-    updatedDto.setInvestmentAmount(5000.0);
+    updatedDto.setInvestmentAmount(BigDecimal.valueOf(5000.0));
     updatedDto.setInvestmentDate(consultationEntity.getInvestmentDate());
     updatedDto.setTitle("투자 문의");
     updatedDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
@@ -639,7 +640,7 @@ class ConsultationServiceTest {
     updatedDto.setTraderName("트레이더닉네임");
     updatedDto.setStrategyId(1L);
     updatedDto.setStrategyName("성장 전략");
-    updatedDto.setInvestmentAmount(5000.0);
+    updatedDto.setInvestmentAmount(BigDecimal.valueOf(5000.0));
     updatedDto.setInvestmentDate(consultationEntity.getInvestmentDate());
     updatedDto.setTitle("투자 문의");
     updatedDto.setContent("성장 전략에 대해 더 알고 싶습니다.");
@@ -739,7 +740,7 @@ class ConsultationServiceTest {
     updatedDto.setTraderName("트레이더닉네임");
     updatedDto.setStrategyId(1L);
     updatedDto.setStrategyName("성장 전략");
-    updatedDto.setInvestmentAmount(5000.0);
+    updatedDto.setInvestmentAmount(BigDecimal.valueOf(5000.0));
     updatedDto.setInvestmentDate(consultationEntity.getInvestmentDate());
     updatedDto.setTitle("투자 문의");
     updatedDto.setContent("성장 전략에 대해 더 알고 싶습니다.");

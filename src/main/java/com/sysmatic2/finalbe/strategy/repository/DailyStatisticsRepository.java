@@ -29,6 +29,24 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
 
     /**
      * 특정 전략의 일 손익 데이터를 날짜 오름차순으로 조회합니다.
+     * 전략 id 리스트를 받고 각 전략의 가장 최근의 일일 통계 데이터 1개를 리스트에 담는다.
+     *
+     * @param strategyIds 조회할 전략의 ID
+     * @return 최신 일일 통계 데이터 리스트
+     */
+    @Query(value = """
+        SELECT * FROM daily_statistics ds
+        WHERE ds.strategy_id IN :strategyIds
+        AND ds.daily_statistics_id = (
+            SELECT MAX(ds_inner.daily_statistics_id)
+            FROM daily_statistics ds_inner
+            WHERE ds_inner.strategy_id = ds.strategy_id
+        )
+    """, nativeQuery = true)
+    List<DailyStatisticsEntity> findLatestStatisticsByStrategyIds(@Param("strategyIds") List<Long> strategyIds);
+
+    /**
+     * 특정 전략의 일손익(dailyProfitLoss) 데이터를 날짜 오름차순으로 조회합니다.
      *
      * @param strategyId 조회할 전략의 ID
      * @return 날짜 오름차순으로 정렬된 일 손익 데이터 리스트

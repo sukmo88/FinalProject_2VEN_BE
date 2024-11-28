@@ -22,7 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -183,7 +182,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             builder.and(strategyQ.tradingCycleEntity.tradingCycleId.in(searchOptions.getTradingCylcleIdList()));
         }
 
-        // 6. 투자자산 분류 필터 - 중첩가능
+        // 6. 투자자산 분류 필터
         if (searchOptions.getInvestmentAssetClassesIdList() != null && !searchOptions.getInvestmentAssetClassesIdList().isEmpty()) {
             builder.and(strategyIACQ.investmentAssetClassesEntity.investmentAssetClassesId.in(searchOptions.getInvestmentAssetClassesIdList()));
         }
@@ -276,112 +275,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             });
             builder.and(returnRateBuilder);
         }
-
-        // 전체 데이터 개수 (페이지네이션 전)
-        long totalCnt = queryFactory
-                .select(strategyQ.count())
-                .from(strategyQ)
-                .join(dailyStatisticsQ).on(dailyStatisticsQ.strategyEntity.eq(strategyQ))
-                .where(builder)
-                .fetchOne();
-
-        if (totalCnt == 0) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
-
-        // 전략 ID 조회 (필터, 페이징 적용)
-        List<Long> strategyIds = queryFactory
-                .select(strategyQ.strategyId)
-                .from(strategyQ)
-                .leftJoin(dailyStatisticsQ).on(dailyStatisticsQ.strategyEntity.eq(strategyQ))
-                .where(builder)
-                .orderBy(strategyQ.writedAt.desc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
-
-        if (strategyIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
-
-        // 최신 followersCount 매핑
-        Map<Long, Long> followersCountMap = queryFactory
-                .select(dailyStatisticsQ.strategyEntity.strategyId, dailyStatisticsQ.followersCount)
-                .from(dailyStatisticsQ)
-                .where(
-                        dailyStatisticsQ.date.in(
-                                JPAExpressions.select(dailyStatisticsQ.date.max())
-                                        .from(dailyStatisticsQ)
-                                        .groupBy(dailyStatisticsQ.strategyEntity.strategyId)
-                        )
-                )
-                .fetch()
-                .stream()
-                .collect(Collectors.toMap(
-                        tuple -> tuple.get(dailyStatisticsQ.strategyEntity.strategyId),
-                        tuple -> tuple.get(dailyStatisticsQ.followersCount)
-                ));
-
-        // 해당 id의 전략의 정보들 가져옴
-        List<Tuple> tuples = queryFactory
-                .select(
-                        strategyQ.strategyId,
-                        strategyQ.tradingTypeEntity.tradingTypeIcon,
-                        strategyQ.tradingCycleEntity.tradingCycleIcon,
-                        strategyQ.strategyTitle
-                )
-                .from(strategyQ)
-                .where(strategyQ.strategyId.in(strategyIds))
-                .fetch();
-
-        // 투자자산 분류 아이콘 가져오기
-        Map<Long, List<String>> assetIconsMap = queryFactory
-                .select(strategyIACQ.strategyEntity.strategyId, iacQ.investmentAssetClassesIcon)
-                .from(strategyIACQ)
-                .join(strategyIACQ.investmentAssetClassesEntity, iacQ)
-                .where(strategyIACQ.strategyEntity.strategyId.in(strategyIds))
-                .fetch()
-                .stream()
-                .collect(Collectors.groupingBy(
-                        tuple -> tuple.get(strategyIACQ.strategyEntity.strategyId),
-                        Collectors.mapping(tuple -> tuple.get(iacQ.investmentAssetClassesIcon), Collectors.toList())
-                ));
-
-        // DTO 리스트 생성
-        List<AdvancedSearchResultDto> results = tuples.stream()
-                .map(tuple -> {
-                    // Strategy ID
-                    Long strategyId = tuple.get(strategyQ.strategyId);
-
-                    // Trading Type Icon
-                    String tradingTypeIcon = tuple.get(strategyQ.tradingTypeEntity.tradingTypeIcon);
-
-                    // Trading Cycle Icon
-                    String tradingCycleIcon = tuple.get(strategyQ.tradingCycleEntity.tradingCycleIcon);
-
-                    // Investment Asset Classes Icons
-                    List<String> investmentAssetClassesIcons = assetIconsMap.getOrDefault(strategyId, List.of());
-
-                    // Strategy Title
-                    String strategyTitle = tuple.get(strategyQ.strategyTitle);
-
-                    // Followers Count (default to 0 if not found)
-                    Long followersCount = followersCountMap.getOrDefault(strategyId, 0L);
-
-                    // Create and return DTO
-                    return new AdvancedSearchResultDto(
-                            strategyId,
-                            tradingTypeIcon,
-                            tradingCycleIcon,
-                            investmentAssetClassesIcons,
-                            strategyTitle,
-                            followersCount
-                    );
-                })
-                .toList();
-
-        // Return as a PageImpl
-        return new PageImpl<>(results, pageable, totalCnt);
-
+        return null;
     }
 }
+
