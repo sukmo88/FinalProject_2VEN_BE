@@ -23,23 +23,20 @@ public class ProposalController {
      * 제안서 파일 업로드 또는 업데이트
      *
      * @param file        업로드할 파일
-     * @param strategyId  전략 ID
      * @param userDetails  업로드한 사용자 ID (JWT 토큰에서 추출)
      * @return 업로드된 파일 메타데이터와 성공 메시지
      */
     @PostMapping
     public ResponseEntity<?> uploadProposal(@RequestParam("file") MultipartFile file,
-                                               @RequestParam("strategyId") String strategyId,
                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // uploaderId 추출 (로그인한 사람)
         String uploaderId = userDetails.getMemberId();
 
-        FileMetadataDto fileMetadataDto = proposalService.uploadProposal(file, uploaderId, strategyId);
+        FileMetadataDto fileMetadataDto = proposalService.uploadProposal(file, uploaderId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "fileId", fileMetadataDto.getId(),
-                "strategyId", strategyId,
                 "fileUrl", fileMetadataDto.getFilePath(),
                 "displayName", fileMetadataDto.getDisplayName(),
                 "message", "File successfully uploaded"
