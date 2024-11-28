@@ -33,4 +33,6 @@ public class StrategyResponseDto {
     private String isPosted;            //공개여부
     private String isApproved;           //승인여부
     private Long followersCount;       //팔로워수
+
+    private String strategyProposalUrl; // 제안서 url
 }
