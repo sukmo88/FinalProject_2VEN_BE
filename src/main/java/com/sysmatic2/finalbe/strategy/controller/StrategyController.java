@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 @Tag(name = "Strategy Controller", description = "전략 컨트롤러")
 public class StrategyController {
     private final StrategyService strategyService;
-    private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsService dailyStatisticsService;
 
     // 1. 전략 생성페이지(GET)
@@ -65,7 +64,7 @@ public class StrategyController {
     @PostMapping(produces="application/json")
     public ResponseEntity<Map> createStrategy(@Valid @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
         //TODO) 접속자 토큰 권한 판별
-        String adminId = "4w_qdODSTqeIAd7fndHLfg";
+        String adminId = "71-88RZ_QQ65hMGknyWKLA";
 
         //데이터 저장
         Map<String, Long> responseData = strategyService.register(strategyPayloadDto, adminId);
@@ -344,7 +343,7 @@ public class StrategyController {
      * 전략 상세 필터링
      *
      * @param investmentAssetClassesList   투자자산 분류 id 목록(1,2,3)
-     * @param strategyOperationStatusList  전략 운용 상태 id 목록
+     * @param strategyOperationStatusList  전략 운용 상태 코드 목록
      * @param tradingTypeList              매매유형 id 목록
      * @param operationDaysList            총운용일수 목록
      * @param tradingCycleList             매매주기 id 목록
