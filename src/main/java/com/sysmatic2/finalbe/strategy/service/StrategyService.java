@@ -1,31 +1,31 @@
 package com.sysmatic2.finalbe.strategy.service;
 
-import com.sysmatic2.finalbe.admin.dto.RejectionRequestResponseDto;
-import com.sysmatic2.finalbe.admin.dto.TradingCycleRegistrationDto;
+import com.sysmatic2.finalbe.admin.dto.*;
 import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
 import com.sysmatic2.finalbe.exception.*;
-import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
-import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.entity.*;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
+import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.ParseCsvToList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,6 +47,7 @@ public class StrategyService {
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
     private final DailyStatisticsService dailyStatisticsService;
+    private final DailyStatisticsRepository dailyStatisticsRepository;
 
     //1. 전략 생성
     /**
@@ -198,7 +199,7 @@ public class StrategyService {
      * @param page                 현재 페이지
      * @param pageSize             페이지크기
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Map<String, Object> advancedSearch(SearchOptionsPayloadDto searchOptionsPayload, Integer page, Integer pageSize) {
         //페이지 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
@@ -243,6 +244,86 @@ public class StrategyService {
         return createPageResponse(strategyPage);
     }
 
+    /**
+     * 2-3. 작성자 id로 필터링한 전략 목록을 반환(페이지네이션)
+     *
+     * @param traderId             작성한 트레이더 id
+     * @param page                 현재 페이지
+     * @param pageSize             페이지크기
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListbyTraderId(String traderId, Integer page, Integer pageSize) {
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //traderid로 해당 전략 엔티티 객체들 가져오기
+        Page<StrategyEntity> traderStrategyPage = strategyRepo.findByWriterId(traderId, pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값으로 가져오기
+        // 전략 id 리스트 생성
+        List<Long> strategyIds = traderStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        // 전략 id로 관련 최신 DailyStatics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        // DTO에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = traderStrategyPage.stream()
+                .map(strategyEntity -> {
+                    //기본 정보 DTO에 넣기
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(), //전략id
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()), //투자자산분류 아이콘
+                            strategyEntity.getStrategyTitle(),     //전략명
+                            BigDecimal.ZERO, //누적손익률
+                            BigDecimal.ZERO, //최근1년손익률
+                            BigDecimal.ZERO, //sm-score
+                            0L               //팔로워수
+                    );
+
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if(latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setSmScore(latestStatistics.getSmScore());
+                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                    }
+
+                    return dto;
+                }).collect(Collectors.toList());
+
+        //페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, traderStrategyPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
+    }
+
+    /**
+     * 2-4. 키워드로 전략명 필터링한 전략 목록을 반환(페이지네이션)
+     *
+     * @param keyword              검색 키워드
+     * @param page                 현재 페이지
+     * @param pageSize             페이지크기
+     */
+//    @Transactional(readOnly = true)
+//    public Map<String, Object> getStrategyListByKeyword(String keyword, Integer page, Integer pageSize) {
+//        //페이지 객체 생성
+//        Pageable pageable = PageRequest.of(page, pageSize);
+//
+//        //keyword로 해당 전략 엔티티 객체들 가져오기
+//        Page<StrategyEntity> findStrategyPage = strategyRepo.findByStrategyTitleContaining(keyword, pageable);
+//
+//    }
 
     //3. 전략 상세
     /**

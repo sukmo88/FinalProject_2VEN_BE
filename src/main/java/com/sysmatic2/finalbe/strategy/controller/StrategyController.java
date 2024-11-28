@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 @Tag(name = "Strategy Controller", description = "전략 컨트롤러")
 public class StrategyController {
     private final StrategyService strategyService;
-    private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsService dailyStatisticsService;
 
     // 1. 전략 생성페이지(GET)
@@ -65,7 +64,7 @@ public class StrategyController {
     @PostMapping(produces="application/json")
     public ResponseEntity<Map> createStrategy(@Valid @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
         //TODO) 접속자 토큰 권한 판별
-        String adminId = "4w_qdODSTqeIAd7fndHLfg";
+        String adminId = "71-88RZ_QQ65hMGknyWKLA";
 
         //데이터 저장
         Map<String, Long> responseData = strategyService.register(strategyPayloadDto, adminId);
