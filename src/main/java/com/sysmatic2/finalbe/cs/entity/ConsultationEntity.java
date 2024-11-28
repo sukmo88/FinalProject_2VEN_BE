@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.cs.entity;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
 import java.math.BigDecimal;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -46,6 +47,7 @@ public class ConsultationEntity {
 
   // 투자 금액
   @Column(nullable = false)
+  @DecimalMax(value = "10000000000.00", message = "투자 금액은 최대 100억을 넘을 수 없습니다.")
   private BigDecimal investmentAmount;
 
   // 투자 시점
