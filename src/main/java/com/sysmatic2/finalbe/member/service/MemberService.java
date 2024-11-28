@@ -1,13 +1,13 @@
 package com.sysmatic2.finalbe.member.service;
 
 import com.sysmatic2.finalbe.attachment.service.ProfileService;
-import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
-import com.sysmatic2.finalbe.exception.InvalidPasswordException;
-import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
-import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
+import com.sysmatic2.finalbe.member.entity.MemberTermEntity;
+import com.sysmatic2.finalbe.member.enums.TermType;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import com.sysmatic2.finalbe.member.repository.MemberTermRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import jakarta.servlet.http.HttpSession;
@@ -18,10 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +28,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProfileService profileService;
+    private final MemberTermRepository memberTermRepository;
 
     @Transactional
     public void signup(SignupDTO signupDTO) {
@@ -38,19 +37,46 @@ public class MemberService {
         duplicateNicknameCheck(signupDTO.getNickname());
         comparePassword(signupDTO.getPassword(), signupDTO.getConfirmPassword());
 
+        // SignupDTO를 MemberEntity로 변환 후 저장
         MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
+        memberRepository.save(member);
 
-        String uuid = RandomKeyGenerator.createUUID();
-        member.setMemberId(uuid);
-        member.setFileId(profileService.createDefaultFileMetadataForMember(uuid));  // profileService 에서 fileId 받아와서 member에 등록
+        // 필수약관 동의여부 확인 후 약관 및 광고성정보수신 동의내역 저장
+        if (!signupDTO.getPrivacyRequired() || !signupDTO.getServiceTermsRequired()) {
+            throw new RequiredAgreementException("개인정보처리방침과 서비스이용약관은 필수 동의 항목입니다.");
+        }
 
-        memberRepository.save(member); // 가입 실패 시 예외 발생
+        // 필수약관 동의했으면 약관동의내역 저장
+        // 약관 동의 내역 저장
+        LocalDateTime now = member.getSignupAt();
+        String memberId = member.getMemberId();
+
+        Map<TermType, String> termAgreementMap = termToMap(signupDTO);
+        termAgreementMap.forEach((termType, isAgreed) -> {
+            MemberTermEntity memberTermEntity = new MemberTermEntity(termType.name(), member, isAgreed, now);
+            memberTermEntity.setCreatedBy(memberId);
+            memberTermEntity.setModifiedBy(memberId);
+            memberTermRepository.save(memberTermEntity);
+        });
+
+        // TODO) 관심전략 기본폴더 생성
     }
 
+    // 확인 비밀번호 값이 일치하는지 확인하는 메소드
     private void comparePassword(String newPassword, String confirmPassword) {
         if (!newPassword.equals(confirmPassword)) {
             throw new ConfirmPasswordMismatchException("확인 비밀번호가 일치하지 않습니다.");
         }
+    }
+
+    // 약관동의내역을 map으로 변환하는 메소드
+    private HashMap<TermType, String> termToMap(SignupDTO signupDTO) {
+        HashMap<TermType, String> map = new HashMap<>();
+        map.put(TermType.PRIVACY_POLICY, signupDTO.getPrivacyRequired() ? "Y" : "N");
+        map.put(TermType.SERVICE_TERMS, signupDTO.getServiceTermsRequired() ? "Y" : "N");
+        map.put(TermType.PROMOTION, signupDTO.getPromotionOptional() ? "Y" : "N");
+        map.put(TermType.MARKETING_AGREEMENT, signupDTO.getMarketingOptional() ? "Y" : "N");
+        return map;
     }
 
     // email 중복 여부 확인
@@ -144,7 +170,6 @@ public class MemberService {
         member.setNickname(profileUpdateDTO.getNickname());
         member.setPhoneNumber(profileUpdateDTO.getPhoneNumber());
         member.setIntroduction(profileUpdateDTO.getIntroduction());
-        member.setIsAgreedMarketingAd(profileUpdateDTO.getMarketingOptional() ? 'Y' : 'N');
         memberRepository.save(member);
     }
 

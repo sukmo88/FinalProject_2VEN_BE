@@ -269,4 +269,15 @@ class MemberServiceTest {
         verifyNoMoreInteractions(passwordEncoder);
         verifyNoMoreInteractions(memberRepository);
     }
+
+    @Test
+    @DisplayName("회원가입 성공")
+    public void signup_Success() {
+        // given : signupDTO를 넘겨주고
+        //
+        // when : 회원가입 메소드 실행하면
+        //
+        // then : 응답코드 200, 응답메시지 "회원가입에 성공했습니다."
+
+    }
 }

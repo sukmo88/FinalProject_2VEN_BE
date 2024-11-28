@@ -34,7 +34,6 @@ class MemberRepositoryTest {
         memberEntity.setPhoneNumber("01012345678");
         memberEntity.setIntroduction("testIntroduction");
         memberEntity.setFileId("fileId1");
-        memberEntity.setIsAgreedMarketingAd('Y');
         return memberEntity;
     };
 
@@ -106,6 +105,5 @@ class MemberRepositoryTest {
         assertEquals(detailedProfileDTO.getPhoneNumber(), member.getPhoneNumber());
         assertEquals(detailedProfileDTO.getIntroduction(), member.getIntroduction());
         assertEquals(detailedProfileDTO.getFileId(), member.getFileId());
-        assertEquals(detailedProfileDTO.isMarketingOptional(), member.getIsAgreedMarketingAd() == 'Y' ? true : false);
     }
 }

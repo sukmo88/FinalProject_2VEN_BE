@@ -110,7 +110,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class,
             ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class,
             StrategyAlreadyApprovedException.class, StrategyAlreadyTerminatedException.class,
-            StrategyTerminatedException.class})
+            StrategyTerminatedException.class, RequiredAgreementException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -151,6 +151,11 @@ public class GlobalExceptionHandler {
             StrategyTerminatedException constraintEx = (StrategyTerminatedException) ex;
             String field = "strategy";
             String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
+        } else if (ex instanceof RequiredAgreementException) {
+            RequiredAgreementException requiredAgreementEx = (RequiredAgreementException) ex;
+            String field = "memberTerm";
+            String message = requiredAgreementEx.getMessage();
             fieldErrors.put(field, message);
         }
 
