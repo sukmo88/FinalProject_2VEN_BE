@@ -32,7 +32,7 @@ public class StrategyProposalEntity extends Auditable {
     @Column(name="file_title", nullable = false)
     private String fileTitle = "전략제안서"; // 전략제안서 제목
 
-    @Column(name="file_link")
+    @Column(name="file_link", unique = true, nullable = false)
     private String fileLink; // 전략제안서 링크
 
     @Column(name="file_size")

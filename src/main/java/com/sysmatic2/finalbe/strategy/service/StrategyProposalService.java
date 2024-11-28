@@ -63,7 +63,7 @@ public class StrategyProposalService {
     }
 
     /**
-     * 제안서 파일 조회
+     * 제안서 파일 조회 - strategyId
      */
     public Optional<StrategyProposalDto> getProposalByStrategyId(Long strategyId) {
         // 전략 조회
@@ -73,6 +73,15 @@ public class StrategyProposalService {
         // 제안서 조회 및 dto로 변환, Optional로 반환
         return strategyProposalRepository.findByStrategy(strategyEntity)
                 .map(StrategyProposalDto::fromEntity);
+    }
+
+    /**
+     * 제안서 파일 조회 - filePath
+     */
+    public Optional<StrategyProposalDto> getProposalByFilePath(String filePath) {
+        // 전략 조회
+        return strategyProposalRepository.findByFileLink(filePath)
+                .map(StrategyProposalDto::fromEntity); // Optional로 변환 후 반환
     }
 
 

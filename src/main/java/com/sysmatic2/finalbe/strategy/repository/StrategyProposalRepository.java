@@ -13,4 +13,6 @@ public interface StrategyProposalRepository extends JpaRepository<StrategyPropos
 
     Optional<StrategyProposalEntity> findByStrategy(StrategyEntity strategy);
 
+    Optional<StrategyProposalEntity> findByFileLink(String fileLink);
+
 }
