@@ -2,6 +2,8 @@ package com.sysmatic2.finalbe.strategy.entity;
 
 import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -14,6 +16,7 @@ import java.time.YearMonth;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder //테스트용
 public class MonthlyStatisticsEntity extends Auditable {
     @ManyToOne
     @JoinColumn(name = "strategy_id", nullable = false)
@@ -47,4 +50,24 @@ public class MonthlyStatisticsEntity extends Auditable {
 
     @Column(name = "monthly_average_balance", nullable = false, precision = 19, scale = 4)
     private BigDecimal monthlyAvgBalance; // 월평균 잔고 - 해당 월의 잔고들의 평균값
+
+    /**
+     * 엔티티 데이터를 리스트로 매핑하는 메서드
+     *
+     * @return 필드 값 리스트
+     */
+    public List<Object> toList() {
+        List<Object> data = new ArrayList<>();
+        data.add(this.getMonthlyStatisticsId());
+        data.add(this.getStrategyEntity().getStrategyId());
+        data.add(this.getAnalysisMonth());
+        data.add(this.getMonthlyAvgPrincipal());
+        data.add(this.getMonthlyDepWdAmount());
+        data.add(this.getMonthlyProfitLoss());
+        data.add(this.getMonthlyReturn());
+        data.add(this.getMonthlyCumulativeProfitLoss());
+        data.add(this.getMonthlyCumulativeReturn());
+        data.add(this.getMonthlyAvgBalance());
+        return data;
+    }
 }

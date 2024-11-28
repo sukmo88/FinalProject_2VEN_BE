@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.cs.dto;
 
 import com.sysmatic2.finalbe.cs.entity.ConsultationStatus;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,7 +34,7 @@ public class ConsultationCreateDto {
 
   @NotNull(message = "투자 금액은 필수입니다.")
   @Positive(message = "투자 금액은 양수여야 합니다.")
-  private Double investmentAmount;
+  private BigDecimal investmentAmount;
 
   @NotNull(message = "투자 시점은 필수입니다.")
   private LocalDateTime investmentDate;

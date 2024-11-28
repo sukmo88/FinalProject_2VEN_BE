@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.cs.dto;
 
 import com.sysmatic2.finalbe.cs.entity.ConsultationStatus;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,7 +28,7 @@ public class ConsultationDetailResponseDto {
   private Long strategyId; // 전략 ID 포함
   private String strategyName; // 전략 이름 포함
 
-  private double investmentAmount;
+  private BigDecimal investmentAmount;
   private LocalDateTime investmentDate;
   private String title;
   private String content;
