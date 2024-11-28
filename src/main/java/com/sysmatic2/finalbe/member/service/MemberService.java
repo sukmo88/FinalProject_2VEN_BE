@@ -51,7 +51,6 @@ public class MemberService {
 
         String uuid = RandomKeyGenerator.createUUID();
         member.setMemberId(uuid);
-        member.setFileId(profileService.createDefaultFileMetadataForMember(uuid));  // profileService 에서 fileId 받아와서 member에 등록
 
         memberRepository.save(member); // 가입 실패 시 예외 발생
     }
