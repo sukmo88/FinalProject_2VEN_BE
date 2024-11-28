@@ -207,6 +207,11 @@ public class StatisticsCalculator {
      * @return 소수점 첫째자리에서 반올림된 정수부 원금
      */
     public static BigDecimal calculatePrincipal(BigDecimal previousPrincipal, BigDecimal depWdPrice, BigDecimal previousBalance) {
+        if (previousPrincipal.compareTo(BigDecimal.ZERO) == 0) {
+            // 이전 원금이 0일 경우 입출금 금액으로 원금을 설정
+            return depWdPrice.setScale(0, RoundingMode.HALF_UP);
+        }
+
         if (previousBalance.compareTo(BigDecimal.ZERO) == 0) {
             // 이전 잔고가 0일 경우 입출금 금액만 반영
             return previousPrincipal.add(depWdPrice).setScale(0, RoundingMode.HALF_UP); // 소수점 반올림
