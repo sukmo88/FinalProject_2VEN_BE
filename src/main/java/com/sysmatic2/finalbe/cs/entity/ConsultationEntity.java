@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.cs.entity;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -40,12 +41,12 @@ public class ConsultationEntity {
 
   // 투자 전략
   @ManyToOne
-  @JoinColumn(name = "strategy_id", nullable = true)
+  @JoinColumn(name = "strategy_id", nullable = false)
   private StrategyEntity strategy;
 
   // 투자 금액
   @Column(nullable = false)
-  private double investmentAmount;
+  private BigDecimal investmentAmount;
 
   // 투자 시점
   @Column(nullable = false)
