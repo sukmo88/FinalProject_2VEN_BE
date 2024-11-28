@@ -295,10 +295,18 @@ public class DailyStatisticsService {
                     .orElseThrow(() -> new IllegalArgumentException("기준 날짜 이후 데이터가 존재하지 않습니다."));
         }
 
-        // 7. 삭제 이후 데이터를 조회
+        // 7. nextDate가 없는 경우 바로 리턴
+        if (nextDate == null) {
+            return;
+        }
+
+        // 7. 기준일(포함) 이후 데이터를 조회
         List<DailyStatisticsEntity> entitiesAfterDeletion = dsp.findAllAfterDate(strategyId, nextDate);
 
-        // 8. 삭제 이후 데이터를 재계산 및 저장
+        // 8. 기준일(포함) 이후 데이터 삭제
+        dsp.deleteFromDate(strategyId, nextDate);
+
+        // 9. 기준일(포함) 이후 데이터를 순회하며 재계산
         if (!entitiesAfterDeletion.isEmpty()) {
             recalculateAndSave(entitiesAfterDeletion, previousState.orElse(null), strategyId);
         }

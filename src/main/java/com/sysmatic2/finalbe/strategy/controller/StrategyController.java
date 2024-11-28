@@ -413,18 +413,21 @@ public class StrategyController {
      * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
      * @return 삭제 및 재계산 결과
      */
-//    @PostMapping("/{strategyId}/daily-analyses/delete")
-//    public ResponseEntity<?> deleteDailyAnalyses(
-//            @PathVariable Long strategyId,
-//            @RequestBody List<Long> dailyStatisticsIds
-//    ) {
-//        // 서비스 호출: 삭제 및 재계산
-//        dailyStatisticsService.deleteAndRecalculate(strategyId, dailyStatisticsIds);
-//
-//        // 성공 응답 반환
-//        return ResponseEntity.ok(Map.of(
-//                "msg", "DELETE_SUCCESS",
-//                "timestamp", Instant.now()
-//        ));
-//    }
+    @PostMapping("/{strategyId}/daily-analyses/delete")
+    public ResponseEntity<?> deleteDailyAnalyses(
+            @PathVariable Long strategyId,
+            @RequestBody DeleteDailyStatisticsRequestDto requestDto
+    ) {
+        // 요청 데이터에서 ID 리스트 추출
+        List<Long> dailyStatisticsIds = requestDto.getDailyStatisticsId();
+
+        // 서비스 호출: 삭제 및 재계산
+        dailyStatisticsService.deleteAndRecalculate(strategyId, dailyStatisticsIds);
+
+        // 성공 응답 반환
+        return ResponseEntity.ok(Map.of(
+                "msg", "DELETE_SUCCESS",
+                "timestamp", Instant.now()
+        ));
+    }
 }
