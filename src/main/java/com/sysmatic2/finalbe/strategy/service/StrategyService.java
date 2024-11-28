@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -179,29 +180,46 @@ public class StrategyService {
 
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        // 5. 전략 제안서가 있는 경우, 제안서 데이터 등록 (sbwoo)
+        // 5. 전략 제안서가 서버에 업로드 된 경우, 제안서 데이터 등록 (sbwoo)
         Optional<FileMetadataDto> existingProposal = proposalService.getProposalUrlByFilePath(strategyPayloadDto.getStrategyProposalLink());
 
-        // 제안서가 있으면
-        existingProposal.ifPresent(proposalMetadataDto -> {
-            // 제안서 엔티티 생성
-            StrategyProposalEntity proposalEntity = new StrategyProposalEntity();
-            proposalEntity.setStrategy(createdEntity);
-            proposalEntity.setWritedAt(LocalDateTime.now());
-            proposalEntity.setWriterId(createdEntity.getWriterId());
-            proposalEntity.setFileType(proposalMetadataDto.getContentType());
-            proposalEntity.setCreatedAt(LocalDateTime.now());
-            proposalEntity.setCreatedBy(createdEntity.getCreatedBy());
-            proposalEntity.setFileTitle(proposalMetadataDto.getDisplayName());
-            proposalEntity.setFileLink(proposalMetadataDto.getFilePath());
+        // file_path가 전략에 등록되었는지 확인
+        if (strategyProposalService.getProposalByFilePath(strategyPayloadDto.getStrategyProposalLink()).isEmpty()) {
+            // 제안서가 존재하지 않는 경우에만 작업 수행
+            System.out.println("No proposal found for file path: " + strategyPayloadDto.getStrategyProposalLink());
 
-            // 제안서 엔티티 저장
-            strategyProposalRepository.save(proposalEntity);
+            // 제안서가 있으면
+            existingProposal.ifPresent(proposalMetadataDto -> {
+                // 제안서 엔티티 생성
+                StrategyProposalEntity proposalEntity = new StrategyProposalEntity();
+                proposalEntity.setStrategy(createdEntity);
+                proposalEntity.setWritedAt(LocalDateTime.now());
+                proposalEntity.setWriterId(createdEntity.getWriterId());
+                proposalEntity.setFileType(proposalMetadataDto.getContentType());
+                proposalEntity.setCreatedAt(LocalDateTime.now());
+                proposalEntity.setCreatedBy(createdEntity.getCreatedBy());
+                proposalEntity.setFileTitle(proposalMetadataDto.getDisplayName());
+                proposalEntity.setFileLink(proposalMetadataDto.getFilePath());
 
-            // 제안서 파일 메타데이터에 전략 ID 저장
-            proposalMetadataDto.setFileCategoryItemId(createdEntity.getStrategyId().toString());
-            fileMetadataRepository.save(FileMetadataDto.toEntity(proposalMetadataDto));
-        });
+                // 제안서 엔티티 저장
+                strategyProposalRepository.save(proposalEntity);
+
+                // 제안서 파일 메타데이터에 전략 ID 저장
+                proposalMetadataDto.setFileCategoryItemId(createdEntity.getStrategyId().toString());
+                fileMetadataRepository.save(FileMetadataDto.toEntity(proposalMetadataDto));
+            });
+
+        } else {
+
+            // 제안서 테이블에 proposal link가 중복되는 경우
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", "BAD_REQUEST");
+            response.put("message", "Duplicate proposal link found for file path: " + strategyPayloadDto.getStrategyProposalLink());
+            response.put("timestamp", Instant.now().toString());
+            response.put("errorType", "DuplicateProposalException");
+
+            throw new StrategyProposalRuntimeException(response);
+        }
 
         // 6. 응답
         Map<String, Long> responseMap = new HashMap<>();
