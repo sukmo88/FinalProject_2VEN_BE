@@ -36,13 +36,20 @@ public class ProfileService {
 
         if (existingMetadata != null) {
             // 기존 파일이 있을 경우 수정
-            return fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category);
+            FileMetadataDto fileMetadataDto =  fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category);
+
+            // 회원 정보의 fileId 업데이트
+            memberHelper.initMemberFileId(uploaderId, fileMetadataDto.getId().toString(), fileMetadataDto.getFilePath());
+            System.out.println("smsmsmsm : " + fileMetadataDto.getFilePath());
+
+            return fileMetadataDto;
         } else {
             // 새로운 파일 업로드
             FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, null);
 
             // 회원 정보의 fileId 업데이트
-            memberHelper.updateMemberFileId(uploaderId, fileMetadataDto.getId().toString());
+            memberHelper.initMemberFileId(uploaderId, fileMetadataDto.getId().toString(), fileMetadataDto.getFilePath());
+            System.out.println("sbsbsb : " + fileMetadataDto.getFilePath());
 
             return fileMetadataDto;
         }
