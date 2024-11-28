@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.member.service;
 
-import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
 import com.sysmatic2.finalbe.exception.InvalidPasswordException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
@@ -262,7 +261,7 @@ class MemberServiceTest {
         when(passwordEncoder.matches("oldPassword", mockMember.getPassword())).thenReturn(true);
 
         // Act & Assert
-        assertThrows(ConfirmPasswordMismatchException.class, () -> memberService.changePassword(memberId, passwordUpdateDTO));
+        assertThrows(InvalidPasswordException.class, () -> memberService.changePassword(memberId, passwordUpdateDTO));
 
         verify(memberRepository, times(1)).findById(memberId);
         verify(passwordEncoder, times(1)).matches("oldPassword", mockMember.getPassword());

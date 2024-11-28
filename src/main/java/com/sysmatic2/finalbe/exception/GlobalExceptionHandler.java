@@ -108,9 +108,8 @@ public class GlobalExceptionHandler {
 
     // 400: 유효성 검사 실패
     @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class,
-            ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class,
-            StrategyAlreadyApprovedException.class, StrategyAlreadyTerminatedException.class,
-            StrategyTerminatedException.class, RequiredAgreementException.class})
+            InvestmentAssetClassesNotActiveException.class, StrategyAlreadyApprovedException.class,
+            StrategyAlreadyTerminatedException.class, StrategyTerminatedException.class, RequiredAgreementException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -127,11 +126,6 @@ public class GlobalExceptionHandler {
                 String message = violation.getMessage();
                 fieldErrors.put(field, message);
             });
-        } else if (ex instanceof ConfirmPasswordMismatchException) {
-            ConfirmPasswordMismatchException confirmEx = (ConfirmPasswordMismatchException) ex;
-            String field = "confirmPassword";
-            String message = confirmEx.getMessage();
-            fieldErrors.put(field, message);
         } else if (ex instanceof InvestmentAssetClassesNotActiveException) {
             InvestmentAssetClassesNotActiveException constraintEx = (InvestmentAssetClassesNotActiveException) ex;
             String field = "investmentAssetClasses";
@@ -226,7 +220,7 @@ public class GlobalExceptionHandler {
         return ResponseUtils.buildErrorResponse(
                 "INVALID_PASSWORD",
                 e.getClass().getSimpleName(),
-                "비밀번호가 틀렸습니다.",
+                e.getMessage(),
                 HttpStatus.UNAUTHORIZED
         );
     }
@@ -244,7 +238,11 @@ public class GlobalExceptionHandler {
     }
 
     // 404: 데이터 없음
-    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class, TradingCycleNotFoundException.class, EmptyResultDataAccessException.class, InvestmentAssetClassesNotFoundException.class, ConsultationNotFoundException.class, TraderNotFoundException.class, InvestorNotFoundException.class, StrategyNotFoundException.class, MemberNotFoundException.class})
+    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class,
+            TradingCycleNotFoundException.class, EmptyResultDataAccessException.class,
+            InvestmentAssetClassesNotFoundException.class, ConsultationNotFoundException.class,
+            TraderNotFoundException.class, InvestorNotFoundException.class, StrategyNotFoundException.class,
+            MemberNotFoundException.class, MemberTermNotFoundException.class,})
     public ResponseEntity<Object> handleNotFoundExceptions(Exception ex) {
         logger.warn("Data not found: {}", ex.getMessage());
         return ResponseUtils.buildErrorResponse(
