@@ -102,7 +102,7 @@ public class MemberService {
         response.put("message", "로그인에 성공했습니다.");
         Map<String, Object> data = new HashMap<>();
         String role = member.getMemberGradeCode().replace("MEMBER_", "");
-        data.put("member_id",member.getMemberId());
+        data.put("memberId",member.getMemberId());
         data.put("email", member.getEmail());
         data.put("nickname", member.getNickname());
         data.put("role",role);
@@ -113,8 +113,8 @@ public class MemberService {
             adminSessionDTO.setAuthorizationStatus("PENDING");
             adminSessionDTO.setAuthorizedAt("");
             adminSessionDTO.setExpiresAt("");
-            data.put("admin_info",adminSessionDTO);
-            session.setAttribute("admin_info",adminSessionDTO);
+            data.put("adminInfo",adminSessionDTO);
+            session.setAttribute("adminInfo",adminSessionDTO);
         }
         //jwt 값을 전달해줘야지 정상적으로 로그인 했으면
         response.put("data", data);
