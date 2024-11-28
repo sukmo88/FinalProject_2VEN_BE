@@ -3,6 +3,8 @@ package com.sysmatic2.finalbe.admin.controller;
 import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesDto;
 import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.admin.service.InvestmentAssetClassesService;
+import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
+import com.sysmatic2.finalbe.attachment.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +26,7 @@ import java.util.*;
 @Validated
 public class InvestmentAssetClassesController {
     private final InvestmentAssetClassesService iacService;
+    private final FileService fileService;
 
     //1. 투자자산분류 목록 - pagination
     @Operation(summary = "투자자산 분류 목록")
@@ -55,6 +58,10 @@ public class InvestmentAssetClassesController {
         InvestmentAssetClassesDto iasDto = iacService.getById(id);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", iasDto);
+
+        FileMetadataDto iconMetadata = fileService.getFileMetadataByFilePath(iasDto.getInvestmentAssetClassesIcon());
+        // 이미지 displayname 조회 및 response 추가
+        responseMap.put("displayName", iconMetadata.getDisplayName());
 
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
