@@ -157,32 +157,6 @@ public class FileService {
         }
     }
 
-
-    /**
-     * 파일 다운로드
-     */
-//    public Object downloadFile(Long fileId, String uploaderId, String category) {
-//        FileMetadata metadata = validateFileAccess(fileId, uploaderId, category);
-//        String s3Key = s3ClientService.generateS3Key(metadata.getUploaderId(), metadata.getFileCategory(), metadata.getFileName());
-//
-//        // 이미지 외 파일은 byte 타입으로 리턴
-//        byte[] fileBytes = s3ClientService.downloadFile(s3Key);
-//
-//        // 다운 받는게 이미지파일이면 Base64로 변환
-//        if (metadata.getContentType().startsWith("image/")) {
-//            return convertToBase64(fileBytes, metadata.getContentType());
-//        }
-//        return fileBytes;
-//    }
-
-
-    /**
-     * 파일을 Base64로 변환
-     */
-    public String convertToBase64(byte[] fileBytes, String contentType) {
-        return "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(fileBytes);
-    }
-
     /**
      * 파일 메타데이터 조회
      *
@@ -206,6 +180,7 @@ public class FileService {
         return fileMetadataRepository.findByFilePath(filePath)
                 .map(FileMetadataDto::fromEntity)
                 .orElse(null); // 값이 없으면 null 반환
+
     }
 
     /**
