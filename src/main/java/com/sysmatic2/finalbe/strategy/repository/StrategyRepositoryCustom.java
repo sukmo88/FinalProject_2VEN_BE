@@ -29,5 +29,5 @@ public interface StrategyRepositoryCustom {
      * @param pageable 페이징 정보 (페이지 번호 및 크기)
      * @return 필터링된 전략 엔티티 목록 (Page 객체 포함)
      */
-    Page<AdvancedSearchResultDto> findStrategiesByDetailSearchOptions(SearchOptionsDto searchOptions, Pageable pageable);
+    Page<StrategyEntity> findStrategiesByDetailSearchOptions(SearchOptionsDto searchOptions, Pageable pageable);
 }

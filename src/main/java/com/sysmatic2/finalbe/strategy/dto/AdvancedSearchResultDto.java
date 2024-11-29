@@ -16,8 +16,9 @@ public class AdvancedSearchResultDto {
     private String strategyTitle; // 전략명
 
     private BigDecimal cumulativeProfitLossRate; //누적손익률
-    private BigDecimal recentOneYearReturn; //최근1년손익률
-    private BigDecimal smScore; //sm-score
+    private BigDecimal recentOneYearReturn;      //최근1년손익률
+    private BigDecimal Mdd;                      //Mdd(최대자본인하율)
+    private BigDecimal smScore;                  //sm-score
 
     private Long followersCount; // 팔로워 수
 }

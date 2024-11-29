@@ -34,5 +34,6 @@ public class StrategyResponseDto {
     private String isApproved;           //승인여부
     private Long followersCount;       //팔로워수
 
+    //TODO) strategyProposalLink로 필드명 변경
     private String strategyProposalUrl; // 제안서 url
 }

@@ -77,7 +77,7 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 
-    // 3. 전략 목록
+    // 3. 전략 목록 - 랭킹
     /**
      * 3. 필터 조건에 따라 전략 목록 반환 (페이징 포함)
      *
@@ -104,7 +104,7 @@ public class StrategyController {
         Map<String, Object> response = strategyService.getStrategies(tradingCycleId, investmentAssetClassesId, page, pageSize);
 
         // 200 OK 응답과 함께 반환
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     // 4. 전략 상세
@@ -134,7 +134,7 @@ public class StrategyController {
     //6. 전략 수정 페이지(GET)
     //TODO) 관리자와 작성 트레이더만 수정할 수 있다.
     @Operation(summary = "전략 수정페이지에 필요한 정보 반환")
-    @GetMapping(value = "/update-form/{id}", produces = "application/json")
+    @GetMapping(value = "/{id}/update-form", produces = "application/json")
     public ResponseEntity<Map> updateStrategyForm(@PathVariable("id") Long id) throws Exception{
         Map<String, Object> dataMap = strategyService.getStrategyUpdateForm(id);
 
@@ -388,7 +388,7 @@ public class StrategyController {
      */
     @GetMapping("/search")
     @Operation(summary = "키워드를 입력하여 전략명을 검색하는 메서드")
-    public ResponseEntity<Map<String, Object>> searchStrategy(@RequestParam String keyword,
+    public ResponseEntity<Map<String, Object>> searchStrategy(@RequestParam(required = false) String keyword,
                                                               @RequestParam(defaultValue = "0") Integer page,
                                                               @RequestParam(defaultValue = "6") Integer pageSize){
 
