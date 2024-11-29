@@ -544,7 +544,7 @@ public class StrategyService {
         String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
                 .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
                 .orElse(null); // 값이 없으면 null 반환
-        responseDto.setStrategyProposalUrl(strategyProposal);
+        responseDto.setStrategyProposalLink(strategyProposal);
 
         return responseDto;
     }
@@ -678,7 +678,7 @@ public class StrategyService {
         String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
                 .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
                 .orElse(null); // 값이 없으면 null 반환
-        responseDto.setStrategyProposalUrl(strategyProposal);
+        responseDto.setStrategyProposalLink(strategyProposal);
 
         //TODO)트레이더 정보 넣기
         responseDto.setTraderId("1");
