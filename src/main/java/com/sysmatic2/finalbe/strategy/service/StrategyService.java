@@ -1,31 +1,37 @@
 package com.sysmatic2.finalbe.strategy.service;
 
-import com.sysmatic2.finalbe.admin.dto.RejectionRequestResponseDto;
-import com.sysmatic2.finalbe.admin.dto.TradingCycleRegistrationDto;
+import com.sysmatic2.finalbe.admin.dto.*;
 import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
+import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
+import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
+import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.attachment.service.FileService;
+import com.sysmatic2.finalbe.attachment.service.ProposalService;
 import com.sysmatic2.finalbe.exception.*;
-import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
-import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.entity.*;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
+import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.ParseCsvToList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,6 +53,12 @@ public class StrategyService {
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
     private final DailyStatisticsService dailyStatisticsService;
+    private final DailyStatisticsRepository dailyStatisticsRepository;
+    private final ProposalService proposalService;
+    private final StrategyProposalRepository strategyProposalRepository;
+    private final FileService fileService;
+    private final FileMetadataRepository fileMetadataRepository;
+    private final StrategyProposalService strategyProposalService;
 
     //1. 전략 생성
     /**
@@ -168,7 +180,55 @@ public class StrategyService {
 
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        //5. 응답
+        // 5. 전략 제안서가 서버에 업로드 된 경우, 제안서 데이터 등록 (sbwoo)
+        Optional<FileMetadataDto> existingProposal = proposalService.getProposalUrlByFilePath(strategyPayloadDto.getStrategyProposalLink());
+
+        System.out.println("existing Proposal: " + existingProposal.isPresent());
+
+        // file_path가 전략에 등록되었는지 확인
+        if (strategyProposalService.getProposalByFilePath(strategyPayloadDto.getStrategyProposalLink()).isEmpty()) {
+
+            System.out.println("No proposal found for file path: " + strategyPayloadDto.getStrategyProposalLink());
+
+            // existingProposal이 존재할 경우에만 실행
+            if (existingProposal.isPresent()) {
+                FileMetadataDto proposalMetadataDto = existingProposal.get(); // Optional에서 값 추출
+
+                // 제안서 엔티티 생성
+                StrategyProposalEntity proposalEntity = new StrategyProposalEntity();
+                proposalEntity.setStrategy(createdEntity);
+                proposalEntity.setWritedAt(LocalDateTime.now());
+                proposalEntity.setWriterId(createdEntity.getWriterId());
+                proposalEntity.setFileType(proposalMetadataDto.getContentType());
+                proposalEntity.setCreatedAt(LocalDateTime.now());
+                proposalEntity.setCreatedBy(createdEntity.getCreatedBy());
+                proposalEntity.setFileTitle(proposalMetadataDto.getDisplayName());
+                proposalEntity.setFileLink(proposalMetadataDto.getFilePath());
+
+                // 제안서 엔티티 저장
+                strategyProposalRepository.save(proposalEntity);
+
+                // 제안서 파일 메타데이터에 전략 ID 저장
+                proposalMetadataDto.setFileCategoryItemId(createdEntity.getStrategyId().toString());
+                fileMetadataRepository.save(FileMetadataDto.toEntity(proposalMetadataDto));
+
+                System.out.println("Proposal entity and metadata saved successfully.");
+            } else {
+                System.out.println("No proposal metadata found. Skipping operation.");
+            }
+        } else {
+
+            // 제안서 테이블에 proposal link가 중복되는 경우
+            Map<String, Object> response = new HashMap<>();
+            response.put("error", "BAD_REQUEST");
+            response.put("message", "Duplicate proposal link found for file path: " + strategyPayloadDto.getStrategyProposalLink());
+            response.put("timestamp", Instant.now().toString());
+            response.put("errorType", "DuplicateProposalException");
+
+            throw new StrategyProposalRuntimeException(response);
+        }
+
+        // 6. 응답
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         return responseMap;
@@ -198,7 +258,7 @@ public class StrategyService {
      * @param page                 현재 페이지
      * @param pageSize             페이지크기
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Map<String, Object> advancedSearch(SearchOptionsPayloadDto searchOptionsPayload, Integer page, Integer pageSize) {
         //페이지 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
@@ -243,6 +303,132 @@ public class StrategyService {
         return createPageResponse(strategyPage);
     }
 
+    /**
+     * 2-3. 작성자 id로 필터링한 전략 목록을 반환(페이지네이션)
+     *
+     * @param traderId             작성한 트레이더 id
+     * @param page                 현재 페이지
+     * @param pageSize             페이지크기
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListbyTraderId(String traderId, Integer page, Integer pageSize) {
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //traderid로 해당 전략 엔티티 객체들 가져오기
+        Page<StrategyEntity> traderStrategyPage = strategyRepo.findByWriterId(traderId, pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값으로 가져오기
+        // 전략 id 리스트 생성
+        List<Long> strategyIds = traderStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        // 전략 id로 관련 최신 DailyStatics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        // DTO에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = traderStrategyPage.stream()
+                .map(strategyEntity -> {
+                    //기본 정보 DTO에 넣기
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(), //전략id
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()), //투자자산분류 아이콘
+                            strategyEntity.getStrategyTitle(),     //전략명
+                            BigDecimal.ZERO, //누적손익률
+                            BigDecimal.ZERO, //최근1년손익률
+                            BigDecimal.ZERO, //sm-score
+                            0L               //팔로워수
+                    );
+
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if(latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setSmScore(latestStatistics.getSmScore());
+                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                    }
+
+                    return dto;
+                }).collect(Collectors.toList());
+
+        //페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, traderStrategyPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
+    }
+
+    /**
+     * 2-4. 키워드로 전략명 필터링한 전략 목록을 반환(페이지네이션)
+     *
+     * @param keyword              검색 키워드
+     * @param page                 현재 페이지
+     * @param pageSize             페이지크기
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListByKeyword(String keyword, Integer page, Integer pageSize) {
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //전략명에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기 - isPosted = Y, isApproved = Y
+        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "Y", pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
+        //전략 id 리스트 생성
+        List<Long> strategyIds = findStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        //전략 id로 최신 dailystatistics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        //DTO에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = findStrategyPage.stream()
+                .map(strategyEntity -> {
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(), //전략id
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()), //투자자산분류 아이콘
+                            strategyEntity.getStrategyTitle(),     //전략명
+                            BigDecimal.ZERO, //누적손익률
+                            BigDecimal.ZERO, //최근1년손익률
+                            BigDecimal.ZERO, //sm-score
+                            0L               //팔로워수
+                    );
+
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if (latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setSmScore(latestStatistics.getSmScore());
+                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                    }
+
+                    return dto;
+
+                }).collect(Collectors.toList());
+        //페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
+    }
 
     //3. 전략 상세
     /**
@@ -293,6 +479,12 @@ public class StrategyService {
         // 최신 팔로워 수 조회
         Long followersCount = dailyStatisticsService.getLatestFollowersCount(strategyEntity.getStrategyId());
         responseDto.setFollowersCount(followersCount);
+
+        // 제안서 URL 조회 (sbwoo)
+        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
+                .orElse(null); // 값이 없으면 null 반환
+        responseDto.setStrategyProposalUrl(strategyProposal);
 
         return responseDto;
     }
@@ -351,12 +543,32 @@ public class StrategyService {
             strategyIACHistoryRepository.save(strategyIACHistoryEntity);
         }
 
-        //4. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        // 4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
+        Optional<FileMetadataDto> existingProposal = proposalService.getProposalUrlByStrategyId(strategyEntity.getStrategyId());
+
+        // 제안서가 존재할 경우 처리
+        existingProposal.ifPresent(proposalMetadataDto -> {
+            // FileMetadata 변환
+            FileMetadata proposalMetadata = FileMetadataDto.toEntity(proposalMetadataDto);
+
+            // StrategyProposalEntity 변환 및 삭제 처리
+            strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                    .ifPresent(strategyProposalDto -> {
+                        StrategyProposalEntity strategyProposalEntity = StrategyProposalDto.toEntity(strategyProposalDto, strategyEntity);
+
+                        // 제안서 파일 메타데이터 및 제안서 삭제
+                        fileMetadataRepository.delete(proposalMetadata);
+                        strategyProposalRepository.delete(strategyProposalEntity);
+                    });
+        });
+
+        //5. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //5. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //6. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
+
     }
 
     //5. 전략 수정
@@ -575,7 +787,33 @@ public class StrategyService {
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        //응답
+        // 10. 전략 제안서가 있는 경우, 제안서 데이터 수정
+        Optional<FileMetadataDto> optionalProposalMetadataDto = proposalService.getProposalUrlByFilePath(strategyPayloadDto.getStrategyProposalLink());
+        Optional<StrategyProposalDto> optionalStrategyProposalDto = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId());
+
+        // 두 데이터가 모두 존재하는 경우에만 처리
+        if (optionalProposalMetadataDto.isPresent() && optionalStrategyProposalDto.isPresent()) {
+            FileMetadata proposalMetadata = FileMetadataDto.toEntity(optionalProposalMetadataDto.get());
+            StrategyProposalEntity strategyProposalEntity = StrategyProposalDto.toEntity(optionalStrategyProposalDto.get(), strategyEntity);
+
+            // 전략 제안서 엔티티 수정
+            strategyProposalEntity.setUpdatedAt(LocalDateTime.now());
+            strategyProposalEntity.setUpdaterId(strategyEntity.getWriterId());
+            strategyProposalEntity.setFileTitle(proposalMetadata.getDisplayName());
+            strategyProposalEntity.setFileType(proposalMetadata.getContentType());
+            strategyProposalEntity.setFileLink(proposalMetadata.getFilePath());
+
+            // 제안서 엔티티 저장
+            strategyProposalRepository.save(strategyProposalEntity);
+
+            // 제안서 파일 메타데이터에 전략 ID 저장
+            proposalMetadata.setFileCategoryItemId(strategyEntity.getStrategyId().toString());
+            fileMetadataRepository.save(proposalMetadata);
+        } else {
+            System.out.println("Proposal metadata or strategy proposal is missing. Update skipped.");
+        }
+
+        // 11. 응답
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         return responseMap;

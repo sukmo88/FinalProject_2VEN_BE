@@ -102,12 +102,13 @@ public class AuthController {
             @Valid @RequestBody
             EmailVerificationDTO emailVerificationDTO, HttpServletRequest req) {
         HttpSession session = req.getSession(false);
-        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("admin_info");
+
         // 세션, 만료시간, 인증코드 값이 null이면 이메일 인증 불가 (잘못된 접근이라고 예외를 세분화해야 하나?)
         if (session == null || session.getAttribute("expiryTime") == null || session.getAttribute("verificationCode") == null) {
             throw new EmailVerificationFailedException("이메일 인증에 실패하였습니다.");
         }
 
+        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("adminInfo");
         String savedVerificationCode = (String) session.getAttribute("verificationCode");
         LocalDateTime expiryTime = (LocalDateTime) session.getAttribute("expiryTime");
 
@@ -124,19 +125,19 @@ public class AuthController {
         adminSessionDTO.setAuthorizedAt(LocalDateTime.now().toString());
         adminSessionDTO.setExpiresAt(LocalDateTime.now().plusMinutes(30).toString());
 
-        session.setAttribute("admin_info", adminSessionDTO);
+        session.setAttribute("adminInfo", adminSessionDTO);
         // 응답코드 200번, 성공 메시지 전송
         return ResponseEntity.ok(Map.of(
                 "status", "success",
                 "message", "이메일 인증에 성공하였습니다.",
-                "admin_info", adminSessionDTO
+                "adminInfo", adminSessionDTO
         ));
     }
 
     // 인증 상태 확인
     @GetMapping("/admin/status")
     public AdminSessionDTO  adminStatus(HttpSession session) {
-        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("admin_info");
+        AdminSessionDTO adminSessionDTO = (AdminSessionDTO) session.getAttribute("adminInfo");
         if (adminSessionDTO == null) {
             throw new IllegalStateException("Admin session not found");
         }
@@ -147,7 +148,7 @@ public class AuthController {
             if (LocalDateTime.now().isAfter(expirationTime)) {
                 adminSessionDTO.setAuthorizationStatus("EXPIRED");
                 adminSessionDTO.setAuthorized(false);
-                session.setAttribute("admin_info", adminSessionDTO);
+                session.setAttribute("adminInfo", adminSessionDTO);
             }
         }
         return adminSessionDTO;
