@@ -186,6 +186,13 @@ public class DailyStatisticsEntity extends Auditable {
     @Column(name = "followers_count", nullable = false)
     private Long followersCount = 0L; // 팔로워수 default = 0
 
+    @PrePersist
+    public void prePersist() {
+        if (followersCount == null) {
+            followersCount = 0L; // followersCount가 null일 경우 기본값 설정
+        }
+    }
+
     /**
      * 엔티티 데이터를 리스트로 매핑하는 메서드
      *

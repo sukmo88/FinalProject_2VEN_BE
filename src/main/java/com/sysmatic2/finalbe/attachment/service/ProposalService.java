@@ -38,7 +38,7 @@ public class ProposalService {
 
         FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
 
-        // 제안서 메타데이터 초기화 및 S3 파일 삭제
+        // 제안서 메타데이터 및 S3 파일 삭제
         fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  true);
 
         return existingMetadataDto.getId().toString();
@@ -47,16 +47,9 @@ public class ProposalService {
     /**
      * 제안서 파일 조회
      */
-    public Optional<FileMetadataDto> getProposalUrlByStrategyId(Long strategyId){
-        // 제안서 조회 및 dto로 반환
-        return Optional.ofNullable(fileService.getFileMetadataByFileItemId(strategyId.toString()));
-    }
-
-    /**
-     * 제안서 파일 조회
-     */
     public Optional<FileMetadataDto> getProposalUrlByFilePath(String filePath){
         // 제안서 조회 및 dto로 반환
         return Optional.ofNullable(fileService.getFileMetadataByFilePath(filePath));
+
     }
 }
