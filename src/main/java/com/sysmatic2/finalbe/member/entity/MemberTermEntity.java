@@ -7,9 +7,9 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+@IdClass(termTypeMemberId.class)
 @Entity
 @Table(name = "member_term")
-@IdClass(TermTypeMemberId.class)
 @Getter
 @Setter
 @ToString
@@ -17,6 +17,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MemberTermEntity extends Auditable {
+
+//    @Id
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @Column(name = "member_term_id", nullable = false)
+//    private Long memberTermId;
 
     @Id
     @Column(name = "term_type", nullable = false)

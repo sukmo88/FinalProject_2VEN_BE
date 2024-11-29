@@ -4,11 +4,10 @@ import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.entity.MemberTermEntity;
-import com.sysmatic2.finalbe.member.entity.TermTypeMemberId;
 import com.sysmatic2.finalbe.member.enums.TermType;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
-import com.sysmatic2.finalbe.member.repository.MemberTermRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +25,6 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final MemberTermRepository memberTermRepository;
 
     @Transactional
     public void signup(SignupDTO signupDTO) {
@@ -37,7 +35,6 @@ public class MemberService {
 
         // SignupDTO를 MemberEntity로 변환 후 저장
         MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
-        memberRepository.save(member);
 
         // 필수약관 동의여부 확인 후 약관 및 광고성정보수신 동의내역 저장
         if (!signupDTO.getPrivacyRequired() || !signupDTO.getServiceTermsRequired()) {
@@ -48,15 +45,25 @@ public class MemberService {
         LocalDateTime decisionDate = member.getSignupAt();
         String memberId = member.getMemberId();
 
-        Map<TermType, String> termAgreementMap = termToMap(signupDTO);
-        termAgreementMap.forEach((termType, isAgreed) -> {
-            MemberTermEntity memberTermEntity = new MemberTermEntity(termType.name(), member, isAgreed, decisionDate);
-            memberTermEntity.setCreatedBy(memberId);
-            memberTermEntity.setModifiedBy(memberId);
-            memberTermRepository.save(memberTermEntity);
-        });
+        Iterator<Map.Entry<TermType, String>> iterator = termToMap(signupDTO).entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<TermType, String> entry = iterator.next();
+            TermType termType = entry.getKey();
+            String isAgreed = entry.getValue();
+
+            MemberTermEntity memberTerm = new MemberTermEntity();
+            memberTerm.setTermType(termType.name());
+            memberTerm.setMember(member);
+            memberTerm.setIsTermAgreed(isAgreed);
+            memberTerm.setDecisionDate(decisionDate);
+            memberTerm.setCreatedBy(memberId);
+            memberTerm.setModifiedBy(memberId);
+            member.getMemberTermList().add(memberTerm);
+        }
 
         // TODO) 관심전략 기본폴더 생성
+
+        memberRepository.save(member);
     }
 
     // 확인 비밀번호 값이 일치하는지 확인하는 메소드
@@ -171,18 +178,24 @@ public class MemberService {
         // 조회한 회원에 수정할 값 입력 후 저장
         member.setPhoneNumber(profileUpdateDTO.getPhoneNumber());
         member.setIntroduction(profileUpdateDTO.getIntroduction());
-        memberRepository.save(member);
 
         // 약관 동의 내역 수정 : 변경여부 확인하여 수정
-        TermTypeMemberId termTypeMemberId = new TermTypeMemberId(TermType.MARKETING_AGREEMENT.name(), memberId);
-        MemberTermEntity memberTerm = memberTermRepository.findById(termTypeMemberId).orElseThrow(MemberTermNotFoundException::new);
-
         String isMarketingAgreed = profileUpdateDTO.getMarketingOptional() ? "Y" : "N";
-        if (!isMarketingAgreed.equals(memberTerm.getIsTermAgreed())) {
-            memberTerm.setIsTermAgreed(isMarketingAgreed);
-            memberTerm.setDecisionDate(LocalDateTime.now());
-            memberTermRepository.save(memberTerm);
+
+        // memberTermList에서 termType이 MARKETING_OPTIONAL인 memberTerm 찾기
+        MemberTermEntity marketingTerm = member.getMemberTermList().stream()
+                .filter(memberTerm -> TermType.MARKETING_AGREEMENT.name().equals(memberTerm.getTermType()))
+                .findFirst()
+                .orElseThrow(() -> new MemberTermNotFoundException("약관 동의 내역이 없습니다."));
+
+        // 동의여부 변경 여부 확인 후 업데이트
+        if (!isMarketingAgreed.equals(marketingTerm.getIsTermAgreed())) {
+            marketingTerm.setIsTermAgreed(isMarketingAgreed);
+            marketingTerm.setDecisionDate(LocalDateTime.now());
         }
+
+        // 멤버 엔티티 저장
+        memberRepository.save(member);
     }
 
     public void checkExistEmail(String email) {
@@ -203,7 +216,7 @@ public class MemberService {
 
         // 3. 새로운 비밀번호가 기존 비밀번호와 다른지 확인, 같으면 변경 실패
         if (passwordEncoder.matches(pwdUpDTO.getNewPassword(), member.getPassword())) {
-            throw new InvalidPasswordException("새로운 비밀번호가 기존 비밀번호와 동일합니다.");
+            throw new InvalidPasswordException("새 비밀번호는 기존 비밀번호와 다르게 설정해야 합니다.");
         }
 
         // 4. 비밀번호 변경
