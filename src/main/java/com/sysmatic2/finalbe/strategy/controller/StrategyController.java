@@ -242,8 +242,78 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 
+    //11. 전략 수기 데이터 수정
+
     /**
-     * 11. 특정 전략의 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다.
+     * 전략 수기 데이터 수정 API
+     *
+     * @param strategyId  수정할 전략 ID
+     * @param dailyDataId 수정할 데이터 ID
+     * @param reqDto      수정 요청 데이터 (날짜, 입출금, 일손익)
+     * @return 성공 메시지
+     */
+    @Operation(summary = "전략 수기 데이터 수정", description = "수정된 날짜 이후 데이터까지 재등록하여 지표를 갱신합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "데이터 또는 전략 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @PutMapping("/{strategyId}/daily-data/{dailyDataId}")
+    public ResponseEntity<Map<String, String>> updateDailyData(
+            @PathVariable Long strategyId,
+            @PathVariable Long dailyDataId,
+            @RequestBody DailyStatisticsReqDto reqDto) {
+
+        // 서비스 호출하여 수정 로직 수행
+        dailyStatisticsService.updateDailyData(strategyId, dailyDataId, reqDto);
+
+        // 성공 응답
+        Map<String, String> response = Map.of("msg", "UPDATE_SUCCESS");
+        return ResponseEntity.ok(response);
+    }
+
+
+    //13. 전략 수기 데이터 삭제
+    /**
+     * 특정 전략의 일간 분석 데이터를 삭제하고 필요한 데이터를 재계산합니다.
+     *
+     * @param strategyId        삭제할 데이터가 포함된 전략의 ID
+     * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
+     * @return 삭제 및 재계산 결과
+     */
+    @Operation(
+            summary = "특정 전략의 일간 분석 데이터 삭제",
+            description = "특정 전략의 일간 분석 데이터를 삭제하고, 삭제된 데이터 이후의 데이터들을 재계산합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "데이터 삭제 및 재계산 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "404", description = "전략 ID 또는 데이터 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @PostMapping("/{strategyId}/daily-analyses/delete")
+    public ResponseEntity<?> deleteDailyAnalyses(
+            @PathVariable Long strategyId,
+            @RequestBody DeleteDailyStatisticsRequestDto requestDto
+    ) {
+        // 요청 데이터에서 ID 리스트 추출
+        List<Long> dailyStatisticsIds = requestDto.getDailyStatisticsId();
+
+        // 서비스 호출: 삭제 및 재계산
+        dailyStatisticsService.deleteAndRecalculate(strategyId, dailyStatisticsIds);
+
+        // 성공 응답 반환
+        return ResponseEntity.ok(Map.of(
+                "msg", "DELETE_SUCCESS",
+                "timestamp", Instant.now()
+        ));
+    }
+
+    //14. 일간 분석 데이터 목록 조회
+    /**
+     * 특정 전략의 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다.
      *
      * @param strategyId 전략 ID.
      * @param page       페이지 번호 (기본값: 0).
@@ -251,7 +321,7 @@ public class StrategyController {
      * @return 페이징된 일간 통계 데이터를 포함한 Map.
      */
     @Operation(
-            summary = "특정 전략의 일간 통계 데이터 조회",
+            summary = "특정 전략의 일간 분석 데이터 조회",
             description = "특정 전략 ID에 대한 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다."
     )
     @ApiResponses(value = {
@@ -277,6 +347,7 @@ public class StrategyController {
         return ResponseEntity.ok(response);
     }
 
+    //15. 전략 통계
     /**
      * 전략 통계를 반환합니다.
      *
@@ -309,38 +380,9 @@ public class StrategyController {
         return ResponseEntity.ok(response); // HTTP 200 상태로 응답 반환
     }
 
+    //16. 필터링
     /**
-     * 전략 수기 데이터 수정 API
-     *
-     * @param strategyId  수정할 전략 ID
-     * @param dailyDataId 수정할 데이터 ID
-     * @param reqDto      수정 요청 데이터 (날짜, 입출금, 일손익)
-     * @return 성공 메시지
-     */
-    @Operation(summary = "전략 수기 데이터 수정", description = "수정된 날짜 이후 데이터까지 재등록하여 지표를 갱신합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "수정 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "데이터 또는 전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
-    @PutMapping("/{strategyId}/daily-data/{dailyDataId}")
-    public ResponseEntity<Map<String, String>> updateDailyData(
-            @PathVariable Long strategyId,
-            @PathVariable Long dailyDataId,
-            @RequestBody DailyStatisticsReqDto reqDto) {
-
-        // 서비스 호출하여 수정 로직 수행
-        dailyStatisticsService.updateDailyData(strategyId, dailyDataId, reqDto);
-
-        // 성공 응답
-        Map<String, String> response = Map.of("msg", "UPDATE_SUCCESS");
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 전략 상세 필터링
+     * 16-1. 전략 상세 필터링
      *
      * @param investmentAssetClassesList   투자자산 분류 id 목록(1,2,3)
      * @param strategyOperationStatusList  전략 운용 상태 코드 목록
@@ -364,7 +406,7 @@ public class StrategyController {
      */
     @GetMapping("/advanced-search")
     @Operation(summary = "필터링 적용한 전략 목록 조회")
-    public ResponseEntity<Map<String, Object>> getFilteredStrategies(
+    public ResponseEntity<Map<String, Object>> advancedSearchStrategies(
             @RequestParam(required = false) String investmentAssetClassesList,
             @RequestParam(required = false) String strategyOperationStatusList,
             @RequestParam(required = false) String tradingTypeList,
@@ -406,38 +448,25 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
+
     /**
-     * 특정 전략의 일간 분석 데이터를 삭제하고 필요한 데이터를 재계산합니다.
+     * 16-2. 전략 키워드 검색.
      *
-     * @param strategyId        삭제할 데이터가 포함된 전략의 ID
-     * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
-     * @return 삭제 및 재계산 결과
+     * @param keyword                              검색 키워드
+     * @return ResponseEntity<Map<String, Object>> 검색 결과 전략 리스트
      */
-    @Operation(
-            summary = "특정 전략의 일간 분석 데이터 삭제",
-            description = "특정 전략의 일간 분석 데이터를 삭제하고, 삭제된 데이터 이후의 데이터들을 재계산합니다."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "데이터 삭제 및 재계산 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "404", description = "전략 ID 또는 데이터 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
-    @PostMapping("/{strategyId}/daily-analyses/delete")
-    public ResponseEntity<?> deleteDailyAnalyses(
-            @PathVariable Long strategyId,
-            @RequestBody DeleteDailyStatisticsRequestDto requestDto
-    ) {
-        // 요청 데이터에서 ID 리스트 추출
-        List<Long> dailyStatisticsIds = requestDto.getDailyStatisticsId();
+    @GetMapping("/search")
+    @Operation(summary = "키워드를 입력하여 전략명을 검색하는 메서드")
+    public ResponseEntity<Map<String, Object>> searchStrategy(@RequestParam String keyword,
+                                                              @RequestParam(defaultValue = "0") Integer page,
+                                                              @RequestParam(defaultValue = "6") Integer pageSize){
 
-        // 서비스 호출: 삭제 및 재계산
-        dailyStatisticsService.deleteAndRecalculate(strategyId, dailyStatisticsIds);
+        Map<String, Object> responseData = strategyService.getStrategyListByKeyword(keyword, page, pageSize);
 
-        // 성공 응답 반환
-        return ResponseEntity.ok(Map.of(
-                "msg", "DELETE_SUCCESS",
-                "timestamp", Instant.now()
-        ));
+        //불변맵을 가변맵으로 변환
+        responseData = new HashMap<>(responseData);
+        responseData.put("keyword", keyword);
+
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 }

@@ -25,14 +25,14 @@ public class StrategyProposalEntity extends Auditable {
     @Column(name = "strategy_proposal_id")
     private Long strategyProposalId; // 전략제안서 ID
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "strategy_id", unique = true, nullable = false)
     private StrategyEntity strategy; // 전략 ID
 
     @Column(name="file_title", nullable = false)
     private String fileTitle = "전략제안서"; // 전략제안서 제목
 
-    @Column(name="file_link")
+    @Column(name="file_link", unique = true, nullable = false)
     private String fileLink; // 전략제안서 링크
 
     @Column(name="file_size")
@@ -46,11 +46,11 @@ public class StrategyProposalEntity extends Auditable {
 
     @CreatedBy
     @Column(name = "writer_id", updatable = false, nullable = false)
-    private Long writerId; // 작성자 ID
+    private String writerId; // 작성자 ID
 
     @LastModifiedBy
     @Column(name="updater_id")
-    private Long updaterId; // 수정자 ID
+    private String updaterId; // 수정자 ID
 
     @CreatedDate
     @Column(name="writed_at", updatable = false, nullable = false)

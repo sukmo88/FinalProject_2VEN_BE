@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -205,6 +207,33 @@ public class FileService {
                 .map(FileMetadataDto::fromEntity)
                 .orElse(null); // 값이 없으면 null 반환
     }
+
+    /**
+     * 파일 메타데이터 조회
+     *
+     * @param itemId 파일이 속한 곳의 Id (ex. strategyId)
+     * @return 파일 메타데이터
+     */
+    public FileMetadataDto getFileMetadataByFileItemId(String itemId) {
+        return fileMetadataRepository.findByFileCategoryItemId(itemId)
+                .map(FileMetadataDto::fromEntity)
+                .orElse(null); // 값이 없으면 null 반환
+    }
+
+
+    /**
+     * 파일 메타데이터 리스트 조회
+     *
+     * @param itemId 파일이 속한 곳의 Id (ex. strategyId)
+     * @return 파일 메타데이터
+     */
+    public List<FileMetadataDto> getAllByFileItemId(String itemId) {
+        return fileMetadataRepository.findAllByFileCategoryItemId(itemId)
+                .stream()
+                .map(FileMetadataDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
 
     /**
      * 파일 접근 권한 및 유효성 검사 후 메타데이터 반환

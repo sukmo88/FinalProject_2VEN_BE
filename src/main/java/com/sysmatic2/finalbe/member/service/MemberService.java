@@ -8,10 +8,15 @@ import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,8 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +38,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProfileService profileService;
+    private final StrategyRepository strategyRepository;
 
     @Transactional
     public void signup(SignupDTO signupDTO) {
@@ -41,7 +51,6 @@ public class MemberService {
 
         String uuid = RandomKeyGenerator.createUUID();
         member.setMemberId(uuid);
-        member.setFileId(profileService.createDefaultFileMetadataForMember(uuid));  // profileService 에서 fileId 받아와서 member에 등록
 
         memberRepository.save(member); // 가입 실패 시 예외 발생
     }
@@ -184,5 +193,54 @@ public class MemberService {
         member.setPassword(passwordEncoder.encode(passwordResetDTO.getNewPassword()));
         memberRepository.save(member);
     }
+
+    //keyword로 트레이더명 검색, 트레이더명, 트레이더 소개, 소유 전략 갯수 반환
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTraderListByKeyword(String keyword, Integer page, Integer pageSize){
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //트레이더 닉네임에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기
+        Page<MemberEntity> findTraderPage = memberRepository.searchByKeyword(keyword, pageable);
+
+        //트레이더 엔티티에서 트레이더 id 가져와서 리스트로 만들기
+        List<String> traderIds = findTraderPage.stream()
+                .map(MemberEntity::getMemberId)
+                .collect(Collectors.toList());
+
+        // 트레이더 id : 전략 갯수 map
+        Map<String, Integer> strategyCountMap = new HashMap<>();
+
+        //트레이더 id로 전략 갯수 가져오기 - 승인 받은 전략 갯수만 출력함
+        for(String traderId : traderIds){
+            Integer strategyCnt = strategyRepository.countByWriterIdAndIsApproved(traderId, "Y");
+            strategyCountMap.put(traderId, strategyCnt);
+        }
+
+        //DTO에 정보 넣기
+        List<TraderSearchResultDto> dtoList = findTraderPage.stream()
+                .map(memberEntity -> {
+                    TraderSearchResultDto dto = new TraderSearchResultDto(
+                            memberEntity.getMemberId(),      //트레이더 id
+                            memberEntity.getNickname(),      //트레이더 닉네임
+                            memberEntity.getIntroduction(),  //트레이더 소개글
+                            memberEntity.getFileId(),        //트레이더 프로필 이미지 id
+                            memberEntity.getProfilePath(),   //트레이더 프로필 이미지 링크
+                            0                                //전략 수 0 설정
+                    );
+                    Integer strategyCnt = strategyCountMap.get(memberEntity.getMemberId());
+                    dto.setStrategyCnt(strategyCnt);
+
+                    return dto;
+
+                }).collect(Collectors.toList());
+
+        Page<TraderSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findTraderPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
+    }
+
+
+
 
 }
