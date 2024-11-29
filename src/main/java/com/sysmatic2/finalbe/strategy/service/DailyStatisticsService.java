@@ -642,7 +642,6 @@ public class DailyStatisticsService {
         // 누적손익률의 최대값 (Peak Rate) 계산
         BigDecimal peakRate = StatisticsCalculator.calculatePeakRate(cumulativeProfitLossRateHistory, cumulativeProfitLossRate);
 
-
         // 빌더 패턴으로 결과 엔티티 생성
         return DailyStatisticsEntity.builder()
                 .date(reqDto.getDate())
@@ -696,25 +695,8 @@ public class DailyStatisticsService {
                 .cumulativeDepositAmount(cumulativeDepositAmount)
                 .withdrawAmount(withdrawAmount)
                 .cumulativeWithdrawAmount(cumulativeWithdrawAmount)
-                .strategyEntity(strategyEntity)  // StrategyEntity 설정
+                .strategyEntity(strategyEntity)
                 .build();
     }
 
-    /**
-     * 특정 전략의 가장 최근 팔로워 수를 조회합니다.
-     *
-     * @param strategyId 조회할 전략 ID
-     * @return 최신 팔로워 수
-     */
-    @Transactional(readOnly = true)
-    public Long getLatestFollowersCount(Long strategyId) {
-        List<Long> latestFollowersCount = dsp.findLatestFollowersCountByStrategyId(strategyId, SINGLE_RESULT_PAGE);
-
-        if (latestFollowersCount.isEmpty()) {
-//            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No followers count found for strategy with ID " + strategyId);
-            return 0L;
-        }
-
-        return latestFollowersCount.get(0); // 최신 팔로워 수 반환
-    }
 }
