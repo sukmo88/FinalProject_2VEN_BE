@@ -3,6 +3,12 @@ package com.sysmatic2.finalbe.attachment.service;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
+import com.sysmatic2.finalbe.member.entity.MemberEntity;
+import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import com.sysmatic2.finalbe.member.service.MemberHelper;
+import com.sysmatic2.finalbe.member.service.MemberService;
 import com.sysmatic2.finalbe.util.FileValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,8 +22,7 @@ import java.util.Optional;
 public class ProfileService {
 
     private final FileService fileService;
-    private final S3ClientService s3ClientService;
-    private final FileMetadataRepository fileMetadataRepository;
+    private final MemberHelper memberHelper;
 
     /**
      * 프로필 파일 업로드 또는 업데이트
@@ -31,10 +36,22 @@ public class ProfileService {
 
         if (existingMetadata != null) {
             // 기존 파일이 있을 경우 수정
-            return fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category);
+            FileMetadataDto fileMetadataDto =  fileService.modifyFile(file, existingMetadata.getId(), uploaderId, category);
+
+            // 회원 정보의 fileId 업데이트
+            memberHelper.initMemberFileId(uploaderId, fileMetadataDto.getId().toString(), fileMetadataDto.getFilePath());
+            System.out.println("smsmsmsm : " + fileMetadataDto.getFilePath());
+
+            return fileMetadataDto;
         } else {
-            // 기존 파일이 없을 경우 새 파일 업로드
-            return fileService.uploadFile(file, uploaderId, category, null);
+            // 새로운 파일 업로드
+            FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, null);
+
+            // 회원 정보의 fileId 업데이트
+            memberHelper.initMemberFileId(uploaderId, fileMetadataDto.getId().toString(), fileMetadataDto.getFilePath());
+            System.out.println("sbsbsb : " + fileMetadataDto.getFilePath());
+
+            return fileMetadataDto;
         }
     }
 
@@ -43,20 +60,11 @@ public class ProfileService {
      */
     @Transactional
     public void deleteProfileFile(Long fileId, String uploaderId) {
-        // 프로필 메타데이터 초기화 및 S3 파일 삭제
-        fileService.deleteFile(fileId, uploaderId, "profile", true,  false);
+        // 프로필 메타데이터 및 S3 파일 삭제
+        fileService.deleteFile(fileId, uploaderId, "profile", true,  true);
 
-        // 기존 메타데이터 조회
-        FileMetadata metadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new IllegalArgumentException("File metadata not found for ID: " + fileId));
-        metadata.setFileSize(null);
-        metadata.setContentType(null);
-        metadata.setDisplayName(null);
-        metadata.setFileName(null);
-        metadata.setFilePath(null);
-
-        // 메타데이터 저장
-        fileMetadataRepository.save(metadata);
+        // 회원 정보의 fileId, filePath 초기화
+        memberHelper.initMemberFileId(uploaderId, null, null);
     }
 
     /**
@@ -65,22 +73,6 @@ public class ProfileService {
     public FileMetadataDto getProfileUrl(String uploaderId) {
 
         return fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile");
-    }
-
-    /**
-     * 멤버 기본 프로필 메타데이터 생성
-     */
-    @Transactional
-    public String createDefaultFileMetadataForMember(String uploaderId) {
-        FileMetadata fileMetadata = new FileMetadata();
-        fileMetadata.setFileCategory("profile");
-        fileMetadata.setFileCategoryItemId(null);
-        fileMetadata.setUploaderId(uploaderId);
-        FileMetadata savedFile = fileMetadataRepository.save(fileMetadata);
-
-        FileMetadataDto dto = FileMetadataDto.fromEntity(savedFile);
-
-        return dto.getId().toString();
     }
 
 }
