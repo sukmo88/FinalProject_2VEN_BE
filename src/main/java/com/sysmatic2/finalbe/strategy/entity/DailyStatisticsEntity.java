@@ -181,18 +181,10 @@ public class DailyStatisticsEntity extends Auditable {
     private Integer ddDay; // DD 기간
 
     @Column(name = "max_dd_in_rate", nullable = false)
-    private BigDecimal maxDDInRate; // DD기간 내 최대 자본인하율
+    private BigDecimal maxDdInRate; // DD기간 내 최대 자본인하율
 
     @Column(name = "followers_count", nullable = false)
-    private Long followersCount; // 팔로워수 default = 0
-
-    @PrePersist
-    public void prePersist() {
-        if (followersCount == null) {
-            followersCount = 0L;
-        }
-    }
-//    private Long followersCount = 0L; // 팔로워수 default = 0
+    private Long followersCount = 0L; // 팔로워수 default = 0
 
     /**
      * 엔티티 데이터를 리스트로 매핑하는 메서드
@@ -264,7 +256,7 @@ public class DailyStatisticsEntity extends Auditable {
         analysisData.add(this.getRecentOneYearReturn());
         analysisData.add(this.getStrategyOperationDays());
         analysisData.add(this.getDdDay());
-        analysisData.add(this.getMaxDDInRate());
+        analysisData.add(this.getMaxDdInRate());
         analysisData.add(this.getFollowersCount());
         return analysisData;
     }

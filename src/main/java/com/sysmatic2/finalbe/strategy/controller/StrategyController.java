@@ -413,6 +413,16 @@ public class StrategyController {
      * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
      * @return 삭제 및 재계산 결과
      */
+    @Operation(
+            summary = "특정 전략의 일간 분석 데이터 삭제",
+            description = "특정 전략의 일간 분석 데이터를 삭제하고, 삭제된 데이터 이후의 데이터들을 재계산합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "데이터 삭제 및 재계산 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "404", description = "전략 ID 또는 데이터 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     @PostMapping("/{strategyId}/daily-analyses/delete")
     public ResponseEntity<?> deleteDailyAnalyses(
             @PathVariable Long strategyId,
