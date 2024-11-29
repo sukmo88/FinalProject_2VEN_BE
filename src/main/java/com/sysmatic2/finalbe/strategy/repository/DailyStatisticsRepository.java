@@ -232,4 +232,37 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     @Modifying
     @Query("DELETE FROM DailyStatisticsEntity d WHERE d.dailyStatisticsId IN :dailyStatisticsIds")
     void deleteAllById(@Param("dailyStatisticsIds") List<Long> dailyStatisticsIds);
+
+    /**
+     * 특정 전략의 ddDay와 maxDdInRate 데이터를 날짜 오름차순으로 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @return 날짜 오름차순으로 정렬된 ddDay와 maxDdInRate 데이터 리스트 (Object[] 형태로 반환)
+     */
+    @Query("SELECT d.ddDay, d.maxDdInRate FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date ASC")
+    List<Object[]> findDdDayAndMaxDdInRateByStrategyIdOrderByDate(@Param("strategyId") Long strategyId);
+
+    /**
+     * 특정 전략의 모든 현재 자본인하율 데이터를 날짜 오름차순으로 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @return 현재 자본인하율 리스트
+     */
+    @Query("SELECT d.currentDrawdownRate FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date ASC")
+    List<BigDecimal> findAllDrawdownRatesByStrategyId(@Param("strategyId") Long strategyId);
+
+    /**
+     * 특정 전략의 모든 자본인하 금액 데이터를 날짜 오름차순으로 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @return 날짜 오름차순으로 정렬된 모든 자본인하 금액 데이터 리스트
+     */
+    @Query("SELECT d.currentDrawdownAmount FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date ASC")
+    List<BigDecimal> findAllDrawdownAmountsByStrategyId(@Param("strategyId") Long strategyId);
 }
