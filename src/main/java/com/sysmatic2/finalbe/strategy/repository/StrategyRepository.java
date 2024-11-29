@@ -2,9 +2,11 @@ package com.sysmatic2.finalbe.strategy.repository;
 
 import com.sysmatic2.finalbe.strategy.dto.StrategyListDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
 
@@ -17,6 +19,9 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     // 작성자 ID로 전략 목록 조회
     List<StrategyEntity> findByWriterId(String writerId);
 
+    // 작성자 ID로 전략 갯수 반환
+    Integer countByWriterIdAndIsApproved(String writerId, String isApproved);
+
     // 전략 상태 코드로 조회
     //List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);
 
@@ -27,5 +32,13 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     Page<StrategyEntity> findByWriterId(String writerId, Pageable pageable);
 
     // 전략명 기준으로 전략 목록 조회(페이지네이션)
-    Page<StrategyEntity> findByStrategyTitleContaining(String strategyTitle, Pageable pageable);
+    @Query("SELECT s FROM StrategyEntity s " +
+            "WHERE s.strategyTitle LIKE %:keyword% " +
+            "AND s.isPosted = :isPosted " +
+            "AND s.isApproved = :isApproved")
+    Page<StrategyEntity> searchByKeyword(
+            @Param("keyword") String keyword,
+            @Param("isPosted") String isPosted,
+            @Param("isApproved") String isApproved,
+            Pageable pageable);
 }

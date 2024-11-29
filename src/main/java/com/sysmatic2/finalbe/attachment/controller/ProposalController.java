@@ -23,23 +23,20 @@ public class ProposalController {
      * 제안서 파일 업로드 또는 업데이트
      *
      * @param file        업로드할 파일
-     * @param strategyId  전략 ID
      * @param userDetails  업로드한 사용자 ID (JWT 토큰에서 추출)
      * @return 업로드된 파일 메타데이터와 성공 메시지
      */
     @PostMapping
     public ResponseEntity<?> uploadProposal(@RequestParam("file") MultipartFile file,
-                                               @RequestParam("strategyId") String strategyId,
                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // uploaderId 추출 (로그인한 사람)
         String uploaderId = userDetails.getMemberId();
 
-        FileMetadataDto fileMetadataDto = proposalService.uploadProposal(file, uploaderId, strategyId);
+        FileMetadataDto fileMetadataDto = proposalService.uploadProposal(file, uploaderId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "fileId", fileMetadataDto.getId(),
-                "strategyId", strategyId,
                 "fileUrl", fileMetadataDto.getFilePath(),
                 "displayName", fileMetadataDto.getDisplayName(),
                 "message", "File successfully uploaded"
@@ -51,13 +48,11 @@ public class ProposalController {
      * 제안서 파일 삭제
      *
      * @param fileUrl      삭제할 파일의 url
-     * @param strategyId   전략 ID
      * @param userDetails  요청한 사용자 ID (JWT 토큰에서 추출)
      * @return 성공 메시지
      */
     @DeleteMapping
     public ResponseEntity<?> deleteProposal(@RequestParam("fileUrl") String fileUrl,
-                                               @RequestParam("strategyId") String strategyId,
                                                @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // uploaderId 추출 (로그인한 사람)
@@ -67,7 +62,6 @@ public class ProposalController {
 
         return ResponseEntity.ok(Map.of(
                 "fileId", deletedFileId,
-                "strategyId", strategyId,
                 "message", "File successfully deleted"
         ));
 
