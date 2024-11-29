@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -183,9 +184,6 @@ public class DailyStatisticsEntity extends Auditable {
     @Column(name = "max_dd_in_rate", nullable = false)
     private BigDecimal maxDdInRate; // DD기간 내 최대 자본인하율
 
-    @Column(name = "followers_count", nullable = false)
-    private Long followersCount = 0L; // 팔로워수 default = 0
-
     /**
      * 엔티티 데이터를 리스트로 매핑하는 메서드
      *
@@ -257,7 +255,6 @@ public class DailyStatisticsEntity extends Auditable {
         analysisData.add(this.getStrategyOperationDays());
         analysisData.add(this.getDdDay());
         analysisData.add(this.getMaxDdInRate());
-        analysisData.add(this.getFollowersCount());
         return analysisData;
     }
 }

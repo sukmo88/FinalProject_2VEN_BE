@@ -63,6 +63,9 @@ public class StrategyHistoryEntity extends Auditable {
     @Column(name = "strategy_overview", length = 3000)
     private String strategyOverview; //전략소개
 
+    @Column(name = "followers_count", nullable = false)
+    private Long followersCount = 0L; // 팔로워수 default = 0
+
     @Column(name = "updater_id")
     private String updaterId; //수정자 ID
 
