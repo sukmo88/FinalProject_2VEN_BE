@@ -45,6 +45,29 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 500: Excel 파일 생성 중 예외 처리
+    @ExceptionHandler(ExcelFileCreationException.class)
+    public ResponseEntity<Object> handleExcelFileCreationException(ExcelFileCreationException ex) {
+        logger.error("ExcelFileCreationException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "EXCEL_CREATION_ERROR",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
+    @ExceptionHandler(ExcelValidationException.class)
+    public ResponseEntity<Object> handleExcelValidationException(ExcelValidationException ex) {
+        logger.warn("ExcelValidationException 발생: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "EXCEL_VALIDATION_ERROR",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
     // 400: 커스텀 예외 처리 - ReplyNotFoundException
     @ExceptionHandler(ReplyNotFoundException.class)
     public ResponseEntity<Object> handleReplyNotFoundException(ReplyNotFoundException ex) {
@@ -295,8 +318,16 @@ public class GlobalExceptionHandler {
         );
     }
 
-
-
-
+    // 400: 잘못된 인자 전달
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.warn("Illegal argument exception: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",                      // 에러 코드
+                ex.getClass().getSimpleName(),       // 예외 클래스명
+                ex.getMessage(),                     // 예외 메시지
+                HttpStatus.BAD_REQUEST               // HTTP 상태 코드
+        );
+    }
 
 }

@@ -6,10 +6,14 @@ import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.entity.MemberTermEntity;
 import com.sysmatic2.finalbe.member.enums.TermType;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
-import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +22,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +36,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StrategyRepository strategyRepository;
 
     @Transactional
     public void signup(SignupDTO signupDTO) {
@@ -133,19 +145,19 @@ public class MemberService {
         response.put("message", "로그인에 성공했습니다.");
         Map<String, Object> data = new HashMap<>();
         String role = member.getMemberGradeCode().replace("MEMBER_", "");
-        data.put("member_id",member.getMemberId());
+        data.put("memberId",member.getMemberId());
         data.put("email", member.getEmail());
         data.put("nickname", member.getNickname());
         data.put("role",role);
-        data.put("fileId", member.getFileId());
+        data.put("profilePath", member.getProfilePath());
         if(role.equals("ROLE_ADMIN")){
             AdminSessionDTO adminSessionDTO = new AdminSessionDTO();
             adminSessionDTO.setAuthorized(false);
             adminSessionDTO.setAuthorizationStatus("PENDING");
             adminSessionDTO.setAuthorizedAt("");
             adminSessionDTO.setExpiresAt("");
-            data.put("admin_info",adminSessionDTO);
-            session.setAttribute("admin_info",adminSessionDTO);
+            data.put("adminInfo",adminSessionDTO);
+            session.setAttribute("adminInfo",adminSessionDTO);
         }
         //jwt 값을 전달해줘야지 정상적으로 로그인 했으면
         response.put("data", data);
@@ -250,6 +262,52 @@ public class MemberService {
         }
 
         return emailByPhoneNumber;
+    }
+
+    //keyword로 트레이더명 검색, 트레이더명, 트레이더 소개, 소유 전략 갯수 반환
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTraderListByKeyword(String keyword, Integer page, Integer pageSize){
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //트레이더 닉네임에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기
+        Page<MemberEntity> findTraderPage = memberRepository.searchByKeyword(keyword, pageable);
+
+        //트레이더 엔티티에서 트레이더 id 가져와서 리스트로 만들기
+        List<String> traderIds = findTraderPage.stream()
+                .map(MemberEntity::getMemberId)
+                .collect(Collectors.toList());
+
+        // 트레이더 id : 전략 갯수 map
+        Map<String, Integer> strategyCountMap = new HashMap<>();
+
+        //트레이더 id로 전략 갯수 가져오기 - 승인 받은 전략 갯수만 출력함
+        for(String traderId : traderIds){
+            Integer strategyCnt = strategyRepository.countByWriterIdAndIsApproved(traderId, "Y");
+            strategyCountMap.put(traderId, strategyCnt);
+        }
+
+        //DTO에 정보 넣기
+        List<TraderSearchResultDto> dtoList = findTraderPage.stream()
+                .map(memberEntity -> {
+                    TraderSearchResultDto dto = new TraderSearchResultDto(
+                            memberEntity.getMemberId(),      //트레이더 id
+                            memberEntity.getNickname(),      //트레이더 닉네임
+                            memberEntity.getIntroduction(),  //트레이더 소개글
+                            memberEntity.getFileId(),        //트레이더 프로필 이미지 id
+                            memberEntity.getProfilePath(),   //트레이더 프로필 이미지 링크
+                            0                                //전략 수 0 설정
+                    );
+                    Integer strategyCnt = strategyCountMap.get(memberEntity.getMemberId());
+                    dto.setStrategyCnt(strategyCnt);
+
+                    return dto;
+
+                }).collect(Collectors.toList());
+
+        Page<TraderSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findTraderPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
     }
 
 }

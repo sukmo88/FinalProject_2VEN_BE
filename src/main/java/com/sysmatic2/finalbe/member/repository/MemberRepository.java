@@ -4,6 +4,8 @@ import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
 import com.sysmatic2.finalbe.member.dto.EmailResponseDTO;
 import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,4 +39,11 @@ public interface MemberRepository extends JpaRepository<MemberEntity, String> {
             "FROM MemberEntity m " +
             "WHERE m.phoneNumber = :phoneNumber")
     List<EmailResponseDTO> findEmailByPhoneNumber(@Param("phoneNumber") String phoneNumber);
+
+    //키워드로 닉네임 검색한 트레이더 리스트
+    @Query("SELECT m FROM MemberEntity m " +
+            "WHERE m.nickname LIKE %:keyword% " +
+            "AND m.memberGradeCode = 'MEMBER_ROLE_TRADER' " +
+            "AND m.memberStatusCode = 'ACTIVE' ")
+    Page<MemberEntity> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 }

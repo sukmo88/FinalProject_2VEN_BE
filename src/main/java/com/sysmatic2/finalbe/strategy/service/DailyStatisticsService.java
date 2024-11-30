@@ -8,6 +8,7 @@ import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
+import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.StatisticsCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,12 +24,14 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DailyStatisticsService {
-
+    private static final Pageable SINGLE_RESULT_PAGE = PageRequest.of(0, 1); // 기존 `PageRequest.of(0, 1)`를 대체
     private final DailyStatisticsRepository dsp;
+    // TODO 이력테이블
     private final DailyStatisticsHistoryRepository dshp;
     private final StrategyRepository strategyRepository;
 
@@ -47,9 +50,7 @@ public class DailyStatisticsService {
         }
 
         // 최신 일간 통계 데이터 조회
-        // 최신 일간 통계 데이터 조회
-        Pageable pageable = PageRequest.of(0, 1); // 첫 번째 데이터만 요청
-        List<DailyStatisticsEntity> latestStatisticsList = dsp.findLatestStatisticsByStrategyId(strategyId, pageable);
+        List<DailyStatisticsEntity> latestStatisticsList = dsp.findLatestStatisticsByStrategyId(strategyId, SINGLE_RESULT_PAGE);
 
         if (latestStatisticsList.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No daily statistics found for strategy with ID " + strategyId);
@@ -120,42 +121,60 @@ public class DailyStatisticsService {
     }
 
     /**
-     * 일일 통계 데이터를 처리하는 메서드
+     * 일일 통계 데이터를 수기 등록하는 메서드
      *
      * @param strategyId 전략 ID
      * @param reqDto     요청 데이터
      */
     @Transactional
     public void processDailyStatistics(Long strategyId, DailyStatisticsReqDto reqDto) {
-        if (dsp.existsByStrategyIdAndDate(strategyId, reqDto.getDate())) {
-            throw new DuplicateDateException("이미 등록된 날짜입니다: " + reqDto.getDate());
-        }
+
+        // 전략 ID 유효성 검사
         if (strategyId == null) {
             throw new IllegalArgumentException("Strategy ID는 null일 수 없습니다.");
         }
 
         // 전략 존재 여부 확인
-        Optional<StrategyEntity> strategy = strategyRepository.findById(strategyId);
-        if (strategy.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Strategy with ID " + strategyId + " does not exist.");
+        StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Strategy with ID " + strategyId + " does not exist."));
+
+        // 1. 요청 날짜가 이미 존재하는지 확인
+        if (dsp.existsByStrategyIdAndDate(strategyId, reqDto.getDate())) {
+            throw new DuplicateDateException("이미 등록된 날짜입니다: " + reqDto.getDate());
         }
 
-        // 1. 이전 데이터 가져오기 (최신 데이터 1개)
-        List<DailyStatisticsEntity> previousStates = dsp.findLatestByStrategyId(strategyId, PageRequest.of(0, 1));
+        // 2. 이전 데이터 및 이후 데이터 조회
+        List<DailyStatisticsEntity> previousStates = dsp.findLatestBeforeDate(strategyId, reqDto.getDate(), SINGLE_RESULT_PAGE);
+        List<DailyStatisticsEntity> afterStates = dsp.findOldestAfterDateList(strategyId, reqDto.getDate(), SINGLE_RESULT_PAGE);
 
-        // 2. 첫 번째 데이터 여부 판단 후 처리
-        DailyStatisticsEntity dailyStatistics;
-        boolean firstEntry = previousStates.isEmpty(); // 첫 번째 데이터 여부 판단
-        dailyStatistics = calculateDailyStatistics(
+        // 이전 데이터 가져오기 (존재하지 않으면 null)
+        DailyStatisticsEntity previousState = previousStates.isEmpty() ? null : previousStates.get(0);
+
+        // 이후 데이터 가져오기 (존재하지 않으면 null)
+        DailyStatisticsEntity afterState = afterStates.isEmpty() ? null : afterStates.get(0);
+
+        // 3. 등록하려는 데이터 저장 및 재계산
+        boolean firstEntry = previousState == null; // 첫 번째 데이터 여부
+        DailyStatisticsEntity newEntry = calculateDailyStatistics(
                 strategyId,
                 reqDto,
                 firstEntry,
-                firstEntry ? Optional.empty() : Optional.of(previousStates.get(0)),
-                strategy.get()
+                Optional.ofNullable(previousState),
+                strategyEntity
         );
+        dsp.save(newEntry);
 
-        // 3. 저장 처리
-        dsp.save(dailyStatistics);
+        // 4. 이후 데이터에 대한 영향 처리 (재계산)
+        if (afterState != null) {
+            // 등록한 날짜 이후의 데이터 가져오기
+            List<DailyStatisticsEntity> affectedRows = dsp.findAllAfterDate(strategyId, afterState.getDate());
+
+            // 등록한 데이터부터 이후 데이터를 삭제
+            dsp.deleteFromDate(strategyId, afterState.getDate());
+
+            // 이후 데이터를 재계산 및 저장
+            recalculateAndSave(affectedRows, newEntry, strategyId);
+        }
     }
 
     /**
@@ -176,24 +195,20 @@ public class DailyStatisticsService {
             throw new DuplicateDateException("Date already exists: " + reqDto.getDate());
         }
 
-//        System.out.println("Target Date: " + targetData.getDate());
-//        System.out.println("Request Date: " + reqDto.getDate());
-//        System.out.println("isDateEarlier: " + targetData.getDate().isBefore(reqDto.getDate()));
         // 3. 날짜 비교: 수정 전 날짜 vs 수정 후 날짜
         boolean isDateEarlier = targetData.getDate().isBefore(reqDto.getDate());
 
         // 직전 최신 데이터 조회
-        Pageable pageable = PageRequest.of(0, 1); // 1개 데이터만 반환
         List<DailyStatisticsEntity> previousDataList = dsp.findLatestBeforeDate(
                 strategyId,
                 isDateEarlier ? targetData.getDate() : reqDto.getDate(),
-                pageable
+                SINGLE_RESULT_PAGE
         );
         // 직후 오래된 데이터 조회
-        List<DailyStatisticsEntity> afterDataList = dsp.findOldestAfterDate(
+        List<DailyStatisticsEntity> afterDataList = dsp.findOldestAfterDateList(
                 strategyId,
                 targetData.getDate(),
-                pageable
+                SINGLE_RESULT_PAGE
         );
 
         // 가장 처음 데이터일 경우 null
@@ -206,6 +221,9 @@ public class DailyStatisticsService {
         targetData.setDailyProfitLoss(reqDto.getDailyProfitLoss());
         targetData.setDepWdPrice(reqDto.getDepWdPrice());
         dsp.save(targetData);
+
+        // 가장 뒤 데이터를 더 늦은 일자로 수정한 경우 해당 날짜 데이터만 수정하고 리턴
+        if(afterData == null) return;
 
         List<DailyStatisticsEntity> affectedRows = null;
         LocalDate fromDate = null; // 기준이 되는 날짜
@@ -224,11 +242,76 @@ public class DailyStatisticsService {
             // 수정된 데이터부터 삭제 및 재등록
             fromDate = reqDto.getDate();
         }
-        affectedRows = dsp.findFromDate(strategyId, fromDate);
+        affectedRows = dsp.findAllAfterDate(strategyId, fromDate);
         dsp.deleteFromDate(strategyId, fromDate);
         // 리스트 데이터 재등록 및 재계산
         recalculateAndSave(affectedRows, previousData, strategyId);
     }
+
+    /**
+     * 일간 분석 데이터를 삭제하고 이후 데이터를 재계산합니다.
+     *
+     * @param strategyId        삭제 대상이 포함된 전략의 ID
+     * @param dailyStatisticsIds 삭제할 데이터 ID 리스트
+     * @return 재계산된 데이터 개수
+     */
+    @Transactional
+    public void deleteAndRecalculate(Long strategyId, List<Long> dailyStatisticsIds) {
+        // 1. 삭제할 ID 리스트가 비어있는지 확인
+        if (dailyStatisticsIds.isEmpty()) {
+            throw new IllegalArgumentException("삭제할 ID 리스트가 비어 있습니다.");
+        }
+
+        // 2. 삭제 대상 ID 리스트의 모든 엔티티가 존재하는지 검증
+        List<DailyStatisticsEntity> entitiesToDelete = dsp.findAllById(dailyStatisticsIds);
+
+        if (entitiesToDelete.size() != dailyStatisticsIds.size()) {
+            throw new IllegalArgumentException("삭제 대상 중 일부 데이터가 존재하지 않습니다.");
+        }
+
+        // 3. 삭제 대상(dailyStatisticsIds) 중 가장 오래된 날짜 찾기
+        LocalDate oldestDateInIds = entitiesToDelete.stream()
+                .map(DailyStatisticsEntity::getDate) // 날짜만 추출
+                .min(LocalDate::compareTo) // 가장 오래된 날짜 찾기
+                .orElseThrow(() -> new IllegalArgumentException("삭제 대상 데이터가 존재하지 않습니다."));
+
+        // 4. 삭제 대상 이전 데이터 계산
+        Optional<DailyStatisticsEntity> previousState = dsp.findPreviousStates(strategyId, oldestDateInIds, SINGLE_RESULT_PAGE)
+                .getContent().stream().findFirst();
+
+        // 5. 삭제 대상 데이터를 삭제
+        dsp.deleteAllById(dailyStatisticsIds);
+
+        // 6. 삭제 이후 재계산을 위한 다음 날짜 조회
+        LocalDate nextDate;
+        if (previousState.isPresent()) {
+            nextDate = dsp.findNextDatesAfter(strategyId, previousState.get().getDate(), SINGLE_RESULT_PAGE)
+                    .getContent().stream().findFirst()
+                    .orElse(null);
+        } else {
+            // 이전 데이터가 없는 경우 삭제된 데이터의 가장 오래된 날짜 이후를 기준으로 설정
+            nextDate = dsp.findNextDatesAfter(strategyId, oldestDateInIds, SINGLE_RESULT_PAGE)
+                    .getContent().stream().findFirst()
+                    .orElse(null);
+        }
+
+        // 7. nextDate가 없는 경우 바로 리턴
+        if (nextDate == null) {
+            return;
+        }
+
+        // 7. 기준일(포함) 이후 데이터를 조회
+        List<DailyStatisticsEntity> entitiesAfterDeletion = dsp.findAllAfterDate(strategyId, nextDate);
+
+        // 8. 기준일(포함) 이후 데이터 삭제
+        dsp.deleteFromDate(strategyId, nextDate);
+
+        // 9. 기준일(포함) 이후 데이터를 순회하며 재계산
+        if (!entitiesAfterDeletion.isEmpty()) {
+            recalculateAndSave(entitiesAfterDeletion, previousState.orElse(null), strategyId);
+        }
+    }
+
 
     /**
      * 주어진 데이터 리스트를 재계산하여 저장합니다.
@@ -306,8 +389,8 @@ public class DailyStatisticsService {
         Integer previousCurrentConsecutivePlDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getCurrentConsecutivePlDays).orElse(0); // 이전 연속 손익일수
         Integer previousMaxConsecutiveProfitDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveProfitDays).orElse(0); // 이전 최대 연속 수익일수
         Integer previousMaxConsecutiveLossDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveLossDays).orElse(0); // 이전 최대 연속 손실일수
-        BigDecimal previousMaxDDInRate = previousState
-                .map(DailyStatisticsEntity::getMaxDDInRate)
+        BigDecimal previousMaxDdInRate = previousState
+                .map(DailyStatisticsEntity::getMaxDdInRate)
                 .orElse(BigDecimal.ZERO); // 이전 maxDDInRate 값 가져오기
 
         // 사용자 입력값
@@ -377,12 +460,21 @@ public class DailyStatisticsService {
         BigDecimal maxCumulativeProfitLossRate = cumulativeProfitLossRate.max(previousMaxCumulativeProfitLossRate);
 
         // 현재 자본인하 금액 = max(누적손익 - 최대 누적손익, 0)
-        BigDecimal currentDrawdownAmount = cumulativeProfitLoss
-                .subtract(maxCumulativeProfitLoss) // 누적손익 - 최대 누적손익
-                .max(BigDecimal.ZERO);            // 결과가 0보다 작으면 0 반환
+        BigDecimal currentDrawdownAmount = cumulativeProfitLoss.compareTo(BigDecimal.ZERO) > 0
+                ? cumulativeProfitLoss.subtract(maxCumulativeProfitLoss) // 누적손익 - 최대 누적손익
+                : BigDecimal.ZERO; // 누적손익이 0보다 작거나 같으면 0
 
-        // 최대 자본인하 금액 = min(현재 자본인하 금액, 이전 최대 자본인하 금액)
-        BigDecimal maxDrawdownAmount = currentDrawdownAmount.min(previousMaxDrawdownAmount);
+        // 최대 자본인하 금액 계산
+        List<BigDecimal> drawdownAmounts = dsp.findAllDrawdownAmountsByStrategyId(strategyId);
+
+        // 현재 자본인하 금액을 리스트에 추가
+        drawdownAmounts.add(currentDrawdownAmount);
+
+        // 전체 자본인하 금액 중 최소값 계산 후, 0과 비교해 최소값 반환
+        BigDecimal maxDrawdownAmount = drawdownAmounts.stream()
+                .min(BigDecimal::compareTo) // 전체 최소값
+                .orElse(BigDecimal.ZERO)    // 리스트가 비어있으면 0 반환
+                .min(BigDecimal.ZERO);      // 결과가 0보다 크면 0 반환
 
         // 현재 자본인하율 계산을 위한 데이터 조회
         List<BigDecimal> allReferencePrices = dsp.findAllReferencePricesByStrategyId(strategyId);
@@ -391,8 +483,15 @@ public class DailyStatisticsService {
         // - 기준가가 1000 이하이거나 데이터가 없는 경우 0 반환
         BigDecimal currentDrawdownRate = StatisticsCalculator.calculateCurrentDrawdownRate(referencePrice, allReferencePrices);
 
-        // 최대 자본인하율 = min(현재 자본인하율, 이전 최대 자본인하율)
-        BigDecimal maxDrawdownRate = currentDrawdownRate.min(previousMaxDrawdownRate);
+        // 최대 자본인하율 계산: 현재 자본인하율 포함 모든 자본인하율의 최소값
+        List<BigDecimal> drawdownRates = dsp.findAllDrawdownRatesByStrategyId(strategyId);
+        drawdownRates.add(currentDrawdownRate);
+
+        BigDecimal maxDrawdownRate = drawdownRates.stream()
+                .min(BigDecimal::compareTo) // 전체 최소값
+                .orElse(BigDecimal.ZERO)    // 리스트가 비어있으면 0 반환
+                .min(BigDecimal.ZERO)       // 결과가 0보다 크면 0 반환
+                .setScale(4, RoundingMode.HALF_UP); // 소수점 4자리까지 반올림
 
         // 승률 = 이익일수 / 거래일수
         BigDecimal winRate = StatisticsCalculator.calculateWinRate(totalProfitDays, tradingDays);
@@ -400,7 +499,7 @@ public class DailyStatisticsService {
         // Profit Factor = 총 이익 / |총 손실|
         BigDecimal profitFactor = StatisticsCalculator.calculateProfitFactor(totalProfit, totalLoss);
 
-        // ROA = -누적손익 / |최대 자본인하 금액|
+        // ROA = 누적손익 / 최대 자본인하 금액 * -1
         BigDecimal roa = StatisticsCalculator.calculateROA(cumulativeProfitLoss, maxDrawdownAmount);
 
         // 평균 손익비 = 평균 이익 / |평균 손실|
@@ -448,7 +547,6 @@ public class DailyStatisticsService {
 
         // 최대 일 손실 = min(이전 최대 일 손실, 오늘 일손익)
         BigDecimal maxDailyLoss = previousState.map(DailyStatisticsEntity::getMaxDailyLoss).orElse(BigDecimal.ZERO).min(dailyProfitLoss);
-
         // 최대 일 손실률 = MIN(일 손익률 리스트 중 최소 값, 0)
         // 2. 현재 일 손익률 포함하여 최대 일 손실률 계산
         // - 기존의 모든 일 손익률 데이터와 현재 입력된 일 손익률을 고려하여 최소값(최대 음수)을 반환합니다.
@@ -514,11 +612,22 @@ public class DailyStatisticsService {
                 previousState.map(DailyStatisticsEntity::getDdDay).orElse(0) // 이전 DD 기간
         );
 
-        // maxDDInRate 계산
-        BigDecimal maxDDInRate = StatisticsCalculator.calculateMaxDDInRate(
+        // maxDdInRate 계산
+        BigDecimal maxDdInRate = StatisticsCalculator.calculateMaxDdInRate(
                 currentDrawdownRate,    // 현재 자본인하율
-                previousMaxDDInRate,    // 이전 maxDDInRate
+                previousMaxDdInRate,    // 이전 maxDdInRate
                 ddDay                  // 현재 DD 기간
+        );
+
+        // ddDay와 maxDdInRate 데이터를 날짜 오름차순으로 조회
+        List<Object[]> ddDayAndMaxDdInRateList = dsp.findDdDayAndMaxDdInRateByStrategyIdOrderByDate(strategyId);
+        ddDayAndMaxDdInRateList.add(new Object[]{ddDay, maxDdInRate});
+        // KP-RATIO 계산
+        BigDecimal kpRatio = StatisticsCalculator.calculateKPRatio(
+                ddDayAndMaxDdInRateList,   // ddDay 및 maxDdInRate 리스트
+                currentDrawdownRate, // 현재자본인하율
+                cumulativeProfitLossRate, // 누적손익률
+                tradingDays               // 거래일수
         );
 
         // 누적손익 리스트 가져오기
@@ -533,7 +642,6 @@ public class DailyStatisticsService {
         // 누적손익률의 최대값 (Peak Rate) 계산
         BigDecimal peakRate = StatisticsCalculator.calculatePeakRate(cumulativeProfitLossRateHistory, cumulativeProfitLossRate);
 
-
         // 빌더 패턴으로 결과 엔티티 생성
         return DailyStatisticsEntity.builder()
                 .date(reqDto.getDate())
@@ -544,6 +652,7 @@ public class DailyStatisticsService {
                 .principal(principal)
                 .cumulativeProfitLoss(cumulativeProfitLoss)
                 .unrealizedProfitLoss(unrealizedProfitLoss)
+                .kpRatio(kpRatio)
                 .referencePrice(referencePrice)
                 .dailyPlRate(dailyPlRate)
                 .cumulativeProfitLossRate(cumulativeProfitLossRate)
@@ -567,7 +676,7 @@ public class DailyStatisticsService {
                 .peakRate(peakRate)
                 .daysSincePeak(daysSincePeak)
                 .ddDay(ddDay)
-                .maxDDInRate(maxDDInRate) // DD 기간 내 최대 자본인하율
+                .maxDdInRate(maxDdInRate) // DD 기간 내 최대 자본인하율
                 .coefficientOfVariation(coefficientOfVariation)
                 .sharpRatio(sharpRatio)
                 .maxDailyProfit(maxDailyProfit)
@@ -586,25 +695,8 @@ public class DailyStatisticsService {
                 .cumulativeDepositAmount(cumulativeDepositAmount)
                 .withdrawAmount(withdrawAmount)
                 .cumulativeWithdrawAmount(cumulativeWithdrawAmount)
-                .strategyEntity(strategyEntity)  // StrategyEntity 설정
+                .strategyEntity(strategyEntity)
                 .build();
     }
 
-    /**
-     * 특정 전략의 가장 최근 팔로워 수를 조회합니다.
-     *
-     * @param strategyId 조회할 전략 ID
-     * @return 최신 팔로워 수
-     */
-    @Transactional(readOnly = true)
-    public Long getLatestFollowersCount(Long strategyId) {
-        Pageable pageable = PageRequest.of(0, 1); // 최신 1개 데이터만 요청
-        List<Long> latestFollowersCount = dsp.findLatestFollowersCountByStrategyId(strategyId, pageable);
-
-        if (latestFollowersCount.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No followers count found for strategy with ID " + strategyId);
-        }
-
-        return latestFollowersCount.get(0); // 최신 팔로워 수 반환
-    }
 }

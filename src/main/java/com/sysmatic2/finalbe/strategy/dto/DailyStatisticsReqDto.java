@@ -20,8 +20,8 @@ public class DailyStatisticsReqDto {
     private LocalDate date; // 일자
 
     @NotNull(message = "입출금 금액은 필수 입력값입니다.")
-    private BigDecimal depWdPrice; // 입출금
+    private BigDecimal depWdPrice; // 입출금 (양수: 입금, 음수: 출금)
 
     @NotNull(message = "일손익은 필수 입력값입니다.")
-    private BigDecimal dailyProfitLoss; // 일손익
+    private BigDecimal dailyProfitLoss; // 일손익 (양수: 이익, 음수: 손실)
 }

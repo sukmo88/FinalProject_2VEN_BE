@@ -1,7 +1,13 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
+import com.sysmatic2.finalbe.strategy.dto.StrategyListDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
 
@@ -14,9 +20,35 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     // 작성자 ID로 전략 목록 조회
     List<StrategyEntity> findByWriterId(String writerId);
 
+    // 작성자 ID로 전략 갯수 반환
+    Integer countByWriterIdAndIsApproved(String writerId, String isApproved);
+
     // 전략 상태 코드로 조회
-//    List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);
+    //List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);
 
     // 작성일을 기준으로 전략 정렬 조회
     List<StrategyEntity> findByOrderByWritedAtDesc();
+
+    // 전략 작성자 id로 전략 목록 조회(페이지네이션)
+    Page<StrategyEntity> findByWriterId(String writerId, Pageable pageable);
+
+    // 전략명 기준으로 전략 목록 조회(페이지네이션)
+    @Query("SELECT s FROM StrategyEntity s " +
+            "WHERE s.strategyTitle LIKE %:keyword% " +
+            "AND s.isPosted = :isPosted " +
+            "AND s.isApproved = :isApproved")
+    Page<StrategyEntity> searchByKeyword(
+            @Param("keyword") String keyword,
+            @Param("isPosted") String isPosted,
+            @Param("isApproved") String isApproved,
+            Pageable pageable);
+
+    /**
+     * 특정 전략 ID에 대한 FollowersCount를 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @return FollowersCount (해당 전략의 팔로워 수)
+     */
+    @Query("SELECT s.followersCount FROM StrategyEntity s WHERE s.strategyId = :strategyId")
+    Long findFollowersCountByStrategyId(@Param("strategyId") Long strategyId);
 }

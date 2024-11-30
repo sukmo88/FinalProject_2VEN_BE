@@ -8,45 +8,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class ProposalService {
 
     private final FileService fileService;
-    private final FileMetadataRepository fileMetadataRepository;
-
 
     /**
      * 새로운 제안서 파일 등록
      */
     @Transactional
-    public FileMetadataDto uploadProposal(MultipartFile file, String uploaderId, String strategyId) {
+    public FileMetadataDto uploadProposal(MultipartFile file, String uploaderId) {
         String category = "proposal";
 
         // 새로운 제안서 등록
-        return fileService.uploadFile(file, uploaderId, category,  strategyId);
-
+        return fileService.uploadFile(file, uploaderId, category, null);
     }
-
-    /**
-     * 제안서 파일 수정
-     */
-    @Transactional
-    public FileMetadataDto modifyProposal(MultipartFile file, String filePath, String uploaderId, String strategyId) {
-        String category = "proposal";
-
-        // 기존 아이콘 파일 조회
-        FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
-
-        if (!existingMetadataDto.getFileCategory().equals(category)) {
-            throw new IllegalArgumentException("Invalid category: Expected 'proposal', got " + existingMetadataDto.getFileCategory());
-        }
-
-        return fileService.modifyFile(file, existingMetadataDto.getId(), uploaderId, category);
-    }
-
 
     /**
      * 제안서 파일 삭제
@@ -57,10 +38,18 @@ public class ProposalService {
 
         FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
 
-        // 제안서 메타데이터 초기화 및 S3 파일 삭제
+        // 제안서 메타데이터 및 S3 파일 삭제
         fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  true);
 
         return existingMetadataDto.getId().toString();
     }
 
+    /**
+     * 제안서 파일 조회
+     */
+    public Optional<FileMetadataDto> getProposalUrlByFilePath(String filePath){
+        // 제안서 조회 및 dto로 반환
+        return Optional.ofNullable(fileService.getFileMetadataByFilePath(filePath));
+
+    }
 }

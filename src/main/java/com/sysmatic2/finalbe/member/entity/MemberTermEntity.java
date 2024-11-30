@@ -18,11 +18,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class MemberTermEntity extends Auditable {
 
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    @Column(name = "member_term_id", nullable = false)
-//    private Long memberTermId;
-
     @Id
     @Column(name = "term_type", nullable = false)
     private String termType;
