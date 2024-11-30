@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.cs.dto;
 
 import com.sysmatic2.finalbe.cs.entity.ConsultationStatus;
+import jakarta.validation.constraints.DecimalMax;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +35,7 @@ public class ConsultationCreateDto {
 
   @NotNull(message = "투자 금액은 필수입니다.")
   @Positive(message = "투자 금액은 양수여야 합니다.")
+  @DecimalMax(value = "1000000000.00", message = "투자 금액은 최대 100억을 초과할 수 없습니다.")
   private BigDecimal investmentAmount;
 
   @NotNull(message = "투자 시점은 필수입니다.")
