@@ -527,9 +527,9 @@ public class StrategyService {
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
         //TODO)트레이더 정보 넣기
-        responseDto.setTraderId("1");
-        responseDto.setTraderName("곽두팔");
-        responseDto.setTraderImage("트레이더프로필이미지");
+        responseDto.setMemberId("1");
+        responseDto.setNickname("곽두팔");
+        responseDto.setProfilePath("트레이더프로필이미지");
 
         // 최신 팔로워 수 조회
         Long followersCount = strategyRepo.findFollowersCountByStrategyId(id);
@@ -676,9 +676,9 @@ public class StrategyService {
         responseDto.setStrategyProposalLink(strategyProposal);
 
         //TODO)트레이더 정보 넣기
-        responseDto.setTraderId("1");
-        responseDto.setTraderName("곽두팔");
-        responseDto.setTraderImage("트레이더프로필이미지");
+        responseDto.setMemberId("1");
+        responseDto.setNickname("곽두팔");
+        responseDto.setProfilePath("트레이더프로필이미지");
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("Data", responseDto);
