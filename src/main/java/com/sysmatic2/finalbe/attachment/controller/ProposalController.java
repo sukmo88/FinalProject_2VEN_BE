@@ -3,7 +3,6 @@ package com.sysmatic2.finalbe.attachment.controller;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.service.ProposalService;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
-import com.sysmatic2.finalbe.util.ResponseUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

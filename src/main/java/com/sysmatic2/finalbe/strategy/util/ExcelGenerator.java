@@ -369,7 +369,7 @@ public class ExcelGenerator {
 
       // DD기간 내 최대 자본인하율
       Cell maxDrawdownRateWithinDdPeriodCell = row.createCell(colIdx++);
-      setBigDecimalCellValue(maxDrawdownRateWithinDdPeriodCell, stat.getMaxDDInRate(), createPercentageCellStyle(workbook));
+      setBigDecimalCellValue(maxDrawdownRateWithinDdPeriodCell, stat.getMaxDdInRate(), createPercentageCellStyle(workbook));
     }
 
     // 셀 너비 자동 조정

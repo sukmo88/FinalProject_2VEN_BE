@@ -1,16 +1,13 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
-import com.sysmatic2.finalbe.strategy.dto.StrategyListDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -41,4 +38,13 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
             @Param("isPosted") String isPosted,
             @Param("isApproved") String isApproved,
             Pageable pageable);
+
+    /**
+     * 특정 전략 ID에 대한 FollowersCount를 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @return FollowersCount (해당 전략의 팔로워 수)
+     */
+    @Query("SELECT s.followersCount FROM StrategyEntity s WHERE s.strategyId = :strategyId")
+    Long findFollowersCountByStrategyId(@Param("strategyId") Long strategyId);
 }

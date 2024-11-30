@@ -51,7 +51,7 @@ public class ConsultationEntity {
   private BigDecimal investmentAmount;
 
   // 투자 시점
-  @Column(nullable = false)
+  @Column(nullable = true)
   private LocalDateTime investmentDate;
 
   // 상담 제목
