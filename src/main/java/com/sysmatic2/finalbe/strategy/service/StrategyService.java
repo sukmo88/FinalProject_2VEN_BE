@@ -413,8 +413,10 @@ public class StrategyService {
                         dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
                         dto.setMdd(latestStatistics.getMaxDrawdownRate());
                         dto.setSmScore(latestStatistics.getSmScore());
-                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+//                        dto.setFollowersCount(latestStatistics.getFollowersCount());
                     }
+                    Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
+                    dto.setFollowersCount(followersCount);
 
                     return dto;
                 }).collect(Collectors.toList());
@@ -478,8 +480,10 @@ public class StrategyService {
                         dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
                         dto.setMdd(latestStatistics.getMaxDrawdownRate());
                         dto.setSmScore(latestStatistics.getSmScore());
-                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+//                        dto.setFollowersCount(latestStatistics.getFollowersCount());
                     }
+                    Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
+                    dto.setFollowersCount(followersCount);
 
                     return dto;
 
@@ -537,7 +541,7 @@ public class StrategyService {
         responseDto.setTraderImage("트레이더프로필이미지");
 
         // 최신 팔로워 수 조회
-        Long followersCount = dailyStatisticsService.getLatestFollowersCount(strategyEntity.getStrategyId());
+        Long followersCount = strategyRepo.findFollowersCountByStrategyId(id);
         responseDto.setFollowersCount(followersCount);
 
         // 제안서 URL 조회 (sbwoo)
@@ -998,6 +1002,21 @@ public class StrategyService {
     }
 
 
+    /**
+     * 특정 전략과 관련된 DailyStatistics 및 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
+     *
+     * @param strategyId FollowersCount를 증가시킬 전략의 ID
+     */
+    @Transactional
+    public void increaseFollowersCount(Long strategyId) {
+        // 1. StrategyEntity의 FollowersCount 증가
+        StrategyEntity strategy = strategyRepo.findById(strategyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID를 가진 전략이 존재하지 않습니다: " + strategyId));
+        strategy.setFollowersCount(strategy.getFollowersCount() + 1);
+
+        // 3. 변경 사항 저장
+        strategyRepo.save(strategy); // StrategyEntity 저장
+    }
 }
 
 
