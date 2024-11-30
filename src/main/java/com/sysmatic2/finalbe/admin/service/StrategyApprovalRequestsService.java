@@ -11,7 +11,7 @@ import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
 import com.sysmatic2.finalbe.strategy.repository.StrategyHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyIACRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -45,7 +45,7 @@ public class StrategyApprovalRequestsService {
         Page<StrategyApprovalRequestsEntity> requestsEntityPage = strategyApprovalRequestsRepository.findAll(pageable);
 
         //엔티티 목록을 dto목록으로 변환한다.
-        Page<ApprovalRequestResponseDto> requestResponseDtos = requestsEntityPage.map(DtoEntityConversionUtils::convertToApprovalDto);
+        Page<ApprovalRequestResponseDto> requestResponseDtos = requestsEntityPage.map(DtoEntityConversion::convertToApprovalDto);
 
         //Dto 목록을 돌면서 아이콘리스트를 추가해준다.
         for(ApprovalRequestResponseDto requestResponseDto : requestResponseDtos){

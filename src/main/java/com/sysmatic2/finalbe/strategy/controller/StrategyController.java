@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
-import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
@@ -13,8 +12,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -27,7 +24,6 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -224,7 +220,7 @@ public class StrategyController {
         // 수기 데이터를 하나씩 처리하여 저장
         payload.getPayload().forEach(entry -> {
             /// 각 데이터 항목을 기반으로 수기 데이터를 처리하는 서비스 메서드 호출
-            dailyStatisticsService.processDailyStatistics(
+            dailyStatisticsService.registerDailyStatistics(
                     strategyId,  // 전략 ID를 서비스 메서드에 전달
                     DailyStatisticsReqDto.builder()
                             .date(entry.getDate())  // 수기 데이터의 날짜

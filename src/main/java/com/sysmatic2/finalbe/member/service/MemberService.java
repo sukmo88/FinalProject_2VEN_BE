@@ -9,7 +9,7 @@ import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
@@ -47,7 +46,7 @@ public class MemberService {
         duplicateNicknameCheck(signupDTO.getNickname());
         comparePassword(signupDTO.getPassword(), signupDTO.getConfirmPassword());
 
-        MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
+        MemberEntity member = DtoEntityConversion.convertToMemberEntity(signupDTO, passwordEncoder);
 
         String uuid = RandomKeyGenerator.createUUID();
         member.setMemberId(uuid);

@@ -1,6 +1,6 @@
 package com.sysmatic2.finalbe.exception;
 
-import com.sysmatic2.finalbe.util.ResponseUtils;
+import com.sysmatic2.finalbe.common.ResponseUtils;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.tomcat.websocket.AuthenticationException;
 import org.slf4j.Logger;

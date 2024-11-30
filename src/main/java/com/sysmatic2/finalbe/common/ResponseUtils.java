@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.util;
+package com.sysmatic2.finalbe.common;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

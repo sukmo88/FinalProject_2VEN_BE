@@ -5,8 +5,6 @@ import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
-import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
-import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
 import com.sysmatic2.finalbe.attachment.service.FileService;
 import com.sysmatic2.finalbe.attachment.service.ProposalService;
@@ -20,7 +18,6 @@ import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.ParseCsvToList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,13 +28,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.*;
 
 @Service
 @RequiredArgsConstructor

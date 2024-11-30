@@ -6,7 +6,7 @@ import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.MonthlyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.MonthlyStatisticsRepository;
-import com.sysmatic2.finalbe.strategy.util.ExcelGenerator;
+import com.sysmatic2.finalbe.strategy.common.ExcelGenerator;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.data.domain.Page;
