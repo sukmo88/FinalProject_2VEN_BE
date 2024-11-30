@@ -287,12 +287,12 @@ public class DailyStatisticsService {
         if (previousState.isPresent()) {
             nextDate = dsp.findNextDatesAfter(strategyId, previousState.get().getDate(), SINGLE_RESULT_PAGE)
                     .getContent().stream().findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("기준 날짜 이후 데이터가 존재하지 않습니다."));
+                    .orElse(null);
         } else {
             // 이전 데이터가 없는 경우 삭제된 데이터의 가장 오래된 날짜 이후를 기준으로 설정
             nextDate = dsp.findNextDatesAfter(strategyId, oldestDateInIds, SINGLE_RESULT_PAGE)
                     .getContent().stream().findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("기준 날짜 이후 데이터가 존재하지 않습니다."));
+                    .orElse(null);
         }
 
         // 7. nextDate가 없는 경우 바로 리턴
