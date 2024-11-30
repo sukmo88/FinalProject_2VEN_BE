@@ -71,4 +71,8 @@ public class CustomUserDetails implements UserDetails {
     public boolean isLoginLocked(){
         return member.get().getIsLoginLocked() == 'Y';
     }
+
+    public MemberEntity getMemberEntity() {
+        return member.orElseThrow(() -> new IllegalArgumentException("MemberEntity not found in CustomUserDetails"));
+    }
 }

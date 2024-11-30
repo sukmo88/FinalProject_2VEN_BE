@@ -2,6 +2,7 @@ package com.sysmatic2.finalbe.member.entity;
 
 import com.sysmatic2.finalbe.common.Auditable;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -18,8 +19,8 @@ import java.util.List;
 public class FollowingStrategyFolderEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "following_strategy_folder_id")
-    private Long followingStrategyFolderId;
+    @Column(name = "folder_id")
+    private Long folderId;
 
     @ManyToOne
     @JoinColumn(name = "member_id", nullable = false)
@@ -31,12 +32,18 @@ public class FollowingStrategyFolderEntity extends Auditable {
     @Column(name = "folder_creation_date", nullable = false)
     private LocalDateTime folderCreationDate;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "is_active", nullable = false, columnDefinition = "CHAR(1)")
+    @Pattern(regexp = "Y|N", message = "is_active 필드는 'Y' 또는 'N'만 허용됩니다.")
     private String isActive;
+
+    @Column(name = "is_default_folder", nullable = false, columnDefinition = "CHAR(1)")
+    @Pattern(regexp = "Y|N", message = "is_default_folder 필드는 'Y' 또는 'N'만 허용됩니다.")
+    private String isDefaultFolder ;
 
     @Column(name = "folder_order")
     private Integer folderOrder;
 
     @OneToMany(mappedBy = "followingStrategyFolder")
     private List<FollowingStrategyEntity> followingStrategyList = new ArrayList<>();
+
 }
