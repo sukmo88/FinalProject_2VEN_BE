@@ -15,9 +15,10 @@ public class StatisticsCalculator {
 
     /**
      * 변동계수(Coefficient of Variation, CV)를 계산하는 메서드.
+     *
      * @param dailyProfitLosses 오늘까지의 모든 일손익 데이터 리스트
-     * @param averageProfitLoss     기준일까지의 평균손익
-     * @return 변동계수 (단위: %, 소수점 8자리까지 표시)
+     * @param averageProfitLoss 기준일까지의 평균손익
+     * @return 변동계수 (단위: %, 소수점 10자리까지 표시)
      */
     public static BigDecimal calculateCoefficientOfVariation(List<BigDecimal> dailyProfitLosses, BigDecimal averageProfitLoss) {
         if (dailyProfitLosses == null || dailyProfitLosses.isEmpty()) {
@@ -30,20 +31,20 @@ public class StatisticsCalculator {
         // 표준편차 계산
         BigDecimal mean = dailyProfitLosses.stream()
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 9, BigDecimal.ROUND_HALF_UP); // 중간 계산은 9자리
+                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 11, RoundingMode.HALF_UP); // 중간 계산은 11자리
 
         BigDecimal variance = dailyProfitLosses.stream()
                 .map(profitLoss -> profitLoss.subtract(mean).pow(2))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 9, BigDecimal.ROUND_HALF_UP); // 중간 계산은 9자리
+                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 11, RoundingMode.HALF_UP); // 중간 계산은 11자리
 
         BigDecimal stdDevProfitLoss = BigDecimal.valueOf(Math.sqrt(variance.doubleValue()))
-                .setScale(9, RoundingMode.HALF_UP); // 표준편차 계산 후 소수점 9자리 반올림
+                .setScale(10, RoundingMode.HALF_UP); // 표준편차 계산 후 소수점 10자리 반올림
 
         // 변동계수 계산
-        return stdDevProfitLoss.divide(averageProfitLoss, 9, BigDecimal.ROUND_HALF_UP) // 비율 계산 중간 단계는 9자리
-                .multiply(BigDecimal.valueOf(100))
-                .setScale(8, RoundingMode.HALF_UP); // 최종 결과는 8자리
+        return stdDevProfitLoss.divide(averageProfitLoss, 11, RoundingMode.HALF_UP) // 비율 계산 중간 단계는 11자리
+                .multiply(BigDecimal.valueOf(100)) // 백분율로 변환
+                .setScale(10, RoundingMode.HALF_UP); // 최종 결과는 10자리
     }
 
     /**
@@ -80,18 +81,19 @@ public class StatisticsCalculator {
      * @return ROA (단위: %)
      */
     public static BigDecimal calculateROA(BigDecimal cumulativeProfitLoss, BigDecimal maxDrawdownAmount) {
+        // 최대 자본인하 금액이 0이면 0 반환
         if (maxDrawdownAmount.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO; // 최대 자본인하 금액이 0이면 0 반환
+            return BigDecimal.ZERO;
         }
 
-        // ROA 계산: (누적손익 / |최대 자본인하 금액|) * -1
-        return cumulativeProfitLoss.divide(maxDrawdownAmount.abs(), 11, RoundingMode.HALF_UP) // 11번째 자리까지 계산
-                .negate() // 음수 변환
-                .setScale(10, RoundingMode.HALF_UP); // 10번째 자리까지 반올림
+        // ROA 계산: (누적손익 / 최대 자본인하 금액) * -1
+        return cumulativeProfitLoss.divide(maxDrawdownAmount, 10, RoundingMode.HALF_UP) // 소수점 10자리까지 반올림
+                .multiply(BigDecimal.valueOf(-1)); // 음수 변환
     }
 
     /**
-     * Sharp Ratio 계산 (평균손익 / 일손익의 표준편차).
+     * Sharp Ratio 계산 (평균손익 / 일손익 합산의 표준편차).
+     *
      * @param dailyProfitLosses 일손익 리스트
      * @param averageProfitLoss 평균손익
      * @return Sharp Ratio (소수점 10자리까지 표시)
@@ -102,28 +104,27 @@ public class StatisticsCalculator {
         }
 
         if (averageProfitLoss == null || averageProfitLoss.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO; // 평균손익이 0이면 Sharp Ratio는 정의되지 않음
+            return BigDecimal.ZERO; // 평균손익이 0이면 Sharp Ratio는 0
         }
 
-        // 평균 계산
+        // 분산 계산
         BigDecimal mean = dailyProfitLosses.stream()
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 10, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 11, RoundingMode.HALF_UP); // 평균 계산
 
-        // 분산 계산
         BigDecimal variance = dailyProfitLosses.stream()
                 .map(value -> value.subtract(mean).pow(2)) // (X - 평균)^2
                 .reduce(BigDecimal.ZERO, BigDecimal::add) // 분산 합산
-                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 10, RoundingMode.HALF_UP); // 분산 평균
+                .divide(BigDecimal.valueOf(dailyProfitLosses.size()), 11, RoundingMode.HALF_UP); // 분산 평균
 
         // 표준편차 계산 (분산의 제곱근)
         BigDecimal stdDevProfitLoss = BigDecimal.valueOf(Math.sqrt(variance.doubleValue()))
                 .setScale(10, RoundingMode.HALF_UP);
 
-        // Sharp Ratio 계산
+        // Sharp Ratio 계산: 평균손익 / 표준편차
         return stdDevProfitLoss.compareTo(BigDecimal.ZERO) > 0
-                ? averageProfitLoss.divide(stdDevProfitLoss, 11, RoundingMode.HALF_UP)
-                .setScale(10, RoundingMode.HALF_UP) // 최종적으로 소수점 10자리 제한
+                ? averageProfitLoss.divide(stdDevProfitLoss, 11, RoundingMode.HALF_UP) // Sharp Ratio 계산
+                .setScale(10, RoundingMode.HALF_UP) // 최종 결과 소수점 10자리
                 : BigDecimal.ZERO;
     }
 
@@ -207,6 +208,11 @@ public class StatisticsCalculator {
      * @return 소수점 첫째자리에서 반올림된 정수부 원금
      */
     public static BigDecimal calculatePrincipal(BigDecimal previousPrincipal, BigDecimal depWdPrice, BigDecimal previousBalance) {
+        if (previousPrincipal.compareTo(BigDecimal.ZERO) == 0) {
+            // 이전 원금이 0일 경우 입출금 금액으로 원금을 설정
+            return depWdPrice.setScale(0, RoundingMode.HALF_UP);
+        }
+
         if (previousBalance.compareTo(BigDecimal.ZERO) == 0) {
             // 이전 잔고가 0일 경우 입출금 금액만 반영
             return previousPrincipal.add(depWdPrice).setScale(0, RoundingMode.HALF_UP); // 소수점 반올림
@@ -312,19 +318,21 @@ public class StatisticsCalculator {
     }
 
     /**
-     * 현재 자본인하율 계산.
+     * 현재 자본인하율 계산 (백분율, 소수점 4자리까지).
      *
      * @param referencePrice       현재 기준가
      * @param allReferencePrices   지금까지의 모든 기준가 리스트 (등록된 순서대로 정렬)
-     * @return 현재 자본인하율
+     * @return 현재 자본인하율 (백분율, 소수점 4자리까지)
      */
     public static BigDecimal calculateCurrentDrawdownRate(BigDecimal referencePrice, List<BigDecimal> allReferencePrices) {
+        // 기준가가 0 이하인 경우 계산하지 않음
         if (referencePrice.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO; // 기준가가 0 이하일 경우 계산하지 않음
+            return BigDecimal.ZERO;
         }
 
+        // 기준가 데이터가 없을 경우
         if (allReferencePrices == null || allReferencePrices.isEmpty()) {
-            return BigDecimal.ZERO; // 기준가 데이터가 없을 경우
+            return BigDecimal.ZERO;
         }
 
         // 지금까지의 최대 기준가 계산
@@ -332,13 +340,16 @@ public class StatisticsCalculator {
                 .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO); // 최대값 없으면 0 반환
 
-        if (referencePrice.compareTo(BigDecimal.valueOf(1000)) > 0) {
-            // 현재 자본인하율 = (기준가 - max(이전 기준가, 현재 기준가)) / 기준가
-            return referencePrice.subtract(maxReferencePriceSoFar)
-                    .divide(referencePrice, 4, RoundingMode.HALF_UP); // 소수점 4자리까지 계산
-        } else {
-            return BigDecimal.ZERO; // 기준가가 1000 이하인 경우 0 반환
+        // 기준가 - 1000이 0 이하인 경우
+        if (referencePrice.subtract(BigDecimal.valueOf(1000)).compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
         }
+
+        // 현재 자본인하율 계산: ((기준가 - max(이전 기준가, 현재 기준가)) / 기준가) * 100
+        return referencePrice.subtract(maxReferencePriceSoFar)
+                .divide(referencePrice, 10, RoundingMode.HALF_UP) // 높은 정밀도로 중간 계산
+                .multiply(BigDecimal.valueOf(100)) // 백분율로 변환
+                .setScale(4, RoundingMode.HALF_UP); // 소수점 4자리까지 반올림
     }
 
     /**
@@ -501,17 +512,20 @@ public class StatisticsCalculator {
      * DD 기간 내 최대 자본인하율 (최저값) 계산.
      *
      * @param currentDrawdownRate 현재 자본인하율
-     * @param previousMaxDDInRate 이전 최대 자본인하율
+     * @param previousMaxDdInRate 이전 최대 자본인하율
      * @param ddDay               현재 DD 기간 (1 이상이면 DD 기간 내 계산)
-     * @return 계산된 DD 기간 내 최대 자본인하율
+     * @return 계산된 DD 기간 내 최대 자본인하율 (소수점 4자리까지 반올림)
      */
-    public static BigDecimal calculateMaxDDInRate(BigDecimal currentDrawdownRate, BigDecimal previousMaxDDInRate, int ddDay) {
+    public static BigDecimal calculateMaxDdInRate(BigDecimal currentDrawdownRate, BigDecimal previousMaxDdInRate, int ddDay) {
         // DD 기간이 1 이상인 경우만 계산
         if (ddDay > 0) {
-            return previousMaxDDInRate.min(currentDrawdownRate); // 이전 최대값과 현재 값 중 최저값 선택
+            return previousMaxDdInRate.min(
+                            currentDrawdownRate.setScale(10, RoundingMode.HALF_UP) // 중간 계산 소수점 10자리까지 유지
+                    )
+                    .setScale(4, RoundingMode.HALF_UP); // 최종 결과는 소수점 4자리로 반올림
         }
-        // DD 기간이 0이면 0 반환
-        return BigDecimal.ZERO;
+        // DD 기간이 0이면 0 반환 (소수점 4자리까지 설정)
+        return BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP);
     }
 
     //월간 데이터 계산
@@ -645,4 +659,94 @@ public class StatisticsCalculator {
                 .setScale(2, RoundingMode.HALF_UP); // 소수점 셋째 자리에서 반올림하여 둘째 자리까지 표현
     }
 
+    /**
+     * KP Ratio를 계산합니다.
+     *
+     * KP Ratio 공식:
+     * KP Ratio = cumulativeProfitLossRate / (maxDdInRateSum * sqrt(ddDaySum / tradingDays))
+     *
+     * - ddDay와 maxDdInRate는 0이 아닌 구간만 합산합니다.
+     * - inputDdDay와 inputMaxDdInRate는 현재 입력값으로 추가 계산에 포함됩니다.
+     * - currentDrawdownRate가 0인 부분에서 ∑(ddDay)와 ∑(maxDdInRate)를 갱신합니다.
+     * - 계산 결과는 소수점 11자리에서 계산한 후, 소수점 10자리까지 반올림하여 반환합니다.
+     * - maxDdInRateSum 또는 ddDaySum이 0일 경우 KP Ratio는 0으로 반환됩니다.
+     * - 누적손익률(cumulativeProfitLossRate)이 0 이하일 경우 KP Ratio는 0으로 반환됩니다.
+     *
+     * @param ddDayAndMaxDdInRateList ddDay와 maxDDInRate 리스트 (날짜 오름차순)
+     *                                - 각 배열: [0] = ddDay (int), [1] = maxDDInRate (BigDecimal)
+     * @param cumulativeProfitLossRate 누적손익률 (cumulativeProfitLossRate)
+     * @param tradingDays              총 거래일수 (tradingDays)
+     * @return KP Ratio (소수점 10자리까지 반올림)
+     */
+    public static BigDecimal calculateKPRatio(List<Object[]> ddDayAndMaxDdInRateList,
+                                              BigDecimal currentDrawdownRate,
+                                              BigDecimal cumulativeProfitLossRate,
+                                              int tradingDays) {
+        int ddDaySum = 0; // ddDay의 합
+        BigDecimal maxDdInRateSum = BigDecimal.ZERO; // maxDDInRate의 합
+
+        // 이전 값을 추적하기 위한 변수
+        int prevDdDay = 0;
+        BigDecimal prevMaxDdInRate = BigDecimal.ZERO;
+
+        // ===== Step 1: ddDay와 maxDdInRate 합산 =====
+        for (Object[] row : ddDayAndMaxDdInRateList) {
+            int currentDdDay = (int) row[0];
+            BigDecimal currentMaxDdInRate = (BigDecimal) row[1];
+
+            // 현재자본인하율(currentDrawdownRate)이 0 이상인 경우
+            if (currentDrawdownRate.compareTo(BigDecimal.ZERO) >= 0) {
+                if (prevDdDay != 0 && prevMaxDdInRate.compareTo(BigDecimal.ZERO) != 0) {
+                    // 이전 값이 0이 아닌 경우만 누적
+                    ddDaySum += prevDdDay;
+                    maxDdInRateSum = maxDdInRateSum.add(prevMaxDdInRate);
+                }
+                // 이전 값 초기화
+                prevDdDay = 0;
+                prevMaxDdInRate = BigDecimal.ZERO;
+            } else {
+                // 자본인하율이 0 미만인 경우, 현재 값을 갱신
+                prevDdDay = currentDdDay;
+                prevMaxDdInRate = currentMaxDdInRate;
+            }
+        }
+
+        ddDaySum += prevDdDay;
+        maxDdInRateSum = maxDdInRateSum.add(prevMaxDdInRate);
+
+        // ===== Step 2: 유효성 검사 =====
+        if (cumulativeProfitLossRate.compareTo(BigDecimal.ZERO) <= 0) {
+            // 누적손익률이 0 이하일 경우 KP Ratio는 0
+            return BigDecimal.ZERO;
+        }
+
+        if (maxDdInRateSum.compareTo(BigDecimal.ZERO) == 0 || ddDaySum == 0 || tradingDays <= 0) {
+            // maxDdInRateSum, ddDaySum, 또는 tradingDays가 0 이하일 경우 KP Ratio는 0
+            return BigDecimal.ZERO;
+        }
+
+        // ===== Step 3: KP Ratio 계산 =====
+        // ddDay 평균 계산: ddDaySum / tradingDays
+        BigDecimal ddDayAverage = BigDecimal.valueOf(ddDaySum)
+                .divide(BigDecimal.valueOf(tradingDays), 10, RoundingMode.HALF_UP);
+
+        // ddDay 평균의 제곱근 계산: sqrt(ddDayAverage)
+        BigDecimal ddDaySqrt = BigDecimal.valueOf(Math.sqrt(ddDayAverage.doubleValue()));
+
+        // 분모 계산: |maxDdInRateSum * sqrt(ddDaySum / tradingDays)|
+        BigDecimal denominator = maxDdInRateSum
+                .multiply(ddDaySqrt) // maxDdInRateSum * sqrt(ddDaySum / tradingDays)
+                .abs(); // 절대값 적용
+
+        if (denominator.compareTo(BigDecimal.ZERO) == 0) {
+            // 분모가 0이면 KP Ratio는 0
+            return BigDecimal.ZERO;
+        }
+
+        // KP Ratio = 누적손익률 / 분모
+        BigDecimal kpRatio = cumulativeProfitLossRate.divide(denominator, 11, RoundingMode.HALF_UP) // 소수점 11자리까지 계산
+                .setScale(10, RoundingMode.HALF_UP); // 최종적으로 소수점 10자리로 반올림
+
+        return kpRatio;
+    }
 }

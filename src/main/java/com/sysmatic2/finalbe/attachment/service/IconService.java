@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.attachment.service;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.exception.MetadataNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,6 @@ import java.util.Map;
 public class IconService {
 
     private final FileService fileService;
-    private final FileMetadataRepository fileMetadataRepository;
 
     /**
      * 새로운 아이콘 이미지 등록
@@ -27,8 +27,6 @@ public class IconService {
 
         // 새로운 아이콘 등록
         return fileService.uploadFile(file, uploaderId, category, null);
-
-
     }
 
     /**
@@ -60,35 +58,13 @@ public class IconService {
 
         FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
 
-        // 제안서 메타데이터 초기화 및 S3 파일 삭제
-        fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  true);
-
-    }
-
-    /**
-     * 아이콘 파일 S3 삭제 및 DB 메타데이터 초기화
-     */
-    @Transactional
-    public FileMetadataDto initIconMetadata(String filePath) {
-        String category = "icon";
-        String uploaderId = "admin";
-
-        FileMetadataDto existingMetadataDto = fileService.getFileMetadataByFilePath(filePath);
+        // existingMetadataDto가 없으면 커스텀 예외 처리
+        if (existingMetadataDto == null) {
+            throw new MetadataNotFoundException("Metadata not found for filePath: " + filePath);
+        }
 
         // 제안서 메타데이터 초기화 및 S3 파일 삭제
-        fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true,  false);
-
-        FileMetadata metadata = FileMetadataDto.toEntity(existingMetadataDto);
-        metadata.setFileSize(null);
-        metadata.setContentType(null);
-        metadata.setDisplayName(null);
-        metadata.setFileName(null);
-        metadata.setFilePath(null);
-
-        // 메타데이터 저장
-        fileMetadataRepository.save(metadata);
-
-        return FileMetadataDto.fromEntity(metadata);
+        fileService.deleteFile(existingMetadataDto.getId(), uploaderId, category, true, true);
     }
 
 }

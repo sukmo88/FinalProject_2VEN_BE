@@ -1,31 +1,37 @@
 package com.sysmatic2.finalbe.strategy.service;
 
-import com.sysmatic2.finalbe.admin.dto.RejectionRequestResponseDto;
-import com.sysmatic2.finalbe.admin.dto.TradingCycleRegistrationDto;
+import com.sysmatic2.finalbe.admin.dto.*;
 import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
+import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
+import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
+import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.attachment.service.FileService;
+import com.sysmatic2.finalbe.attachment.service.ProposalService;
 import com.sysmatic2.finalbe.exception.*;
-import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesRegistrationDto;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
-import com.sysmatic2.finalbe.admin.dto.TradingTypeRegistrationDto;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.entity.*;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
+import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.ParseCsvToList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,6 +53,12 @@ public class StrategyService {
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
     private final DailyStatisticsService dailyStatisticsService;
+    private final DailyStatisticsRepository dailyStatisticsRepository;
+    private final ProposalService proposalService;
+    private final StrategyProposalRepository strategyProposalRepository;
+    private final FileService fileService;
+    private final FileMetadataRepository fileMetadataRepository;
+    private final StrategyProposalService strategyProposalService;
 
     //1. 전략 생성
     /**
@@ -168,7 +180,13 @@ public class StrategyService {
 
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        //5. 응답
+        // 5. 제안서 등록 (sbwoo)
+        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니면, 제안서 등록
+        if (strategyPayloadDto.getStrategyProposalLink() != null) {
+            strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), createdEntity.getWriterId(), createdEntity.getStrategyId());
+        }
+
+        // 6. 응답
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         return responseMap;
@@ -198,7 +216,7 @@ public class StrategyService {
      * @param page                 현재 페이지
      * @param pageSize             페이지크기
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Map<String, Object> advancedSearch(SearchOptionsPayloadDto searchOptionsPayload, Integer page, Integer pageSize) {
         //페이지 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
@@ -243,6 +261,136 @@ public class StrategyService {
         return createPageResponse(strategyPage);
     }
 
+    /**
+     * 2-3. 작성자 id로 필터링한 전략 목록을 반환(페이지네이션)
+     *
+     * @param traderId             작성한 트레이더 id
+     * @param page                 현재 페이지
+     * @param pageSize             페이지크기
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListbyTraderId(String traderId, Integer page, Integer pageSize) {
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //traderid로 해당 전략 엔티티 객체들 가져오기
+        Page<StrategyEntity> traderStrategyPage = strategyRepo.findByWriterId(traderId, pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값으로 가져오기
+        // 전략 id 리스트 생성
+        List<Long> strategyIds = traderStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        // 전략 id로 관련 최신 DailyStatics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        // DTO에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = traderStrategyPage.stream()
+                .map(strategyEntity -> {
+                    //기본 정보 DTO에 넣기
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(), //전략id
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()), //투자자산분류 아이콘
+                            strategyEntity.getStrategyTitle(),     //전략명
+                            BigDecimal.ZERO, //누적손익률
+                            BigDecimal.ZERO, //최근1년손익률
+                            BigDecimal.ZERO, //sm-score
+                            0L               //팔로워수
+                    );
+
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if(latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setSmScore(latestStatistics.getSmScore());
+//                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                    }
+                    Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
+                    dto.setFollowersCount(followersCount);
+
+                    return dto;
+                }).collect(Collectors.toList());
+
+        //페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, traderStrategyPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
+    }
+
+    /**
+     * 2-4. 키워드로 전략명 필터링한 전략 목록을 반환(페이지네이션)
+     *
+     * @param keyword              검색 키워드
+     * @param page                 현재 페이지
+     * @param pageSize             페이지크기
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListByKeyword(String keyword, Integer page, Integer pageSize) {
+        //페이지 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //전략명에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기 - isPosted = Y, isApproved = Y
+        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "Y", pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
+        //전략 id 리스트 생성
+        List<Long> strategyIds = findStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        //전략 id로 최신 dailystatistics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        //DTO에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = findStrategyPage.stream()
+                .map(strategyEntity -> {
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(), //전략id
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()), //투자자산분류 아이콘
+                            strategyEntity.getStrategyTitle(),     //전략명
+                            BigDecimal.ZERO, //누적손익률
+                            BigDecimal.ZERO, //최근1년손익률
+                            BigDecimal.ZERO, //sm-score
+                            0L               //팔로워수
+                    );
+
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if (latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setSmScore(latestStatistics.getSmScore());
+//                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                    }
+                    Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
+                    dto.setFollowersCount(followersCount);
+
+                    return dto;
+
+                }).collect(Collectors.toList());
+        //페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyPage.getTotalElements());
+
+        return createPageResponse(dtoPage);
+    }
 
     //3. 전략 상세
     /**
@@ -291,8 +439,14 @@ public class StrategyService {
         responseDto.setTraderImage("트레이더프로필이미지");
 
         // 최신 팔로워 수 조회
-        Long followersCount = dailyStatisticsService.getLatestFollowersCount(strategyEntity.getStrategyId());
+        Long followersCount = strategyRepo.findFollowersCountByStrategyId(id);
         responseDto.setFollowersCount(followersCount);
+
+        // 제안서 URL 조회 (sbwoo)
+        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
+                .orElse(null); // 값이 없으면 null 반환
+        responseDto.setStrategyProposalLink(strategyProposal);
 
         return responseDto;
     }
@@ -351,12 +505,18 @@ public class StrategyService {
             strategyIACHistoryRepository.save(strategyIACHistoryEntity);
         }
 
-        //4. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        // 4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
+        if(strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId()).isPresent()){
+            strategyProposalService.deleteProposal(strategyEntity.getStrategyId(), strategyEntity.getWriterId());
+        }
+
+        //5. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //5. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //6. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
+
     }
 
     //5. 전략 수정
@@ -415,6 +575,12 @@ public class StrategyService {
 
         // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
         responseDto.setStrategyIACEntities(strategyIACDtos);
+
+        // 제안서 dto에 추가
+        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
+                .orElse(null); // 값이 없으면 null 반환
+        responseDto.setStrategyProposalLink(strategyProposal);
 
         //TODO)트레이더 정보 넣기
         responseDto.setTraderId("1");
@@ -575,7 +741,30 @@ public class StrategyService {
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        //응답
+        // 10. 제안서 수정 (sbwoo)
+        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니면, 제안서 등록
+        if (strategyPayloadDto.getStrategyProposalLink() != null) {
+            // file이 업로드 되어 있는 링크라면,
+            if(fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+                // strategyProposal이 있으면 수정
+                if (strategyProposalRepository.findByStrategy(strategyEntity).isPresent()) {
+                    strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                } else {
+                    // 없으면 새로 등록
+                    strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                }
+            } else { // 잘못된 링크를 보내주면 에러 메시지
+                throw new MetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
+            }
+        } else { // link 로 null 값이 들어오면,
+            // 기존 strategyProposal이 있으면, strategyProposal 삭제
+            if(strategyProposalRepository.findByStrategy(strategyEntity).isPresent()){
+                strategyProposalService.deleteProposal(strategyEntity.getStrategyId(), strategyEntity.getWriterId());
+            }
+            // 기존 strategyProposal도 없으면 아무일 없음
+        }
+
+        // 11. 응답
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         return responseMap;
@@ -716,6 +905,21 @@ public class StrategyService {
     }
 
 
+    /**
+     * 특정 전략과 관련된 DailyStatistics 및 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
+     *
+     * @param strategyId FollowersCount를 증가시킬 전략의 ID
+     */
+    @Transactional
+    public void increaseFollowersCount(Long strategyId) {
+        // 1. StrategyEntity의 FollowersCount 증가
+        StrategyEntity strategy = strategyRepo.findById(strategyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID를 가진 전략이 존재하지 않습니다: " + strategyId));
+        strategy.setFollowersCount(strategy.getFollowersCount() + 1);
+
+        // 3. 변경 사항 저장
+        strategyRepo.save(strategy); // StrategyEntity 저장
+    }
 }
 
 

@@ -7,7 +7,9 @@ import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.member.dto.SignupDTO;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
+import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
+import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -200,12 +202,15 @@ public class DtoEntityConversionUtils {
     /**
      * SignupDTO를 MemberEntity로 변환하는 메서드.
      *
-     * @param  변환할 SignupDTO
-     * @return 변환된 MemberEntity로
+     * @param SignupDTO
+     * @return 변환된 MemberEntity
      */
     public static MemberEntity convertToMemberEntity(SignupDTO signupDTO, PasswordEncoder passwordEncoder) {
         MemberEntity member = new MemberEntity();
 
+        String memberId = RandomKeyGenerator.createUUID();
+
+        member.setMemberId(memberId);
         member.setMemberGradeCode("MEMBER_ROLE_" + signupDTO.getMemberType());
         member.setMemberStatusCode("MEMBER_STATUS_ACTIVE");
         member.setEmail(signupDTO.getEmail());
@@ -213,7 +218,8 @@ public class DtoEntityConversionUtils {
         member.setNickname(signupDTO.getNickname());
         member.setPhoneNumber(signupDTO.getPhoneNumber());
         member.setSignupAt(LocalDateTime.now());
-        member.setIsAgreedMarketingAd(signupDTO.getMarketingOptional() ? 'Y' : 'N');
+        member.setCreatedBy(memberId);
+        member.setModifiedBy(memberId);
 
         return member;
     }
@@ -242,4 +248,17 @@ public class DtoEntityConversionUtils {
         return responseDto;
     }
 
+    /**
+     * DailyStatisticsEntity를 DailyStatisticsReqDto로 변환하는 메서드.
+     *
+     * @param entity 변환할 DailyStatisticsEntity 객체
+     * @return 변환된 DailyStatisticsReqDto 객체
+     */
+    public static DailyStatisticsReqDto convertToDailyStatisticsReqDto(DailyStatisticsEntity entity) {
+        return DailyStatisticsReqDto.builder()
+                .date(entity.getDate())
+                .depWdPrice(entity.getDepWdPrice())
+                .dailyProfitLoss(entity.getDailyProfitLoss())
+                .build();
+    }
 }

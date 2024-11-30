@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -155,32 +157,6 @@ public class FileService {
         }
     }
 
-
-    /**
-     * 파일 다운로드
-     */
-//    public Object downloadFile(Long fileId, String uploaderId, String category) {
-//        FileMetadata metadata = validateFileAccess(fileId, uploaderId, category);
-//        String s3Key = s3ClientService.generateS3Key(metadata.getUploaderId(), metadata.getFileCategory(), metadata.getFileName());
-//
-//        // 이미지 외 파일은 byte 타입으로 리턴
-//        byte[] fileBytes = s3ClientService.downloadFile(s3Key);
-//
-//        // 다운 받는게 이미지파일이면 Base64로 변환
-//        if (metadata.getContentType().startsWith("image/")) {
-//            return convertToBase64(fileBytes, metadata.getContentType());
-//        }
-//        return fileBytes;
-//    }
-
-
-    /**
-     * 파일을 Base64로 변환
-     */
-    public String convertToBase64(byte[] fileBytes, String contentType) {
-        return "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(fileBytes);
-    }
-
     /**
      * 파일 메타데이터 조회
      *
@@ -204,7 +180,35 @@ public class FileService {
         return fileMetadataRepository.findByFilePath(filePath)
                 .map(FileMetadataDto::fromEntity)
                 .orElse(null); // 값이 없으면 null 반환
+
     }
+
+    /**
+     * 파일 메타데이터 조회
+     *
+     * @param itemId 파일이 속한 곳의 Id (ex. strategyId)
+     * @return 파일 메타데이터
+     */
+    public FileMetadataDto getFileMetadataByFileItemId(String itemId) {
+        return fileMetadataRepository.findByFileCategoryItemId(itemId)
+                .map(FileMetadataDto::fromEntity)
+                .orElse(null); // 값이 없으면 null 반환
+    }
+
+
+    /**
+     * 파일 메타데이터 리스트 조회
+     *
+     * @param itemId 파일이 속한 곳의 Id (ex. strategyId)
+     * @return 파일 메타데이터
+     */
+    public List<FileMetadataDto> getAllByFileItemId(String itemId) {
+        return fileMetadataRepository.findAllByFileCategoryItemId(itemId)
+                .stream()
+                .map(FileMetadataDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
 
     /**
      * 파일 접근 권한 및 유효성 검사 후 메타데이터 반환
