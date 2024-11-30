@@ -330,4 +330,25 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 403: 기본 폴더 삭제 하려고 할 때
+    @ExceptionHandler(DefaultFolderDeleteException.class)
+    public ResponseEntity<Object> DefaultFolderDeleteException(DefaultFolderDeleteException ex) {
+        return ResponseUtils.buildErrorResponse(
+                "DEFAULT_FOLDER_DELETE_NOT_ALLOWED",
+                ex.getClass().getSimpleName(),
+                "기본 폴더는 삭제할 수 없습니다.",
+                HttpStatus.FORBIDDEN
+        );
+    }
+    // 403: 기본 폴더명 변경 하려고 할 때
+    @ExceptionHandler(DefaultFolderRenameException.class)
+    public ResponseEntity<Object> DefaultFolderRenameException(DefaultFolderRenameException ex) {
+        return ResponseUtils.buildErrorResponse(
+                "DEFAULT_FOLDER_RENAME_NOT_ALLOWED",
+                ex.getClass().getSimpleName(),
+                "기본 폴더명은 변경 할 수 없습니다.",
+                HttpStatus.FORBIDDEN
+        );
+    }
+
 }
