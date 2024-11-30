@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
-import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
@@ -13,8 +12,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -27,7 +24,6 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -79,7 +75,7 @@ public class StrategyController {
 
     // 3. 전략 목록 - 랭킹
     /**
-     * 3. 필터 조건에 따라 전략 목록 반환 (페이징 포함)
+     * 3. 필터 조건에 따라 전략 목록 반환 (페이징 포함) - 랭킹
      *
      * @param tradingCycleId 투자주기 ID (nullable)
      * @param investmentAssetClassesId 투자자산 분류 ID (nullable)
@@ -88,7 +84,7 @@ public class StrategyController {
      * @return 필터링된 전략 목록 및 페이징 정보를 포함한 Map 객체
      */
     @GetMapping
-    @Operation(summary = "필터 조건으로 전략 목록 조회",
+    @Operation(summary = "필터 조건으로 전략 목록 조회 - 전략 랭킹",
             description = "투자주기와 투자자산 분류로 전략을 필터링하여 조회합니다. 페이징을 지원합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "전략 목록 조회 성공"),
@@ -280,7 +276,7 @@ public class StrategyController {
      * 특정 전략의 일간 분석 데이터를 삭제하고 필요한 데이터를 재계산합니다.
      *
      * @param strategyId        삭제할 데이터가 포함된 전략의 ID
-     * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
+     * @param requestDto        삭제할 일간 분석 데이터 ID 리스트
      * @return 삭제 및 재계산 결과
      */
     @Operation(

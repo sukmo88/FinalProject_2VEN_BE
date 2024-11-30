@@ -34,9 +34,11 @@ public class SearchOptionsPayloadDto {
     @DecimalMax(value = "100000000000.0", message = "Investment amount must be less than 100,000,000,000")
     private BigDecimal maxPrincipal;             //원금 필터 최대값
 
-    @Size(min=0, max=100)
+    @Min(0)
+    @Max(100)
     private Integer minSmscore;                  //SM-score 필터 최소값
-    @Size(min=0, max=100)
+    @Min(0)
+    @Max(100)
     private Integer maxSmscore;                  //SM-score 필터 최대값
 
     @DecimalMax(value = "0", message = "MDD must be less than 0")
@@ -59,7 +61,7 @@ public class SearchOptionsPayloadDto {
         if(minPrincipal==null || maxPrincipal==null){
             return true;
         }
-        return minPrincipal.compareTo(maxPrincipal)>=0;
+        return minPrincipal.compareTo(maxPrincipal)<=0;
     }
 
     //Sm-score 최대값 >= Sm-score 최소값
@@ -68,16 +70,16 @@ public class SearchOptionsPayloadDto {
         if(minSmscore==null || maxSmscore==null){
             return true;
         }
-        return minSmscore.compareTo(maxSmscore)>=0;
+        return minSmscore.compareTo(maxSmscore)<=0;
     }
 
-    //Sm-score 최대값 >= Sm-score 최소값
+    //maxMdd 최대값 >= MinMdd 최소값
     @AssertTrue(message = "minMdd must be greater or equal to maxMdd")
     public boolean isMddRangeValid(){
         if(minMdd==null || maxMdd==null){
             return true;
         }
-        return minMdd.compareTo(maxMdd)>=0;
+        return minMdd.compareTo(maxMdd)<=0;
     }
 
     //시작일이 종료일보다 이전인지 판별
@@ -88,4 +90,16 @@ public class SearchOptionsPayloadDto {
         }
         return !endDate.isBefore(startDate);
     }
+
+    // startDate와 endDate가 있으면 returnRateList가 비어있지 않아야 함
+    // returnRateList가 있으면 startDate와 endDate가 모두 비어있지 않아야 함
+    @AssertTrue(message = "If startDate and endDate are provided, returnRateList must not be empty, and vice versa.")
+    public boolean isDateAndReturnRateValid() {
+        boolean isDateProvided = (startDate != null && endDate != null);
+        boolean isReturnRateProvided = (returnRateList != null && !returnRateList.trim().isEmpty());
+
+        // 둘 중 하나라도 있으면 서로 비어있으면 안 됨
+        return !(isDateProvided && !isReturnRateProvided || !isDateProvided && isReturnRateProvided);
+    }
+
 }

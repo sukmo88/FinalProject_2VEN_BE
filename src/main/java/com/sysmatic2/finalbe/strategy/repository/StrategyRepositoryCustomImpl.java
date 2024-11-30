@@ -1,14 +1,10 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.Tuple;
-import com.querydsl.core.types.ExpressionUtils;
-import com.querydsl.core.types.dsl.BooleanTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sysmatic2.finalbe.strategy.dto.SearchOptionsDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyListDto;
 import com.sysmatic2.finalbe.strategy.entity.QDailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.QStrategyEntity;
 import com.sysmatic2.finalbe.admin.entity.QInvestmentAssetClassesEntity;
@@ -26,8 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+
 
 /**
  * QueryDSL을 사용한 커스텀 리포지토리 구현체
@@ -47,7 +42,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
     }
 
     /**
-     * 1. 투자주기, 투자자산 분류 id로 필터링(페이지네이션)- db에 해당 필터링한 전략만 넘기고 끝. 나머지는 service에서
+     * 1. 투자주기, 투자자산 분류 id로 필터링(페이지네이션)
      *
      * @param tradingCycleId 투자주기 ID (nullable)
      * @param investmentAssetClassesId 투자자산 분류 ID (nullable)
@@ -55,79 +50,13 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
      * @return 필터링된 전략 목록 (Page 객체 포함)
      */
     @Override
-    public Page<StrategyListDto> findStrategiesByFilters(Integer tradingCycleId, Integer investmentAssetClassesId, Pageable pageable) {
+    public Page<StrategyEntity> findStrategiesByFilters(Integer tradingCycleId, Integer investmentAssetClassesId, Pageable pageable) {
         // QueryDSL에서 사용할 Q클래스 정의
         QStrategyEntity strategy = QStrategyEntity.strategyEntity;
         QTradingCycleEntity tradingCycle = QTradingCycleEntity.tradingCycleEntity;
         QTradingTypeEntity tradingType = QTradingTypeEntity.tradingTypeEntity;
         QStrategyIACEntity strategyIAC = QStrategyIACEntity.strategyIACEntity;
         QInvestmentAssetClassesEntity investmentAsset = QInvestmentAssetClassesEntity.investmentAssetClassesEntity;
-
-
-        // 1. 전략 데이터 조회 (중복 방지 및 투자자산 아이콘 제외)
-        List<Long> strategyIds = queryFactory
-                .select(strategy.strategyId)
-                .from(strategy)
-                .leftJoin(strategy.tradingCycleEntity, tradingCycle)
-                .leftJoin(strategy.tradingTypeEntity, tradingType)
-                .where(
-                        tradingCycleId != null ? tradingCycle.tradingCycleId.eq(tradingCycleId) : null,
-                        investmentAssetClassesId != null ? strategy.strategyIACEntities.any().investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null,
-                        strategy.isPosted.eq("Y"),   //공개 - y
-                        strategy.isApproved.eq("N")  //승인 - y
-                )
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .distinct() // 중복 제거
-                .fetch();
-
-        if (strategyIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
-
-        // 2. 전략 데이터와 매매 유형, 매매 주기 정보 조회
-        List<Tuple> tuples = queryFactory
-                .select(
-                        strategy.strategyId,
-                        tradingType.tradingTypeIcon,
-                        tradingCycle.tradingCycleIcon,
-                        strategy.strategyTitle
-                )
-                .from(strategy)
-                .leftJoin(strategy.tradingCycleEntity, tradingCycle)
-                .leftJoin(strategy.tradingTypeEntity, tradingType)
-                .where(strategy.strategyId.in(strategyIds)) // 필터링된 전략 ID에 해당하는 데이터만 조회
-                .fetch();
-
-        // 3. 투자자산 아이콘 리스트 조회
-        Map<Long, List<String>> strategyAssetIconsMap = queryFactory
-                .select(
-                        strategyIAC.strategyEntity.strategyId,
-                        investmentAsset.investmentAssetClassesIcon
-                )
-                .from(strategyIAC)
-                .join(strategyIAC.investmentAssetClassesEntity, investmentAsset)
-                .where(strategyIAC.strategyEntity.strategyId.in(strategyIds))
-                .fetch()
-                .stream()
-                .collect(
-                        // Map<StrategyId, List<InvestmentAssetIcons>>
-                        Collectors.groupingBy(
-                                tuple -> tuple.get(strategyIAC.strategyEntity.strategyId),
-                                Collectors.mapping(tuple -> tuple.get(investmentAsset.investmentAssetClassesIcon), Collectors.toList())
-                        )
-                );
-
-        // 4. DTO 생성
-        List<StrategyListDto> results = tuples.stream()
-                .map(tuple -> new StrategyListDto(
-                        tuple.get(strategy.strategyId), // 전략 ID
-                        tuple.get(tradingType.tradingTypeIcon), // 매매유형 아이콘
-                        tuple.get(tradingCycle.tradingCycleIcon), // 매매주기 아이콘
-                        strategyAssetIconsMap.getOrDefault(tuple.get(strategy.strategyId), List.of()), // 투자자산 아이콘 리스트
-                        tuple.get(strategy.strategyTitle) // 전략명
-                ))
-                .toList();
 
         // 5. 총 데이터 개수 조회
         long total = queryFactory
@@ -141,8 +70,30 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                 )
                 .fetchOne();
 
-        // 6. Page 객체 생성 및 반환
-        return new PageImpl<>(results, pageable, total);
+        // 1. 전략 데이터 조회
+        List<StrategyEntity> strategyEntities = queryFactory
+                .selectFrom(strategy)
+                .leftJoin(strategy.tradingTypeEntity, tradingType)
+                .leftJoin(strategy.tradingCycleEntity, tradingCycle)
+                .where(
+                        tradingCycleId != null ? tradingCycle.tradingCycleId.eq(tradingCycleId) : null,
+                        investmentAssetClassesId != null ? strategy.strategyIACEntities.any()
+                                .investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null,
+                        strategy.isPosted.eq("Y"),
+                        //TODO)Y로 변경
+                        strategy.isApproved.eq("N")
+                )
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .distinct()
+                .fetch();
+
+        if(strategyEntities.isEmpty()) {
+            return new PageImpl<>(strategyEntities, pageable, 0L);
+        }
+
+        return new PageImpl<>(strategyEntities, pageable, total);
+
     }
 
     /**
@@ -168,6 +119,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         // 1. is_posted = Y 필터
         strategyBuilder.and(strategyQ.isPosted.eq("Y"));
 
+        //TODO) Y로 변경하기
         // 2. is_Approved = Y 필터
         strategyBuilder.and(strategyQ.isApproved.eq("N"));
 
@@ -198,12 +150,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                     .in(searchOptions.getInvestmentAssetClassesIdList()));
         }
 
-        // 8. 날짜 필터링
-        if (searchOptions.getStartDate() != null && searchOptions.getEndDate() != null) {
-            strategyBuilder.and(dailyStatisticsQ.date.between(searchOptions.getStartDate(), searchOptions.getEndDate()));
-        }
-
-        // 9. 운용 기간 필터 - 중첩가능
+        // 8. 운용 기간 필터 - 중첩가능
         if (searchOptions.getOperationDaysList() != null && !searchOptions.getOperationDaysList().isEmpty()) {
             BooleanBuilder dateBuilder = new BooleanBuilder();
             LocalDateTime now = LocalDateTime.now();
@@ -242,12 +189,12 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         if (searchOptions.getMinSmscore() != null || searchOptions.getMaxSmscore() != null) {
             BooleanBuilder smScoreBuilder = new BooleanBuilder();
             if (searchOptions.getMinSmscore() != null) {
-                smScoreBuilder.and(dailyStatisticsQ.smScore.goe(BigDecimal.valueOf(searchOptions.getMinSmscore())));
+                smScoreBuilder.and(strategyQ.smScore.goe(BigDecimal.valueOf(searchOptions.getMinSmscore())));
             }
             if (searchOptions.getMaxSmscore() != null) {
-                smScoreBuilder.and(dailyStatisticsQ.smScore.loe(BigDecimal.valueOf(searchOptions.getMaxSmscore())));
+                smScoreBuilder.and(strategyQ.smScore.loe(BigDecimal.valueOf(searchOptions.getMaxSmscore())));
             }
-            statisticsBuilder.and(smScoreBuilder);
+            strategyBuilder.and(smScoreBuilder);
         }
 
         // 12. MDD(최대자본인하율) 필터
@@ -262,7 +209,12 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             statisticsBuilder.and(mddBuilder);
         }
 
-        // 13. 손익률 필터
+        //13. 날짜 필터링 - 해당기간의 일간데이터
+        if (searchOptions.getStartDate() != null && searchOptions.getEndDate() != null) {
+            statisticsBuilder.and(dailyStatisticsQ.date.between(searchOptions.getStartDate(), searchOptions.getEndDate()));
+        }
+
+        //14. 손익률 필터
         if (searchOptions.getReturnRateList() != null && !searchOptions.getReturnRateList().isEmpty()) {
             BooleanBuilder returnRateBuilder = new BooleanBuilder();
             searchOptions.getReturnRateList().forEach(rate -> {
@@ -286,11 +238,26 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             statisticsBuilder.and(returnRateBuilder);
         }
 
-        //서브쿼리 관련 필터 없는경우
+        //1)서브쿼리 관련 필터 없는경우 메인쿼리만 동작함.
         if (!statisticsBuilder.hasValue()) {
-            statisticsBuilder.and(Expressions.asBoolean(true).isTrue());
+            List<StrategyEntity> allStrategies = queryFactory
+                    .selectFrom(strategyQ)
+                    .where(strategyBuilder)
+                    .offset(pageable.getOffset())
+                    .limit(pageable.getPageSize())
+                    .distinct()
+                    .fetch();
+
+            Long totalCount = queryFactory
+                    .select(strategyQ.count())
+                    .from(strategyQ)
+                    .where(strategyBuilder)
+                    .fetchOne();
+
+            return new PageImpl<>(allStrategies, pageable, totalCount);
         }
 
+        //2) 서브쿼리 필터가 있는경우
         //DailyStatistics 관련 서브쿼리
         JPQLQuery<Long> strategyIdsQuery = queryFactory
                 .select(dailyStatisticsQ.strategyEntity.strategyId)
@@ -298,10 +265,30 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                 .where(statisticsBuilder)
                 .distinct();
 
-        //서브쿼리의 결과를 일단 저정해놓음
+        //서브쿼리의 결과 값들 id 저장
         List<Long> strategyIds = strategyIdsQuery.fetch();
 
         //전략 관련 메인 쿼리
+        //3-1)서브쿼리 결과 없는경우
+        if(strategyIds.isEmpty()) {
+            List<StrategyEntity> allStrategies = queryFactory
+                    .selectFrom(strategyQ)
+                    .where(strategyBuilder)
+                    .offset(pageable.getOffset())
+                    .limit(pageable.getPageSize())
+                    .distinct()
+                    .fetch();
+
+            Long totalCount = queryFactory
+                    .select(strategyQ.count())
+                    .from(strategyQ)
+                    .where(strategyBuilder)
+                    .fetchOne();
+
+            return new PageImpl<>(allStrategies, pageable, totalCount);
+        }
+
+        //3-2)서브쿼리 결과 있는 경우
         List<StrategyEntity> strategyEntities = queryFactory
                 .selectFrom(strategyQ)
                 .where(strategyBuilder.and(strategyQ.strategyId.in(strategyIds)))
@@ -310,17 +297,15 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                 .distinct()
                 .fetch();
 
-        System.out.println("strategyEntities.size() = " + strategyEntities.size());
-
         //결과 갯수
-        long resultCnt = queryFactory
+        Long resultCnt = queryFactory
                 .select(strategyQ.count())
                 .from(strategyQ)
                 .where(strategyBuilder.and(strategyQ.strategyId.in(strategyIdsQuery)))
                 .fetchOne();
 
         //결과 없거나 빈경우
-        if(strategyEntities != null && !strategyEntities.isEmpty()) {
+        if(strategyEntities == null && strategyEntities.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
