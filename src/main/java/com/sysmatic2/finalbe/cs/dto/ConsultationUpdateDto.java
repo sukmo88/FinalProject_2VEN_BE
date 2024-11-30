@@ -21,6 +21,7 @@ public class ConsultationUpdateDto {
   private String strategyName; // 전략 이름 사용 (선택적)
 
   @Positive(message = "투자 금액은 양수여야 합니다.")
+  @DecimalMax(value = "1000000000.00", message = "투자 금액은 최대 100억을 초과할 수 없습니다.")
   private BigDecimal investmentAmount;
 
   private LocalDateTime investmentDate;
