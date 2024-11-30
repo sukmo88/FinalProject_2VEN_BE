@@ -51,11 +51,12 @@ public class DailyStatisticsHistoryEntity extends Auditable {
     @Column(name = "unrealized_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal unrealizedProfitLoss; // 평가손익
 
-    @Column(name = "kp_ratio", nullable = true, precision = 19, scale = 4)
-    private BigDecimal kpRatio; // KP-Ratio
+    @Column(name = "kp_ratio", nullable = false, precision = 19, scale = 4, columnDefinition = "DECIMAL(19,4) DEFAULT 0.0000")
+    private BigDecimal kpRatio = BigDecimal.ZERO; // KP-Ratio
 
-    @Column(name = "sm_score", nullable = true, precision = 10, scale = 2)
-    private BigDecimal smScore; // SM-Score
+    @Builder.Default
+    @Column(name = "sm_score", nullable = false, precision = 10, scale = 2, columnDefinition = "DECIMAL(19,4) DEFAULT 0.0000")
+    private BigDecimal smScore = BigDecimal.ZERO; // SM-Score
 
     @Column(name = "reference_price", nullable = false, precision = 19, scale = 4)
     private BigDecimal referencePrice; // 기준가

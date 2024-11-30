@@ -6,7 +6,7 @@ import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
 import com.sysmatic2.finalbe.exception.DuplicateTradingCycleOrderException;
 import com.sysmatic2.finalbe.exception.TradingCycleNotFoundException;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toEntity;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.toDto;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.toEntity;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +38,7 @@ public class TradingCycleService {
             tradingCycleList = tradingCycleRepository.findByIsActive(isActive, pageable); // 활성 상태에 따른 조회
         }
 
-        Page<TradingCycleAdminResponseDto> pageDtoList = tradingCycleList.map(DtoEntityConversionUtils::toDto);
+        Page<TradingCycleAdminResponseDto> pageDtoList = tradingCycleList.map(DtoEntityConversion::toDto);
 
         return createPageResponse(pageDtoList);
     }

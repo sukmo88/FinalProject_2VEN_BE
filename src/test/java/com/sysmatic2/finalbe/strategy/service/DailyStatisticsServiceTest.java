@@ -153,7 +153,7 @@ class DailyStatisticsServiceTest {
         when(strategyRepository.findById(strategyId)).thenReturn(Optional.of(strategyEntity));
 
         // When: 서비스 메서드 호출
-        dailyStatisticsService.processDailyStatistics(strategyId, reqDto);
+        dailyStatisticsService.registerDailyStatistics(strategyId, reqDto);
 
         // Then: 저장 동작 검증
         verify(dssp, times(1)).save(any(DailyStatisticsEntity.class));
@@ -219,7 +219,7 @@ class DailyStatisticsServiceTest {
 
         // When/Then: 예외 발생 검증
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            dailyStatisticsService.processDailyStatistics(strategyId, reqDto);
+            dailyStatisticsService.registerDailyStatistics(strategyId, reqDto);
         });
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode(), "적절한 상태 코드가 반환되지 않았습니다.");
@@ -244,7 +244,7 @@ class DailyStatisticsServiceTest {
         when(strategyRepository.findById(strategyId)).thenReturn(Optional.of(strategyEntity));
 
         // When: 서비스 호출
-        dailyStatisticsService.processDailyStatistics(strategyId, reqDto);
+        dailyStatisticsService.registerDailyStatistics(strategyId, reqDto);
 
         // Then: 저장 동작 검증
         verify(dssp, times(1)).save(argThat(savedEntity -> {

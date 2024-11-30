@@ -6,7 +6,7 @@ import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminRequestDto;
 import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toEntity;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.toDto;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.toEntity;
 
 // 관리자 페이지 - 매매유형 관리
 @Service
@@ -43,7 +43,7 @@ public class TradingTypeService {
             tradingTypeList = tradingTypeRepository.findByIsActive(isActive, pageable); // 활성 상태에 따른 조회
         }
         // 페이지 객체 리스트 타입 변경
-        Page<TradingTypeAdminResponseDto> pageDtoList = tradingTypeList.map(DtoEntityConversionUtils::toDto);
+        Page<TradingTypeAdminResponseDto> pageDtoList = tradingTypeList.map(DtoEntityConversion::toDto);
 
         // map으로 필요한 정보 추출하여 반환
         return createPageResponse(pageDtoList);

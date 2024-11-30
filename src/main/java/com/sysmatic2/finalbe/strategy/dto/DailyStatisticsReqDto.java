@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.strategy.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.sysmatic2.finalbe.strategy.common.LocalDateDeserializer;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -16,7 +17,7 @@ import java.time.LocalDate;
 public class DailyStatisticsReqDto {
 
     @NotNull(message = "날짜는 필수 입력값입니다.")
-    @JsonFormat(pattern = "yyyy-MM-dd") // 날짜 형식 명시
+    @JsonDeserialize(using = LocalDateDeserializer.class) // 커스텀 디시리얼라이저
     private LocalDate date; // 일자
 
     @NotNull(message = "입출금 금액은 필수 입력값입니다.")
