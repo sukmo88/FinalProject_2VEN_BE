@@ -55,6 +55,7 @@ public class StrategyService {
     private final DailyStatisticsRepository dailyStatisticsRepository;
     private final StrategyProposalRepository strategyProposalRepository;
     private final StrategyProposalService strategyProposalService;
+    private final FileService fileService;
 
     //1. 전략 생성
     /**
