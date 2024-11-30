@@ -4,6 +4,9 @@ import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.strategy.service.ExcelUploadService;
 import com.sysmatic2.finalbe.exception.ExcelValidationException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
@@ -26,12 +29,18 @@ public class ExcelUploadController {
 
   @Operation(summary = "엑셀 파일 업로드 및 데이터 추출", description = "엑셀 파일을 업로드하고 데이터를 추출하여 반환합니다.")
   @ApiResponses(value = {
-          @ApiResponse(responseCode = "200", description = "엑셀 데이터 추출 성공"),
+          @ApiResponse(responseCode = "201", description = "엑셀 데이터 추출 성공"),
           @ApiResponse(responseCode = "400", description = "잘못된 엑셀 파일 형식"),
           @ApiResponse(responseCode = "500", description = "서버 오류")
   })
-  @PostMapping(value = "/upload", produces = "application/json") // 같은 엔드포인트 "/upload"
-  public ResponseEntity<Map<String, Object>> uploadExcelFile(@RequestParam("file") MultipartFile file) {
+  @PostMapping(value = "/upload", consumes = "multipart/form-data", produces = "application/json")
+  public ResponseEntity<Map<String, Object>> uploadExcelFile(
+          @RequestParam("file")
+          @RequestBody(content = @Content(
+                  mediaType = "multipart/form-data",
+                  schema = @Schema(type = "string", format = "binary")
+          ))
+          MultipartFile file) {
     try {
       // 엑셀 파일에서 데이터를 추출하고 검증
       List<DailyStatisticsReqDto> result = excelUploadService.extractAndValidateData(file);
