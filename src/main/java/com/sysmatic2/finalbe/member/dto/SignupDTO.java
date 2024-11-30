@@ -58,12 +58,10 @@ public class SignupDTO {
 
     // 개인정보 처리방침 약관 필수 입력, true only
     @NotNull(message = "약관 동의 여부는 필수 입력 값입니다.")
-    @AssertTrue(message = "개인정보 처리방침 약관은 필수 동의 약관입니다.")
     private Boolean privacyRequired;
 
     // 서비스 이용 약관 필수 입력, true only
     @NotNull(message = "약관 동의 여부는 필수 입력 값입니다.")
-    @AssertTrue(message = "서비스 이용 약관은 필수 동의 약관입니다.")
     private Boolean serviceTermsRequired;
 
     @NotNull(message = "약관 동의 여부는 필수 입력 값입니다.")

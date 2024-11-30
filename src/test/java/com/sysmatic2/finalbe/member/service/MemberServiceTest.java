@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.member.service;
 
-import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
 import com.sysmatic2.finalbe.exception.InvalidPasswordException;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
@@ -262,11 +261,22 @@ class MemberServiceTest {
         when(passwordEncoder.matches("oldPassword", mockMember.getPassword())).thenReturn(true);
 
         // Act & Assert
-        assertThrows(ConfirmPasswordMismatchException.class, () -> memberService.changePassword(memberId, passwordUpdateDTO));
+        assertThrows(InvalidPasswordException.class, () -> memberService.changePassword(memberId, passwordUpdateDTO));
 
         verify(memberRepository, times(1)).findById(memberId);
         verify(passwordEncoder, times(1)).matches("oldPassword", mockMember.getPassword());
         verifyNoMoreInteractions(passwordEncoder);
         verifyNoMoreInteractions(memberRepository);
+    }
+
+    @Test
+    @DisplayName("회원가입 성공")
+    public void signup_Success() {
+        // given : signupDTO를 넘겨주고
+        //
+        // when : 회원가입 메소드 실행하면
+        //
+        // then : 응답코드 200, 응답메시지 "회원가입에 성공했습니다."
+
     }
 }
