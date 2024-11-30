@@ -835,14 +835,19 @@ public class StrategyService {
         // 10. 제안서 수정 (sbwoo)
         // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니면, 제안서 등록
         if (strategyPayloadDto.getStrategyProposalLink() != null) {
-            // strategyProposal이 있으면 수정
-            if(strategyProposalRepository.findByStrategy(strategyEntity).isPresent()){
-                strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
-            } else {
-            // 없으면 새로 등록
-                strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+            // file이 업로드 되어 있는 링크라면,
+            if(fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+                // strategyProposal이 있으면 수정
+                if (strategyProposalRepository.findByStrategy(strategyEntity).isPresent()) {
+                    strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                } else {
+                    // 없으면 새로 등록
+                    strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                }
+            } else { // 잘못된 링크를 보내주면 에러 메시지
+                throw new MetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
             }
-        } else {
+        } else { // link 로 null 값이 들어오면,
             // 기존 strategyProposal이 있으면, strategyProposal 삭제
             if(strategyProposalRepository.findByStrategy(strategyEntity).isPresent()){
                 strategyProposalService.deleteProposal(strategyEntity.getStrategyId(), strategyEntity.getWriterId());

@@ -1,16 +1,13 @@
 package com.sysmatic2.finalbe.member.service;
 
-import com.sysmatic2.finalbe.attachment.service.ProfileService;
-import com.sysmatic2.finalbe.exception.ConfirmPasswordMismatchException;
-import com.sysmatic2.finalbe.exception.InvalidPasswordException;
-import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
-import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
+import com.sysmatic2.finalbe.member.entity.MemberTermEntity;
+import com.sysmatic2.finalbe.member.enums.TermType;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
-import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,6 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ProfileService profileService;
     private final StrategyRepository strategyRepository;
 
     @Transactional
@@ -47,18 +45,54 @@ public class MemberService {
         duplicateNicknameCheck(signupDTO.getNickname());
         comparePassword(signupDTO.getPassword(), signupDTO.getConfirmPassword());
 
+        // SignupDTO를 MemberEntity로 변환 후 저장
         MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
 
-        String uuid = RandomKeyGenerator.createUUID();
-        member.setMemberId(uuid);
+        // 필수약관 동의여부 확인 후 약관 및 광고성정보수신 동의내역 저장
+        if (!signupDTO.getPrivacyRequired() || !signupDTO.getServiceTermsRequired()) {
+            throw new RequiredAgreementException("개인정보처리방침과 서비스이용약관은 필수 동의 항목입니다.");
+        }
 
-        memberRepository.save(member); // 가입 실패 시 예외 발생
+        // 약관동의내역 저장
+        LocalDateTime decisionDate = member.getSignupAt();
+        String memberId = member.getMemberId();
+
+        Iterator<Map.Entry<TermType, String>> iterator = termToMap(signupDTO).entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<TermType, String> entry = iterator.next();
+            TermType termType = entry.getKey();
+            String isAgreed = entry.getValue();
+
+            MemberTermEntity memberTerm = new MemberTermEntity();
+            memberTerm.setTermType(termType.name());
+            memberTerm.setMember(member);
+            memberTerm.setIsTermAgreed(isAgreed);
+            memberTerm.setDecisionDate(decisionDate);
+            memberTerm.setCreatedBy(memberId);
+            memberTerm.setModifiedBy(memberId);
+            member.getMemberTermList().add(memberTerm);
+        }
+
+        // TODO) 관심전략 기본폴더 생성
+
+        memberRepository.save(member);
     }
 
+    // 확인 비밀번호 값이 일치하는지 확인하는 메소드
     private void comparePassword(String newPassword, String confirmPassword) {
         if (!newPassword.equals(confirmPassword)) {
-            throw new ConfirmPasswordMismatchException("확인 비밀번호가 일치하지 않습니다.");
+            throw new InvalidPasswordException("확인 비밀번호가 일치하지 않습니다.");
         }
+    }
+
+    // 약관동의내역을 map으로 변환하는 메소드
+    private HashMap<TermType, String> termToMap(SignupDTO signupDTO) {
+        HashMap<TermType, String> map = new HashMap<>();
+        map.put(TermType.PRIVACY_POLICY, signupDTO.getPrivacyRequired() ? "Y" : "N");
+        map.put(TermType.SERVICE_TERMS, signupDTO.getServiceTermsRequired() ? "Y" : "N");
+        map.put(TermType.PROMOTION, signupDTO.getPromotionOptional() ? "Y" : "N");
+        map.put(TermType.MARKETING_AGREEMENT, signupDTO.getMarketingOptional() ? "Y" : "N");
+        return map;
     }
 
     // email 중복 여부 확인
@@ -146,32 +180,33 @@ public class MemberService {
         // memberId로 회원 조회 -> 없으면 예외 발생
         MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
 
-        duplicateNicknameCheck(profileUpdateDTO.getNickname()); // 닉네임 중복 체크
-
-        // 조회한 회원에 수정할 값 입력 후 저장
-        member.setNickname(profileUpdateDTO.getNickname());
-        member.setPhoneNumber(profileUpdateDTO.getPhoneNumber());
-        member.setIntroduction(profileUpdateDTO.getIntroduction());
-        member.setIsAgreedMarketingAd(profileUpdateDTO.getMarketingOptional() ? 'Y' : 'N');
-        memberRepository.save(member);
-    }
-
-    @Transactional
-    public void changePassword(String memberId, PasswordUpdateDTO passwordUpdateDTO) {
-        // member 조회한 후 없으면 예외 발생
-        MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
-
-        // 입력한 oldPassword가 기존 비밀번호와 일치하는지 확인 -> 불일치 시 예외 발생
-        if (!passwordEncoder.matches(passwordUpdateDTO.getOldPassword(), member.getPassword())) {
-            throw new InvalidPasswordException();
+        // 닉네임 변경 시 중복체크 후 변경
+        String updateNickname = profileUpdateDTO.getNickname();
+        if (!member.getNickname().equals(updateNickname)) {  // 현재 닉네임과 새로운 닉네임이 다르면 중복 검사 진행
+            duplicateNicknameCheck(updateNickname);
+            member.setNickname(updateNickname);
         }
 
-        // 바꿀 비밀번호와 확인 비밀번호 일치하는지 확인 후 불일치 시 예외 발생
-        comparePassword(passwordUpdateDTO.getNewPassword(), passwordUpdateDTO.getConfirmPassword());
+        // 조회한 회원에 수정할 값 입력 후 저장
+        member.setPhoneNumber(profileUpdateDTO.getPhoneNumber());
+        member.setIntroduction(profileUpdateDTO.getIntroduction());
 
-        // 새로운 비밀번호 암호화 후 설정 및 저장
-        String encodedPwd = passwordEncoder.encode(passwordUpdateDTO.getNewPassword());
-        member.setPassword(encodedPwd);
+        // 약관 동의 내역 수정 : 변경여부 확인하여 수정
+        String isMarketingAgreed = profileUpdateDTO.getMarketingOptional() ? "Y" : "N";
+
+        // memberTermList에서 termType이 MARKETING_OPTIONAL인 memberTerm 찾기
+        MemberTermEntity marketingTerm = member.getMemberTermList().stream()
+                .filter(memberTerm -> TermType.MARKETING_AGREEMENT.name().equals(memberTerm.getTermType()))
+                .findFirst()
+                .orElseThrow(() -> new MemberTermNotFoundException("약관 동의 내역이 없습니다."));
+
+        // 동의여부 변경 여부 확인 후 업데이트
+        if (!isMarketingAgreed.equals(marketingTerm.getIsTermAgreed())) {
+            marketingTerm.setIsTermAgreed(isMarketingAgreed);
+            marketingTerm.setDecisionDate(LocalDateTime.now());
+        }
+
+        // 멤버 엔티티 저장
         memberRepository.save(member);
     }
 
@@ -182,16 +217,51 @@ public class MemberService {
     }
 
     @Transactional
-    public void resetPassword(String email, PasswordResetDTO passwordResetDTO) {
+    public void changePassword(String memberId, PasswordUpdateDTO pwdUpDTO) {
+        // 1. member 조회한 후 없으면 예외 발생
+        MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+
+        // 2. 입력한 oldPassword가 기존 비밀번호와 일치하는지 확인 후, 불일치 시 예외 발생
+        if (!passwordEncoder.matches(pwdUpDTO.getOldPassword(), member.getPassword())) {
+            throw new InvalidPasswordException("비밀번호가 틀렸습니다.");
+        }
+
+        // 3. 새로운 비밀번호가 기존 비밀번호와 다른지 확인, 같으면 변경 실패
+        if (passwordEncoder.matches(pwdUpDTO.getNewPassword(), member.getPassword())) {
+            throw new InvalidPasswordException("새 비밀번호는 기존 비밀번호와 다르게 설정해야 합니다.");
+        }
+
+        // 4. 비밀번호 변경
+        updatePassword(pwdUpDTO.getNewPassword(), pwdUpDTO.getConfirmPassword(), member);
+    }
+
+    @Transactional
+    public void resetPassword(String email, PasswordResetDTO pwdResetDTO) {
         // 1. member 조회한 후 없으면 예외 발생
         MemberEntity member = memberRepository.findByEmail(email).orElseThrow(MemberNotFoundException::new);
+        // 2. 비밀번호 변경
+        updatePassword(pwdResetDTO.getNewPassword(), pwdResetDTO.getConfirmPassword(), member);
+    }
 
-        // 2. 입력한 두 비밀번호 일치 여부 확인
-        comparePassword(passwordResetDTO.getNewPassword(), passwordResetDTO.getConfirmPassword());
+    private void updatePassword(String newPwd, String confirmPwd, MemberEntity member) {
+        // 입력한 두 비밀번호 일치 여부 확인
+        comparePassword(newPwd, confirmPwd);
 
-        // 3. 비밀번호 암호화 후 member 수정해서 저장
-        member.setPassword(passwordEncoder.encode(passwordResetDTO.getNewPassword()));
+        // 비밀번호 암호화 후 member 수정해서 저장
+        member.setPassword(passwordEncoder.encode(newPwd));
+        member.setPasswordChangedAt(LocalDateTime.now());
         memberRepository.save(member);
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<EmailResponseDTO> findEmail(String phoneNumber) {
+        List<EmailResponseDTO> emailByPhoneNumber = memberRepository.findEmailByPhoneNumber(phoneNumber);
+        if (emailByPhoneNumber.isEmpty()) {
+            throw new MemberNotFoundException();
+        }
+
+        return emailByPhoneNumber;
     }
 
     //keyword로 트레이더명 검색, 트레이더명, 트레이더 소개, 소유 전략 갯수 반환
@@ -239,8 +309,5 @@ public class MemberService {
 
         return createPageResponse(dtoPage);
     }
-
-
-
 
 }
