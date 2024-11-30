@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sysmatic2.finalbe.exception.EmailVerificationFailedException;
 import com.sysmatic2.finalbe.member.dto.EmailVerificationDTO;
 import com.sysmatic2.finalbe.member.service.AuthService;
+import com.sysmatic2.finalbe.member.service.EmailService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -33,6 +35,9 @@ class AuthControllerTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private EmailService emailService;
 
     // EmailVerificationDTO 객체 생성
     private EmailVerificationDTO createEmailVerificationDTO(String verificationCode) {

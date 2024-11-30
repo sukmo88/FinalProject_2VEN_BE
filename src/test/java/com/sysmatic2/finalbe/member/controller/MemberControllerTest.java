@@ -3,10 +3,7 @@ package com.sysmatic2.finalbe.member.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sysmatic2.finalbe.exception.MemberAlreadyExistsException;
 import com.sysmatic2.finalbe.exception.MemberNotFoundException;
-import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
-import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
-import com.sysmatic2.finalbe.member.dto.ProfileUpdateDTO;
-import com.sysmatic2.finalbe.member.dto.SimpleProfileDTO;
+import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.member.service.MemberService;
@@ -29,8 +26,7 @@ import java.util.Optional;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -130,13 +126,21 @@ class MemberControllerTest {
         String validEmail = "valid@email.com";
         String verificationCode = "123456";
 
+        EmailCheckDTO emailCheckDTO = new EmailCheckDTO();
+        emailCheckDTO.setEmail(validEmail);
+
         doNothing().when(memberService).duplicateEmailCheck(validEmail);
         doNothing().when(emailService).sendVerificationMail(validEmail, verificationCode);
 
+        // ObjectMapper를 사용하여 DTO를 JSON 문자열로 반환
+        ObjectMapper objectMapper = new ObjectMapper();
+        String requestBody = objectMapper.writeValueAsString(emailCheckDTO);
+
         // API 호출 및 검증
-        mockMvc.perform(get("/api/members/check-email")
-                    .param("email", validEmail)
-                    .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(post("/api/members/check-email")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("인증 번호가 이메일로 전송되었습니다."));

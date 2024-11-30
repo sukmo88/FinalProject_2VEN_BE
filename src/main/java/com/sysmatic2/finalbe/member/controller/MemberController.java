@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 
@@ -46,9 +47,16 @@ public class MemberController {
     }
 
     //이메일찾기
-    @GetMapping("/check-phone")
-    public String checkPhone(HttpServletRequest request) {
-        return "check-phone";
+    @PostMapping("/find-email")
+    public ResponseEntity<Map<String, ?>> findEmail(@Valid @RequestBody PhoneNumberDTO phoneNumberDTO) {
+
+        List<EmailResponseDTO> email = memberService.findEmail(phoneNumberDTO.getPhoneNumber());
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "이메일 조회에 성공했습니다.",
+                "data", email
+        ));
     }
 
     // 비밀번호 변경을 위한 계정 확인 & 이메일 인증 코드 전송

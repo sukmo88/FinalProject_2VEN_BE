@@ -6,12 +6,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "member")
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "memberTermList")
 public class MemberEntity extends Auditable {
     @Id
     @Column(name = "member_id")
@@ -74,7 +76,7 @@ public class MemberEntity extends Auditable {
     @Column(name = "notes")
     private String notes;  // 비고 (탈퇴사유 등 참고사항)
 
-    @Column(name = "is_agreed_marketing_ad")
-    private char isAgreedMarketingAd; // 마케팅, 광고성 정보 수신 동의 여부
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MemberTermEntity> memberTermList = new ArrayList<>();
 
 }
