@@ -202,12 +202,15 @@ public class DtoEntityConversion {
     /**
      * SignupDTO를 MemberEntity로 변환하는 메서드.
      *
-     * @param  변환할 SignupDTO
-     * @return 변환된 MemberEntity로
+     * @param SignupDTO
+     * @return 변환된 MemberEntity
      */
     public static MemberEntity convertToMemberEntity(SignupDTO signupDTO, PasswordEncoder passwordEncoder) {
         MemberEntity member = new MemberEntity();
 
+        String memberId = RandomKeyGenerator.createUUID();
+
+        member.setMemberId(memberId);
         member.setMemberGradeCode("MEMBER_ROLE_" + signupDTO.getMemberType());
         member.setMemberStatusCode("MEMBER_STATUS_ACTIVE");
         member.setEmail(signupDTO.getEmail());
@@ -215,7 +218,8 @@ public class DtoEntityConversion {
         member.setNickname(signupDTO.getNickname());
         member.setPhoneNumber(signupDTO.getPhoneNumber());
         member.setSignupAt(LocalDateTime.now());
-        member.setIsAgreedMarketingAd(signupDTO.getMarketingOptional() ? 'Y' : 'N');
+        member.setCreatedBy(memberId);
+        member.setModifiedBy(memberId);
 
         return member;
     }

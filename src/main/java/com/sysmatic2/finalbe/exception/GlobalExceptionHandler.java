@@ -131,9 +131,8 @@ public class GlobalExceptionHandler {
 
     // 400: 유효성 검사 실패
     @ExceptionHandler({ConstraintViolationException.class, MethodArgumentNotValidException.class,
-            ConfirmPasswordMismatchException.class, InvestmentAssetClassesNotActiveException.class,
-            StrategyAlreadyApprovedException.class, StrategyAlreadyTerminatedException.class,
-            StrategyTerminatedException.class})
+            InvestmentAssetClassesNotActiveException.class, StrategyAlreadyApprovedException.class,
+            StrategyAlreadyTerminatedException.class, StrategyTerminatedException.class, RequiredAgreementException.class})
     public ResponseEntity<Object> handleValidationExceptions(Exception ex) {
         logger.warn("Validation failed: {}", ex.getMessage());
 
@@ -150,11 +149,6 @@ public class GlobalExceptionHandler {
                 String message = violation.getMessage();
                 fieldErrors.put(field, message);
             });
-        } else if (ex instanceof ConfirmPasswordMismatchException) {
-            ConfirmPasswordMismatchException confirmEx = (ConfirmPasswordMismatchException) ex;
-            String field = "confirmPassword";
-            String message = confirmEx.getMessage();
-            fieldErrors.put(field, message);
         } else if (ex instanceof InvestmentAssetClassesNotActiveException) {
             InvestmentAssetClassesNotActiveException constraintEx = (InvestmentAssetClassesNotActiveException) ex;
             String field = "investmentAssetClasses";
@@ -174,6 +168,11 @@ public class GlobalExceptionHandler {
             StrategyTerminatedException constraintEx = (StrategyTerminatedException) ex;
             String field = "strategy";
             String message = constraintEx.getMessage();
+            fieldErrors.put(field, message);
+        } else if (ex instanceof RequiredAgreementException) {
+            RequiredAgreementException requiredAgreementEx = (RequiredAgreementException) ex;
+            String field = "memberTerm";
+            String message = requiredAgreementEx.getMessage();
             fieldErrors.put(field, message);
         }
 
@@ -244,7 +243,7 @@ public class GlobalExceptionHandler {
         return ResponseUtils.buildErrorResponse(
                 "INVALID_PASSWORD",
                 e.getClass().getSimpleName(),
-                "비밀번호가 틀렸습니다.",
+                e.getMessage(),
                 HttpStatus.UNAUTHORIZED
         );
     }
@@ -262,7 +261,11 @@ public class GlobalExceptionHandler {
     }
 
     // 404: 데이터 없음
-    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class, TradingCycleNotFoundException.class, EmptyResultDataAccessException.class, InvestmentAssetClassesNotFoundException.class, ConsultationNotFoundException.class, TraderNotFoundException.class, InvestorNotFoundException.class, StrategyNotFoundException.class, MemberNotFoundException.class})
+    @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class,
+            TradingCycleNotFoundException.class, EmptyResultDataAccessException.class,
+            InvestmentAssetClassesNotFoundException.class, ConsultationNotFoundException.class,
+            TraderNotFoundException.class, InvestorNotFoundException.class, StrategyNotFoundException.class,
+            MemberNotFoundException.class, MemberTermNotFoundException.class,})
     public ResponseEntity<Object> handleNotFoundExceptions(Exception ex) {
         logger.warn("Data not found: {}", ex.getMessage());
         return ResponseUtils.buildErrorResponse(
@@ -324,6 +327,27 @@ public class GlobalExceptionHandler {
                 ex.getClass().getSimpleName(),       // 예외 클래스명
                 ex.getMessage(),                     // 예외 메시지
                 HttpStatus.BAD_REQUEST               // HTTP 상태 코드
+        );
+    }
+
+    // 403: 기본 폴더 삭제 하려고 할 때
+    @ExceptionHandler(DefaultFolderDeleteException.class)
+    public ResponseEntity<Object> DefaultFolderDeleteException(DefaultFolderDeleteException ex) {
+        return ResponseUtils.buildErrorResponse(
+                "DEFAULT_FOLDER_DELETE_NOT_ALLOWED",
+                ex.getClass().getSimpleName(),
+                "기본 폴더는 삭제할 수 없습니다.",
+                HttpStatus.FORBIDDEN
+        );
+    }
+    // 403: 기본 폴더명 변경 하려고 할 때
+    @ExceptionHandler(DefaultFolderRenameException.class)
+    public ResponseEntity<Object> DefaultFolderRenameException(DefaultFolderRenameException ex) {
+        return ResponseUtils.buildErrorResponse(
+                "DEFAULT_FOLDER_RENAME_NOT_ALLOWED",
+                ex.getClass().getSimpleName(),
+                "기본 폴더명은 변경 할 수 없습니다.",
+                HttpStatus.FORBIDDEN
         );
     }
 

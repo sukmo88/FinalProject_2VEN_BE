@@ -1,9 +1,7 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
 import com.sysmatic2.finalbe.strategy.dto.StrategyKpDto;
-import com.sysmatic2.finalbe.strategy.dto.StrategyListDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategySmScoreDto;
-import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.data.domain.Page;
@@ -11,13 +9,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 // 기본 JPA 리포지토리 + 커스텀 QueryDSL 리포지토리 기능 확장

@@ -15,6 +15,7 @@ import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
+import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,11 @@ public class ConsultationService {
    */
   @Transactional
   public ConsultationDetailResponseDto createConsultation(ConsultationCreateDto createDto) {
+
+    // 투자 금액 검증
+    if (createDto.getInvestmentAmount().compareTo(new BigDecimal("10000000000.00")) > 0) {
+      throw new IllegalArgumentException("투자 금액은 최대 100억을 초과할 수 없습니다.");
+    }
     // 투자자 조회
     MemberEntity investor = memberRepository.findById(createDto.getInvestorId())
             .orElseThrow(() -> new InvestorNotFoundException("투자자를 찾을 수 없습니다: " + createDto.getInvestorId()));
@@ -109,6 +115,12 @@ public class ConsultationService {
   public ConsultationDetailResponseDto updateConsultation(Long id, ConsultationUpdateDto updateDto) {
     ConsultationEntity existingEntity = consultationRepository.findById(id)
             .orElseThrow(() -> new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id));
+
+    // 투자 금액 검증
+    if (updateDto.getInvestmentAmount() != null &&
+            updateDto.getInvestmentAmount().compareTo(new BigDecimal("10000000000.00")) > 0) {
+      throw new IllegalArgumentException("투자 금액은 최대 100억을 초과할 수 없습니다.");
+    }
 
     // 전략 조회
     StrategyEntity strategy = strategyRepository.findById(updateDto.getStrategyId())

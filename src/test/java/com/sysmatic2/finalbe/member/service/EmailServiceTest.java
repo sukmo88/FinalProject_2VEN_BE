@@ -41,7 +41,7 @@ class EmailServiceTest {
         assertEquals(toMail, capturedMessage.getTo()[0]); // 수신자 이메일 확인
         assertEquals("[시스메틱] 인증 번호", capturedMessage.getSubject()); // 제목 확인
         assertEquals(
-                "인증을 완료하려면 인증번호를 입력하세요! \n\n인증코드: " + verificationCode,
+                "인증을 완료하려면 5분 내에 인증번호를 입력하세요! \n\n인증코드: " + verificationCode,
                 capturedMessage.getText()
         );
     }
