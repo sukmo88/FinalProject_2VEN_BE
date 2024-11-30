@@ -315,8 +315,16 @@ public class GlobalExceptionHandler {
         );
     }
 
-
-
-
+    // 400: 잘못된 인자 전달
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.warn("Illegal argument exception: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",                      // 에러 코드
+                ex.getClass().getSimpleName(),       // 예외 클래스명
+                ex.getMessage(),                     // 예외 메시지
+                HttpStatus.BAD_REQUEST               // HTTP 상태 코드
+        );
+    }
 
 }

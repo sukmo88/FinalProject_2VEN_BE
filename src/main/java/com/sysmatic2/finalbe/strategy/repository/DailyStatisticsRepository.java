@@ -198,18 +198,6 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     void deleteFromDate(@Param("strategyId") Long strategyId, @Param("fromDate") LocalDate fromDate);
 
     /**
-     * 특정 전략의 가장 최근 팔로워 수를 조회합니다.
-     *
-     * @param strategyId 조회할 전략의 ID
-     * @param pageable   페이징 객체 (최신 데이터 1개 조회)
-     * @return 최신 팔로워 수 (크기 1)
-     */
-    @Query("SELECT d.followersCount FROM DailyStatisticsEntity d " +
-            "WHERE d.strategyEntity.strategyId = :strategyId " +
-            "ORDER BY d.date DESC")
-    List<Long> findLatestFollowersCountByStrategyId(@Param("strategyId") Long strategyId, Pageable pageable);
-
-    /**
      * 특정 전략의 지정된 날짜 이후의 가장 오래된 날짜를 조회합니다 (페이징 지원).
      *
      * @param strategyId 전략 ID
