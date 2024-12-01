@@ -25,13 +25,11 @@ public class StrategyApprovalController {
     //1. 전략 승인 요청 목록 - pagination(page size = 10)
     //TODO) 관리자만 확인할 수 있다.
     @Operation(summary = "전략 승인 요청 목록")
-    @GetMapping(value = "/", produces = "application/json")
+    @GetMapping(value = "", produces = "application/json")
     public ResponseEntity<Map> getAllStrategyApprovalRequests(@RequestParam(value = "page", defaultValue = "0")
                                                                   @Min(value = 0, message = "Page number must be 0 or greater") int page,
                                                               @RequestParam(value = "pageSize", defaultValue = "10")
                                                               @Positive(message = "Page size must be greater than zero") int pageSize) throws Exception {
-        //TODO) 접속자 토큰 권한 판별
-        String adminId = "4w_qdODSTqeIAd7fndHLfg";
 
         Map pageList = strategyApprovalRequestsService.getList(page, pageSize);
         return ResponseEntity.status(HttpStatus.OK).body(pageList);
@@ -43,7 +41,7 @@ public class StrategyApprovalController {
     @PatchMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map<String, String>> approveStrategy(@PathVariable("id") Long id){
         //TODO) 접속자 토큰 권한 판별
-        String adminId = "4w_qdODSTqeIAd7fndHLfg";
+        String adminId = "4w_qd34STqeIAd7fndHLf4";
 
         strategyApprovalRequestsService.approveStrategy(id, adminId);
 
@@ -56,12 +54,11 @@ public class StrategyApprovalController {
     //TODO) 관리자만 전략 승인 반려할 수 있다.
     @Operation(summary = "전략 승인 요청 반려")
     @PutMapping(value = "/{id}", produces = "application/json")
-    public ResponseEntity<Map<String, String>> rejectStrategy(@PathVariable("id") Long id, @RequestBody String rejectionReason){
+    public ResponseEntity<Map<String, String>> rejectStrategy(@PathVariable("id") Long requestId, @RequestBody String rejectionReason){
         //TODO)접속자 토큰 권한 판별
-        String adminId = "4w_qdODSTqeIAd7fndHLfg";
-        System.out.println("rejectionReason = " + rejectionReason);
+        String adminId = "4w_qd34STqeIAd7fndHLf4";
 
-        strategyApprovalRequestsService.rejectStrategy(id, adminId, rejectionReason);
+        strategyApprovalRequestsService.rejectStrategy(requestId, adminId, rejectionReason);
 
         Map<String, String> response = new HashMap<>();
         response.put("msg", "REJECTION_SUCCESS");
