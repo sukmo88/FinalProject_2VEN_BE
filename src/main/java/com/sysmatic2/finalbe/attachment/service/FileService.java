@@ -3,7 +3,6 @@ package com.sysmatic2.finalbe.attachment.service;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
-import com.sysmatic2.finalbe.exception.S3FileUploadFailedException;
 import com.sysmatic2.finalbe.util.FileValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,22 +24,13 @@ public class FileService {
      * 파일 업로드
      */
     @Transactional
-    public FileMetadataDto uploadFile(MultipartFile file, String uploaderId, String category, String fileCategoryItemId, String displayName) {
+    public FileMetadataDto uploadFile(MultipartFile file, String uploaderId, String category, String fileCategoryItemId) {
         // 파일 검증
         FileValidator.validateFile(file, category);
 
-        // 실계좌인증인 경우, 전달받은 displayName 사용
-        String originalFileName;
-        if ("liveaccount".equals(category)) {
-            // 실계좌 인증인 경우, 전달받은 displayName 사용
-            originalFileName = displayName;
-        } else {
-            // 그 외는 파일에서 이름 생성
-            originalFileName = (file.getOriginalFilename() != null && !file.getOriginalFilename().isBlank())
-                    ? file.getOriginalFilename() : "Unknown-File";
-        }
-
         // 고유 파일 이름 및 S3 키 생성
+        String originalFileName = file.getOriginalFilename() != null && !file.getOriginalFilename().isBlank()
+                ? file.getOriginalFilename() : "Unknown-File";
         String uniqueFileName = s3ClientService.generateUniqueFileName(originalFileName);
         String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
 
@@ -76,7 +66,7 @@ public class FileService {
             if (fileUrl != null) {
                 s3ClientService.deleteFile(s3Key);
             }
-            throw new S3FileUploadFailedException("Failed to upload file to S3: " + e.getMessage());
+            throw new RuntimeException("Failed to upload file: " + e.getMessage(), e);
         }
     }
 

@@ -1,7 +1,15 @@
 package com.sysmatic2.finalbe.attachment.service;
 
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
+import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
+import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.exception.MemberNotFoundException;
+import com.sysmatic2.finalbe.member.dto.DetailedProfileDTO;
+import com.sysmatic2.finalbe.member.entity.MemberEntity;
+import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.member.service.MemberHelper;
+import com.sysmatic2.finalbe.member.service.MemberService;
+import com.sysmatic2.finalbe.util.FileValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +45,7 @@ public class ProfileService {
             return fileMetadataDto;
         } else {
             // 새로운 파일 업로드
-            FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, null, category);
+            FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, null);
 
             // 회원 정보의 fileId 업데이트
             memberHelper.initMemberFileId(uploaderId, fileMetadataDto.getId().toString(), fileMetadataDto.getFilePath());

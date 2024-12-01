@@ -176,8 +176,6 @@ public class StrategyService {
 
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-
-
         // 5. 제안서 등록 (sbwoo)
         // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니면, 제안서 등록
         if (strategyPayloadDto.getStrategyProposalLink() != null) {
