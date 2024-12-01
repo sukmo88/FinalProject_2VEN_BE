@@ -253,4 +253,14 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
             "WHERE d.strategyEntity.strategyId = :strategyId " +
             "ORDER BY d.date ASC")
     List<BigDecimal> findAllDrawdownAmountsByStrategyId(@Param("strategyId") Long strategyId);
+
+    /**
+     * 시작일과 종료일 사이의 엔티티 갯수 반환
+     *
+     * @param startDate 조회 시작일
+     * @param endDate 조회 종료일
+     * @return 엔티티 갯수
+     */
+    //시작일과 종료일 사이의 엔티티 갯수 반환
+    Long countByDateBetween(LocalDate startDate, LocalDate endDate);
 }
