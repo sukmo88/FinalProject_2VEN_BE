@@ -534,11 +534,19 @@ public class StrategyService {
         Long followersCount = strategyRepo.findFollowersCountByStrategyId(id);
         responseDto.setFollowersCount(followersCount);
 
-        // 제안서 URL 조회 (sbwoo)
-        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
-                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
-                .orElse(null); // 값이 없으면 null 반환
-        responseDto.setStrategyProposalLink(strategyProposal);
+        // 제안서 정보
+        strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .ifPresentOrElse(
+                        proposal -> {
+                            responseDto.setStrategyProposalFileTitle(proposal.getFileTitle());
+                            responseDto.setStrategyProposalLink(proposal.getFileLink());
+                        },
+                        () -> {
+                            responseDto.setStrategyProposalFileTitle(null);
+                            responseDto.setStrategyProposalLink(null);
+                        }
+                );
+
 
         return responseDto;
     }
@@ -668,11 +676,18 @@ public class StrategyService {
         // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
-        // 제안서 dto에 추가
-        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
-                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
-                .orElse(null); // 값이 없으면 null 반환
-        responseDto.setStrategyProposalLink(strategyProposal);
+        // 등록되어있는 제안서 정보
+        strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .ifPresentOrElse(
+                        proposal -> {
+                            responseDto.setStrategyProposalFileTitle(proposal.getFileTitle());
+                            responseDto.setStrategyProposalLink(proposal.getFileLink());
+                        },
+                        () -> {
+                            responseDto.setStrategyProposalFileTitle(null);
+                            responseDto.setStrategyProposalLink(null);
+                        }
+                );
 
         //TODO)트레이더 정보 넣기
         responseDto.setMemberId("1");
