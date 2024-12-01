@@ -7,12 +7,7 @@ import com.sysmatic2.finalbe.member.entity.MemberTermEntity;
 import com.sysmatic2.finalbe.member.enums.TermType;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
-<<<<<<< HEAD
 import com.sysmatic2.finalbe.common.DtoEntityConversion;
-import com.sysmatic2.finalbe.util.RandomKeyGenerator;
-=======
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
->>>>>>> c83adeb09a578587542474c0929e319c61530863
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
