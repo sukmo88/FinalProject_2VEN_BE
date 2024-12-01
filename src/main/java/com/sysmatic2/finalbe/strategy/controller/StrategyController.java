@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
+import com.sysmatic2.finalbe.config.AuditorAwareImpl;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
@@ -24,6 +25,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -33,6 +35,7 @@ import java.util.Map;
 public class StrategyController {
     private final StrategyService strategyService;
     private final DailyStatisticsService dailyStatisticsService;
+    private final AuditorAwareImpl auditorAware;
 
     // 1. 전략 생성페이지(GET)
     //TODO) 관리자와 트레이더만 수정할 수 있다.
@@ -59,6 +62,9 @@ public class StrategyController {
     @Operation(summary = "전략 생성")
     @PostMapping(produces="application/json")
     public ResponseEntity<Map> createStrategy(@Valid @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
+//        Optional<String> writerId = auditorAware.getCurrentAuditor();
+//        String currentUserId = writerId.orElseThrow(() -> new RuntimeException("인증된 사용자 정보가 없습니다."));
+
         //TODO) 접속자 토큰 권한 판별
         String adminId = "71-88RZ_QQ65hMGknyWKLA";
 
@@ -116,11 +122,13 @@ public class StrategyController {
     }
 
     // 5. 전략 삭제
-    //TODO) 관리자와 작성 트레이더만 삭제할 수 있다.
     @Operation(summary = "전략 삭제")
     @DeleteMapping(value = "/{id}", produces = "application/json")
-    public ResponseEntity<Map> deleteStrategy(@PathVariable("id") Long id) throws Exception{
-        strategyService.deleteStrategy(id);
+    public ResponseEntity<Map> deleteStrategy(@PathVariable("id") Long strategyId) throws Exception{
+        //TODO) 관리자와 작성 트레이더만 삭제할 수 있다.
+        String adminId = "4w_qd34STqeIAd7fndHLf4";
+
+        strategyService.deleteStrategy(strategyId, adminId);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
 
@@ -141,8 +149,12 @@ public class StrategyController {
     //TODO) 관리자와 작성 트레이더만 수정할 수 있다.
     @Operation(summary = "전략 수정")
     @PutMapping(value = "/{id}", produces = "application/json")
-    public ResponseEntity<Map> updateStrategy(@PathVariable("id") Long id, @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
-        Map<String, Long> dataMap = strategyService.updateStrategy(id, strategyPayloadDto);
+    public ResponseEntity<Map> updateStrategy(@PathVariable("id") Long strategyId, @RequestBody StrategyPayloadDto strategyPayloadDto) throws Exception{
+        //TODO) 수정자 정보 받아오기
+        String updaterId = "4w_qd34STqeIAd7fndHLf4";
+
+        Map<String, Long> dataMap = strategyService.updateStrategy(updaterId, strategyId, strategyPayloadDto);
+
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "UPDATE_SUCCESS");
         responseMap.put("data", dataMap);
