@@ -890,7 +890,7 @@ public class StrategyService {
                     strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
                 }
             } else { // 잘못된 링크를 보내주면 에러 메시지
-                throw new MetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
+                throw new FileMetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
             }
         } else { // link 로 null 값이 들어오면,
             // 기존 strategyProposal이 있으면, strategyProposal 삭제
