@@ -7,7 +7,7 @@ import com.sysmatic2.finalbe.member.entity.MemberTermEntity;
 import com.sysmatic2.finalbe.member.enums.TermType;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,7 +25,6 @@ import java.util.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
@@ -45,8 +44,9 @@ public class MemberService {
         duplicateNicknameCheck(signupDTO.getNickname());
         comparePassword(signupDTO.getPassword(), signupDTO.getConfirmPassword());
 
+
         // SignupDTO를 MemberEntity로 변환 후 저장
-        MemberEntity member = DtoEntityConversionUtils.convertToMemberEntity(signupDTO, passwordEncoder);
+        MemberEntity member = DtoEntityConversion.convertToMemberEntity(signupDTO, passwordEncoder);
 
         // 필수약관 동의여부 확인 후 약관 및 광고성정보수신 동의내역 저장
         if (!signupDTO.getPrivacyRequired() || !signupDTO.getServiceTermsRequired()) {
