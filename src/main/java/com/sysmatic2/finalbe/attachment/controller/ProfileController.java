@@ -3,7 +3,6 @@ package com.sysmatic2.finalbe.attachment.controller;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.service.ProfileService;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
-import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,16 +71,16 @@ public class ProfileController {
     /**
      * 프로필 url 조회
      *
-     * @param memberId  사용자 ID
+     * @param userDetails  요청한 사용자 ID
      * @return 파일 메타데이터
      */
-    @GetMapping("/{memberId}")
-    public ResponseEntity<?> getProfileUrl(@PathVariable String memberId) {
+    @GetMapping("/url")
+    public ResponseEntity<?> getProfileUrl(@AuthenticationPrincipal CustomUserDetails userDetails) {
 
-//        // uploaderId 추출 (로그인한 사람)
-//        String uploaderId = userDetails.getMemberId();
+        // uploaderId 추출 (로그인한 사람)
+        String uploaderId = userDetails.getMemberId();
 
-        FileMetadataDto fileMetadataDto = profileService.getProfileUrl(memberId);
+        FileMetadataDto fileMetadataDto = profileService.getProfileUrl(uploaderId);
 
         return ResponseEntity.ok(Map.of(
                 "fileUrl", fileMetadataDto.getFilePath(),

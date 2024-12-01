@@ -10,7 +10,7 @@ public class FileValidator {
     private static final Map<String, Set<String>> ALLOWED_EXTENSIONS_BY_CATEGORY = Map.of(
             "profile", Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"),
             "icon", Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"),
-            "liveaccount", Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"),
+            "realaccount", Set.of(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"),
             "proposal", Set.of(".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".zip", ".7z", ".rar", ".tar")
     );
 
@@ -18,7 +18,7 @@ public class FileValidator {
     private static final Map<String, List<String>> ALLOWED_MIME_TYPES_BY_CATEGORY = Map.of(
             "profile", List.of("image/png", "image/jpeg", "image/gif", "image/webp"),
             "icon", List.of("image/png", "image/jpeg", "image/gif", "image/webp"),
-            "liveaccount", List.of("image/png", "image/jpeg", "image/gif", "image/webp"),
+            "realaccount", List.of("image/png", "image/jpeg", "image/gif", "image/webp"),
             "proposal", List.of(
                     "application/pdf",
                     "application/msword", // .doc
