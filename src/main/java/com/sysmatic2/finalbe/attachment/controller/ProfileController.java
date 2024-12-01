@@ -71,16 +71,16 @@ public class ProfileController {
     /**
      * 프로필 url 조회
      *
-     * @param userDetails  요청한 사용자 ID
+     * @param memberId  사용자 ID
      * @return 파일 메타데이터
      */
-    @GetMapping("/url")
-    public ResponseEntity<?> getProfileUrl(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    @GetMapping("/{memberId}")
+    public ResponseEntity<?> getProfileUrl(@PathVariable String memberId) {
 
-        // uploaderId 추출 (로그인한 사람)
-        String uploaderId = userDetails.getMemberId();
+//        // uploaderId 추출 (로그인한 사람)
+//        String uploaderId = userDetails.getMemberId();
 
-        FileMetadataDto fileMetadataDto = profileService.getProfileUrl(uploaderId);
+        FileMetadataDto fileMetadataDto = profileService.getProfileUrl(memberId);
 
         return ResponseEntity.ok(Map.of(
                 "fileUrl", fileMetadataDto.getFilePath(),
