@@ -301,4 +301,14 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
         ORDER BY s.strategyId ASC
     """)
     Page<Long> findStrategyIdsWithoutDailyStatistics(@Param("date") LocalDate date, Pageable pageable);
+
+    /**
+     * 시작일과 종료일 사이의 엔티티 갯수 반환
+     *
+     * @param startDate 조회 시작일
+     * @param endDate 조회 종료일
+     * @return 엔티티 갯수
+     */
+    //시작일과 종료일 사이의 엔티티 갯수 반환
+    Long countByDateBetween(LocalDate startDate, LocalDate endDate);
 }

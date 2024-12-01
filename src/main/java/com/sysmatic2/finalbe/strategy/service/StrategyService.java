@@ -51,7 +51,6 @@ public class StrategyService {
     private final StrategyIACRepository strategyIACRepository;
     private final StrategyIACHistoryRepository strategyIACHistoryRepository;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
-    private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
     private final DailyStatisticsRepository dailyStatisticsRepository;
     private final StrategyProposalRepository strategyProposalRepository;
     private final StrategyProposalService strategyProposalService;
@@ -926,9 +925,13 @@ public class StrategyService {
 
         //전략 등록일을 가져와서 이후 일일 거래 데이터 3개 이상이면 진행
         //3개 미만이면 예외를 던진다.
-        LocalDateTime createDatetime = strategyEntity.getCreatedAt();
+        LocalDateTime createDatetime = strategyEntity.getWritedAt();
         LocalDate createDate = createDatetime.toLocalDate();
-        if(dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
+        System.out.println("createDate = " + createDate);
+        System.out.println("dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) = " + dailyStatisticsRepository.countByDateBetween(createDate, LocalDate.now()));
+
+        if(dailyStatisticsRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
+
             throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
         }
 
