@@ -6,7 +6,6 @@ import com.sysmatic2.finalbe.exception.ExcelValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
@@ -18,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/strategies")  // 동일한 엔드포인트 경로
+@RequestMapping("/api/strategies")
 public class ExcelUploadController {
 
   private final ExcelUploadService excelUploadService;
@@ -27,23 +26,25 @@ public class ExcelUploadController {
     this.excelUploadService = excelUploadService;
   }
 
-  @Operation(summary = "엑셀 파일 업로드 및 데이터 추출", description = "엑셀 파일을 업로드하고 데이터를 추출하여 반환합니다.")
+  @Operation(summary = "엑셀 파일 업로드 및 데이터 저장", description = "특정 전략 ID와 연동된 엑셀 파일을 업로드하고 데이터를 추출하여 저장합니다.")
   @ApiResponses(value = {
-          @ApiResponse(responseCode = "201", description = "엑셀 데이터 추출 성공"),
-          @ApiResponse(responseCode = "400", description = "잘못된 엑셀 파일 형식"),
-          @ApiResponse(responseCode = "500", description = "서버 오류")
+          @ApiResponse(responseCode = "201", description = "엑셀 데이터 추출 및 저장 성공",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(example = "{ \"msg\": \"CREATE_SUCCESS\", \"data\": [ { \"date\": \"2024-01-01\", \"depWdPrice\": 1000, \"dailyProfitLoss\": 200 } ] }"))),
+          @ApiResponse(responseCode = "400", description = "잘못된 엑셀 파일 형식 또는 유효하지 않은 전략 ID",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(example = "{ \"msg\": \"EXCEL_VALIDATION_FAILED\", \"error\": \"Invalid Excel file format\" }"))),
+          @ApiResponse(responseCode = "500", description = "서버 오류",
+                  content = @Content(mediaType = "application/json",
+                          schema = @Schema(example = "{ \"msg\": \"EXCEL_UPLOAD_FAILED\", \"error\": \"Unexpected error occurred\" }")))
   })
-  @PostMapping(value = "/upload", consumes = "multipart/form-data", produces = "application/json")
+  @PostMapping(value = "/{strategyId}/upload", consumes = "multipart/form-data", produces = "application/json")
   public ResponseEntity<Map<String, Object>> uploadExcelFile(
-          @RequestParam("file")
-          @RequestBody(content = @Content(
-                  mediaType = "multipart/form-data",
-                  schema = @Schema(type = "string", format = "binary")
-          ))
-          MultipartFile file) {
+          @PathVariable Long strategyId,
+          @RequestParam("file") MultipartFile file) {
     try {
-      // 엑셀 파일에서 데이터를 추출하고 검증
-      List<DailyStatisticsReqDto> result = excelUploadService.extractAndValidateData(file);
+      // 엑셀 파일에서 데이터를 추출하고 저장
+      List<DailyStatisticsReqDto> result = excelUploadService.extractAndSaveData(file, strategyId);
 
       // 성공적인 응답
       return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
@@ -55,6 +56,12 @@ public class ExcelUploadController {
       // 엑셀 파일 유효성 검증 실패
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
               "msg", "EXCEL_VALIDATION_FAILED",
+              "error", e.getMessage()
+      ));
+    } catch (IllegalArgumentException e) {
+      // 유효하지 않은 전략 ID
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+              "msg", "EXCEL_UPLOAD_FAILED",
               "error", e.getMessage()
       ));
     } catch (Exception e) {
