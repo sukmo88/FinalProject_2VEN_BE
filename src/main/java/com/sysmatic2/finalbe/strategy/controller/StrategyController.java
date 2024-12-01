@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.strategy.controller;
 import com.sysmatic2.finalbe.config.AuditorAwareImpl;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
+import com.sysmatic2.finalbe.strategy.service.MonthlyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import com.sysmatic2.finalbe.util.CreatePageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +36,7 @@ import java.util.Optional;
 public class StrategyController {
     private final StrategyService strategyService;
     private final DailyStatisticsService dailyStatisticsService;
+    private final MonthlyStatisticsService monthlyStatisticsService;
     private final AuditorAwareImpl auditorAware;
 
     // 1. 전략 생성페이지(GET)
@@ -475,5 +477,35 @@ public class StrategyController {
         responseData.put("keyword", keyword);
 
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
+    // 17. 월간 분석 목록
+    /**
+     * 전략의 월간 분석 목록을 페이징 처리하여 반환하는 API.
+     *
+     * @param strategyId 전략 ID
+     * @param page       페이지 번호 (기본값: 0)
+     * @param pageSize   페이지 크기 (기본값: 5)
+     * @return 월간 분석 데이터가 담긴 페이징 응답
+     */
+    @Operation(
+            summary = "특정 전략의 월간 분석 데이터 조회",
+            description = "특정 전략 ID에 대한 월간 분석 데이터를 최신 월 순으로 페이징하여 반환합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/{strategyId}/monthly-analysis")
+    public Map<String, Object> getMonthlyAnalysis(
+            @PathVariable Long strategyId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "5") @Min(1) int pageSize) {
+
+        // 월간 분석 서비스 호출 및 결과 반환
+        return monthlyStatisticsService.getMonthlyAnalysis(strategyId, page, pageSize);
     }
 }
