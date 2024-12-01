@@ -3,7 +3,6 @@ package com.sysmatic2.finalbe.attachment.controller;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.service.ProfileService;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
-import com.sysmatic2.finalbe.util.ResponseUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/files/profile")

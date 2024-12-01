@@ -36,7 +36,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.*;
 
 @Service
 @Validated

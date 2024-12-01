@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.strategy.util;
+package com.sysmatic2.finalbe.strategy.common;
 
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.MonthlyStatisticsEntity;

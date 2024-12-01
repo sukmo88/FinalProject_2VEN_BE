@@ -1,5 +1,7 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
+import com.sysmatic2.finalbe.strategy.dto.DateRange;
+import com.sysmatic2.finalbe.strategy.dto.DdDayAndMaxDdInRate;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -227,10 +229,11 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
      * @param strategyId 조회할 전략의 ID
      * @return 날짜 오름차순으로 정렬된 ddDay와 maxDdInRate 데이터 리스트 (Object[] 형태로 반환)
      */
-    @Query("SELECT d.ddDay, d.maxDdInRate FROM DailyStatisticsEntity d " +
+    @Query("SELECT new com.sysmatic2.finalbe.strategy.dto.DdDayAndMaxDdInRate(d.ddDay, d.maxDdInRate) " +
+            "FROM DailyStatisticsEntity d " +
             "WHERE d.strategyEntity.strategyId = :strategyId " +
             "ORDER BY d.date ASC")
-    List<Object[]> findDdDayAndMaxDdInRateByStrategyIdOrderByDate(@Param("strategyId") Long strategyId);
+    List<DdDayAndMaxDdInRate> findDdDayAndMaxDdInRateByStrategyIdOrderByDate(@Param("strategyId") Long strategyId);
 
     /**
      * 특정 전략의 모든 현재 자본인하율 데이터를 날짜 오름차순으로 조회합니다.
@@ -253,6 +256,51 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
             "WHERE d.strategyEntity.strategyId = :strategyId " +
             "ORDER BY d.date ASC")
     List<BigDecimal> findAllDrawdownAmountsByStrategyId(@Param("strategyId") Long strategyId);
+
+
+    @Query("""
+        SELECT new com.sysmatic2.finalbe.strategy.dto.DateRange(
+            MIN(d.date),
+            MAX(d.date)
+        )
+        FROM DailyStatisticsEntity d
+        WHERE d.strategyEntity.strategyId = :strategyId
+    """)
+    Optional<DateRange> findEarliestAndLatestDatesByStrategyId(@Param("strategyId") Long strategyId);
+
+    /**
+     * 특정 전략과 특정 날짜에 해당하는 일간 분석 데이터를 조회하는 메서드.
+     *
+     * - 이 메서드는 DailyStatisticsEntity에서 전략 ID와 날짜를 기준으로 데이터를 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @param date       조회할 날짜
+     * @return 해당 전략 ID와 날짜에 해당하는 DailyStatisticsEntity를 Optional 형태로 반환
+     */
+    @Query("SELECT d FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId AND d.date = :date")
+    Optional<DailyStatisticsEntity> findByStrategyIdAndDate(@Param("strategyId") Long strategyId, @Param("date") LocalDate date);
+
+    /**
+     * 특정 날짜에 데이터가 없는 전략들의 ID를 페이징하여 조회합니다.
+     *
+     * - 이 메서드는 DailyStatisticsEntity 테이블에서 주어진 날짜에 데이터가 없는 전략 ID를 조회합니다.
+     * - 전략 ID는 StrategyEntity와 연관되어 있어야 하며, 해당 날짜에 데이터가 존재하지 않는 경우에만 반환합니다.
+     *
+     * @param date 조회할 날짜
+     * @param pageable 페이징 정보를 포함하는 객체 (페이지 번호와 크기 설정)
+     * @return 주어진 날짜에 데이터가 없는 전략 ID의 페이징된 결과
+     */
+    @Query("""
+        SELECT s.strategyId
+        FROM StrategyEntity s
+        WHERE s.strategyId NOT IN (
+            SELECT d.strategyEntity.strategyId
+            FROM DailyStatisticsEntity d
+            WHERE d.date = :date
+        )
+        ORDER BY s.strategyId ASC
+    """)
+    Page<Long> findStrategyIdsWithoutDailyStatistics(@Param("date") LocalDate date, Pageable pageable);
 
     /**
      * 시작일과 종료일 사이의 엔티티 갯수 반환

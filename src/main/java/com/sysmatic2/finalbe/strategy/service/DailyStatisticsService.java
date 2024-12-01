@@ -1,30 +1,29 @@
 package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.exception.DuplicateDateException;
-import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
-import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsResponseDto;
+import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
-import com.sysmatic2.finalbe.util.StatisticsCalculator;
+import com.sysmatic2.finalbe.strategy.common.StatisticsCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -57,7 +56,6 @@ public class DailyStatisticsService {
         }
         // 첫 번째 데이터 가져오기
         DailyStatisticsEntity latestStatistics = latestStatisticsList.get(0);
-
 
         // 최초 입력 일자 조회
         Optional<LocalDate> earliestDateOpt = dsp.findEarliestDateByStrategyId(strategyId);
@@ -127,7 +125,7 @@ public class DailyStatisticsService {
      * @param reqDto     요청 데이터
      */
     @Transactional
-    public void processDailyStatistics(Long strategyId, DailyStatisticsReqDto reqDto) {
+    public void registerDailyStatistics(Long strategyId, DailyStatisticsReqDto reqDto) {
 
         // 전략 ID 유효성 검사
         if (strategyId == null) {
@@ -385,7 +383,6 @@ public class DailyStatisticsService {
         Integer previousLossDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getTotalLossDays).orElse(0); // 이전 총 손실일수
         BigDecimal previousTotalProfit = firstEntry ? BigDecimal.ZERO : previousState.map(DailyStatisticsEntity::getTotalProfit).orElse(BigDecimal.ZERO); // 이전 총 이익
         BigDecimal previousTotalLoss = firstEntry ? BigDecimal.ZERO : previousState.map(DailyStatisticsEntity::getTotalLoss).orElse(BigDecimal.ZERO); // 이전 총 손실
-        Integer previousStrategyOperationDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getStrategyOperationDays).orElse(0); // 이전 전략 운용일수
         Integer previousCurrentConsecutivePlDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getCurrentConsecutivePlDays).orElse(0); // 이전 연속 손익일수
         Integer previousMaxConsecutiveProfitDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveProfitDays).orElse(0); // 이전 최대 연속 수익일수
         Integer previousMaxConsecutiveLossDays = firstEntry ? 0 : previousState.map(DailyStatisticsEntity::getMaxConsecutiveLossDays).orElse(0); // 이전 최대 연속 손실일수
@@ -417,8 +414,9 @@ public class DailyStatisticsService {
         // 누적손익 = 이전 누적손익 + 일손익
         BigDecimal cumulativeProfitLoss = StatisticsCalculator.calculateCumulativeProfitLoss(previousCumulativeProfitLoss, dailyProfitLoss);
 
-        // 거래일수 = 일손익이 0이 아닌 경우 1 증가
-        Integer tradingDays = StatisticsCalculator.calculateTradingDays(previousTradingDays, dailyProfitLoss);
+        // 거래일수 = 일손익이 0이 아닌 경우 1 증가 -> 이전 거래일수 + 1
+        Integer tradingDays = previousTradingDays + 1;
+//        Integer tradingDays = StatisticsCalculator.calculateTradingDays(previousTradingDays, dailyProfitLoss);
 
         // 손실일수 = 이전 손실일수 + (일손익 < 0 인 경우 1 증가)
         Integer totalLossDays = previousLossDays + (dailyProfitLoss.compareTo(BigDecimal.ZERO) < 0 ? 1 : 0);
@@ -598,8 +596,26 @@ public class DailyStatisticsService {
                 ? Math.min(previousMaxConsecutiveLossDays, currentConsecutivePlDays) // 음수에서 최솟값(더 작은 음수) 선택
                 : previousMaxConsecutiveLossDays;
 
-        // 총 전략 운용일수 = 이전 전략 운용일수 + 1
-        Integer strategyOperationDays = previousStrategyOperationDays + 1;
+        // 총 전략 운용일수 = 일간분석 첫 등록 일자와 마지막 등록 일자 범위
+        // 가장 오래된 날짜와 가장 최신 날짜를 조회하여 계산
+        Integer strategyOperationDays = dsp.findEarliestAndLatestDatesByStrategyId(strategyId)
+                .map(dateRange -> {
+                    LocalDate latestDate = dateRange.getLatestDate(); // DB에서 조회한 가장 최신 날짜 (null일 가능성 있음)
+                    LocalDate currentDate = reqDto.getDate(); // 현재 입력 중인 데이터의 날짜
+
+                    // 최신 날짜가 null인 경우 현재 입력 날짜를 사용
+                    LocalDate adjustedLatestDate = (latestDate != null && latestDate.isAfter(currentDate))
+                            ? latestDate
+                            : currentDate; // 더 최신 날짜를 선택
+
+                    // 가장 오래된 날짜와 최종 조정된 최신 날짜로 운용일수를 계산
+                    return StatisticsCalculator.calculateStrategyOperationDays(
+                            dateRange.getEarliestDate(), // 가장 오래된 날짜
+                            adjustedLatestDate           // 조정된 최신 날짜
+                    );
+                })
+                .orElse(1); // 데이터가 없으면 운용일수는 최소 1로 설정
+
 
         // 최근 1년 수익률 = ((오늘 기준가 / 1년 전 기준가) - 1) * 100
         List<BigDecimal> referencePrices = dsp.findReferencePricesOneYearAgo(strategyId, reqDto.getDate().minusYears(1));
@@ -620,8 +636,10 @@ public class DailyStatisticsService {
         );
 
         // ddDay와 maxDdInRate 데이터를 날짜 오름차순으로 조회
-        List<Object[]> ddDayAndMaxDdInRateList = dsp.findDdDayAndMaxDdInRateByStrategyIdOrderByDate(strategyId);
-        ddDayAndMaxDdInRateList.add(new Object[]{ddDay, maxDdInRate});
+        List<DdDayAndMaxDdInRate> ddDayAndMaxDdInRateList = dsp.findDdDayAndMaxDdInRateByStrategyIdOrderByDate(strategyId);
+        // 현재 입력 데이터도 포함
+        ddDayAndMaxDdInRateList.add(new DdDayAndMaxDdInRate(ddDay, maxDdInRate));
+
         // KP-RATIO 계산
         BigDecimal kpRatio = StatisticsCalculator.calculateKPRatio(
                 ddDayAndMaxDdInRateList,   // ddDay 및 maxDdInRate 리스트
@@ -629,6 +647,17 @@ public class DailyStatisticsService {
                 cumulativeProfitLossRate, // 누적손익률
                 tradingDays               // 거래일수
         );
+        // KP-RATIO 값에 따라 전략 테이블의 KP-RATIO와 SM-SCORE를 업데이트합니다.
+        if (kpRatio.compareTo(BigDecimal.ZERO) == 0) {
+            // KP-RATIO가 0인 경우, SM-SCORE도 0으로 업데이트
+            strategyRepository.updateKpRatioAndSmScoreByStrategyId(strategyId, kpRatio, BigDecimal.ZERO);
+        } else {
+            // KP-RATIO만 업데이트
+            strategyRepository.updateKpRatioByStrategyId(strategyId, kpRatio);
+        }
+
+        // SM-SCORE 배치 처리
+        batchUpdateSmScores();
 
         // 누적손익 리스트 가져오기
         List<BigDecimal> cumulativeProfitLossHistory = dsp.findCumulativeProfitLossByStrategyId(strategyId);
@@ -699,4 +728,116 @@ public class DailyStatisticsService {
                 .build();
     }
 
+    /**
+     * 배치로 SM-SCORE를 업데이트하는 메서드.
+     *
+     * - KP-RATIO가 0보다 큰 전략 데이터를 페이징 처리로 조회하여 SM-SCORE를 계산하고 갱신합니다.
+     * - 트랜잭션 격리 수준은 Repeatable Read를 사용하여 데이터의 일관성을 보장합니다.
+     */
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    public void batchUpdateSmScores() {
+        // 페이징 처리 작업을 공통 로직으로 수행
+        executePagedOperation(
+                // 1. KP-RATIO가 0보다 큰 전략 데이터를 페이징 처리하여 조회
+                page -> strategyRepository.findByNonZeroKpRatio(PageRequest.of(page, 1000)),
+                // 2. 조회된 데이터를 기반으로 SM-SCORE 계산 및 업데이트
+                kpRatiosPage -> {
+                    if (kpRatiosPage.isEmpty()) {
+                        return; // KP-RATIO가 없는 경우 기본값 유지
+                    }
+
+                    // 2.1. 조회된 전략 데이터(KP-RATIO 리스트)로 SM-SCORE 계산
+                    List<StrategyKpDto> kpRatios = kpRatiosPage.getContent();
+
+                    // 2.2. KP-RATIO의 데이터가 1개인 경우 모든 SM-SCORE를 0으로 처리
+                    if (kpRatios.size() == 1) {
+                        Long strategyId = kpRatios.get(0).getStrategyId();
+                        strategyRepository.updateSmScoreByStrategyId(strategyId, BigDecimal.ZERO);
+                        return;
+                    }
+
+                    // 2.3. 데이터가 2개 이상인 경우 SM-SCORE 계산
+                    Map<Long, BigDecimal> smScores = StatisticsCalculator.calculateAndUpdateSmScores(kpRatios);
+
+                    // 2.4. 계산된 SM-SCORE를 전략 테이블에 업데이트
+                    smScores.forEach(strategyRepository::updateSmScoreByStrategyId);
+                }
+        );
+    }
+
+    /**
+     * 일간 통계 데이터와 SM-SCORE를 갱신하는 메서드.
+     *
+     * - 전날 데이터가 없는 전략에 대해 일간 데이터를 생성하고 등록합니다.
+     * - 모든 전략의 SM-SCORE를 갱신하고 일간 통계에 반영합니다.
+     */
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    public void updateSmScoreInDailyStatistics() {
+        // 1. 전날 날짜를 계산
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        // 2. 데이터가 없는 전략에 대해 일간 데이터를 생성 및 등록
+        executePagedOperation(
+                // 2.1. 전날 데이터가 없는 전략 ID를 페이징 처리하여 조회
+                page -> dsp.findStrategyIdsWithoutDailyStatistics(yesterday, PageRequest.of(page, 1000)),
+                // 2.2. 조회된 전략 ID에 대해 기본 일간 데이터 생성 및 등록
+                strategyIdsPage -> strategyIdsPage.forEach(strategyId -> {
+                    DailyStatisticsReqDto reqDto = DailyStatisticsReqDto.builder()
+                            .date(yesterday)
+                            .depWdPrice(BigDecimal.ZERO) // 입출금 금액 기본값
+                            .dailyProfitLoss(BigDecimal.ZERO) // 일 손익 기본값
+                            .build();
+                    // 일간 데이터 등록
+                    registerDailyStatistics(strategyId, reqDto);
+                })
+        );
+
+        // 3. 모든 전략의 SM-SCORE를 갱신하고 일간 통계에 반영
+        executePagedOperation(
+                // 3.1. 모든 전략의 SM-SCORE 데이터를 페이징 처리하여 조회
+                page -> strategyRepository.findAllStrategySmScores(PageRequest.of(page, 1000)),
+                // 3.2. 조회된 SM-SCORE를 일간 통계에 업데이트
+                smScorePage -> smScorePage.forEach(strategy -> {
+                    Optional<DailyStatisticsEntity> existingRecord = dsp.findByStrategyIdAndDate(strategy.getStrategyId(), yesterday);
+
+                    // 전날 데이터가 존재하면 SM-SCORE를 갱신
+                    existingRecord.ifPresentOrElse(
+                            record -> {
+                                record.setSmScore(strategy.getSmScore());
+                                dsp.save(record);
+                            },
+                            // 전날 데이터가 존재하지 않으면 예외를 발생시킴
+                            () -> {
+                                throw new IllegalStateException("전날 데이터 자동 등록에 실패했습니다. " +
+                                        "Strategy ID: " + strategy.getStrategyId() + ", Date: " + yesterday);
+                            }
+                    );
+                })
+        );
+    }
+
+    /**
+     * 페이징 처리를 포함한 반복 작업을 수행하는 공통 메서드.
+     *
+     * - 페이징 데이터를 조회(fetchPage)하고, 조회된 데이터를 처리(processPage)합니다.
+     *
+     * @param fetchPage  현재 페이지 번호를 입력받아 해당 페이지 데이터를 반환하는 함수
+     * @param processPage 조회된 페이지 데이터를 처리하는 함수
+     * @param <T>        페이징 데이터의 타입
+     */
+    private <T> void executePagedOperation(Function<Integer, Page<T>> fetchPage, Consumer<Page<T>> processPage) {
+        int page = 0; // 초기 페이지 번호
+        Page<T> pageData; // 현재 페이지 데이터
+
+        do {
+            // 1. 현재 페이지 데이터를 조회
+            pageData = fetchPage.apply(page);
+
+            // 2. 조회된 데이터를 처리
+            processPage.accept(pageData);
+
+            // 3. 다음 페이지로 이동
+            page++;
+        } while (!pageData.isLast()); // 마지막 페이지가 아니면 반복
+    }
 }
