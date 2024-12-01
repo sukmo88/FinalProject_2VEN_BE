@@ -1,20 +1,13 @@
 package com.sysmatic2.finalbe.cs.controller;
 
 import com.sysmatic2.finalbe.cs.dto.AdminFAQDto;
-import com.sysmatic2.finalbe.cs.dto.FAQResponse;
-import com.sysmatic2.finalbe.cs.dto.UserFAQDto;
-import com.sysmatic2.finalbe.cs.entity.FAQ;
 import com.sysmatic2.finalbe.cs.service.FAQService;
-import com.sysmatic2.finalbe.util.ResponseUtils;
+import com.sysmatic2.finalbe.common.ResponseUtils;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController

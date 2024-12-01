@@ -1,4 +1,4 @@
-package com.sysmatic2.finalbe.util;
+package com.sysmatic2.finalbe.common;
 
 import com.sysmatic2.finalbe.admin.dto.*;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
@@ -11,6 +11,8 @@ import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+
+import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -23,10 +25,10 @@ import java.util.stream.Collectors;
  * 엔티티와 DTO 간의 변환 로직을 중앙에서 관리하는 유틸리티 클래스입니다.
  * 모든 메서드는 정적 메서드로, DTO와 엔티티 간의 변환을 간단히 수행할 수 있습니다.
  */
-public class DtoEntityConversionUtils {
+public class DtoEntityConversion {
 
     // 인스턴스화를 방지하기 위한 private 생성자
-    private DtoEntityConversionUtils() {}
+    private DtoEntityConversion() {}
 
     //투자자산 분류
     /**

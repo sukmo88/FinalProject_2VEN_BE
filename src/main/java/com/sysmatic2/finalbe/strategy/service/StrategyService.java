@@ -5,8 +5,6 @@ import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
-import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
-import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
 import com.sysmatic2.finalbe.attachment.service.FileService;
 import com.sysmatic2.finalbe.attachment.service.ProposalService;
@@ -20,8 +18,8 @@ import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.InvestmentAssetClassesRepository;
 import com.sysmatic2.finalbe.strategy.repository.*;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
 import com.sysmatic2.finalbe.util.ParseCsvToList;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -29,17 +27,19 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.*;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.*;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 public class StrategyService {
     private final MemberRepository memberRepository;
@@ -52,13 +52,10 @@ public class StrategyService {
     private final StrategyIACHistoryRepository strategyIACHistoryRepository;
     private final StrategyApprovalRequestsRepository strategyApprovalRequestsRepository;
     private final DailyStatisticsHistoryRepository dailyStatisticsHistoryRepository;
-    private final DailyStatisticsService dailyStatisticsService;
     private final DailyStatisticsRepository dailyStatisticsRepository;
-    private final ProposalService proposalService;
     private final StrategyProposalRepository strategyProposalRepository;
-    private final FileService fileService;
-    private final FileMetadataRepository fileMetadataRepository;
     private final StrategyProposalService strategyProposalService;
+    private final FileService fileService;
 
     //1. 전략 생성
     /**
@@ -194,7 +191,7 @@ public class StrategyService {
 
     //2. 전략 목록
     /**
-     * 2-1. 필터 조건에 따라 전략 목록을 반환 (페이징 포함)
+     * 2-1. 필터 조건에 따라 전략 목록을 반환 (페이징 포함) - 랭킹
      *
      * @param tradingCycleId           투자주기 ID (nullable)
      * @param investmentAssetClassesId 투자자산 분류 ID (nullable)
@@ -204,9 +201,59 @@ public class StrategyService {
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getStrategies(Integer tradingCycleId, Integer investmentAssetClassesId, int page, int pageSize) {
-        Pageable pageable = PageRequest.of(page, pageSize); // 페이지 요청 객체 생성
-        Page<StrategyListDto> strategyPage = strategyRepo.findStrategiesByFilters(tradingCycleId, investmentAssetClassesId, pageable);
-        return createPageResponse(strategyPage); // 유틸 메서드를 사용해 Map 형태로 변환
+        // 페이지 요청 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //해당되는 전략을 가져온다.
+        Page<StrategyEntity> findStrategyList = strategyRepo.findStrategiesByFilters(tradingCycleId, investmentAssetClassesId, pageable);
+
+        // 전략 id 리스트 생성
+        List<Long> strategyIds = findStrategyList.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        // 전략 id로 관련 최신 DailyStatics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        // DTO에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = findStrategyList.stream()
+                .map(strategyEntity -> {
+                    //기본 정보 DTO에 넣기
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(),        //전략id
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(),  //매매주기아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()),  //투자자산분류 아이콘
+                            strategyEntity.getStrategyTitle(),      //전략명
+                            BigDecimal.ZERO,                        //누적손익률
+                            BigDecimal.ZERO,                        //최근1년손익률
+                            BigDecimal.ZERO,                        //MDD
+                            strategyEntity.getSmScore(),            //sm-score
+                            strategyEntity.getFollowersCount()      //팔로워수
+                    );
+
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if(latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setMdd(latestStatistics.getMaxDrawdownRate());
+                    }
+
+                    return dto;
+                }).collect(Collectors.toList());
+
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyList.getTotalElements());
+
+
+        // 유틸 메서드를 사용해 Map 형태로 변환
+        return createPageResponse(dtoPage);
     }
 
     /**
@@ -217,7 +264,7 @@ public class StrategyService {
      * @param pageSize             페이지크기
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> advancedSearch(SearchOptionsPayloadDto searchOptionsPayload, Integer page, Integer pageSize) {
+    public Map<String, Object> advancedSearch(@Valid SearchOptionsPayloadDto searchOptionsPayload, Integer page, Integer pageSize) {
         //페이지 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
 
@@ -255,10 +302,55 @@ public class StrategyService {
         searchOptionsDto.setReturnRateList(returnRates);
 
         //2)필터객체, 페이지 객체넣고 db에서 데이터 가져오기
-        Page<AdvancedSearchResultDto> strategyPage = strategyRepo.findStrategiesByDetailSearchOptions(searchOptionsDto, pageable);
+        Page<StrategyEntity> findStrategyPage = strategyRepo.findStrategiesByDetailSearchOptions(searchOptionsDto, pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
+        //전략 id 리스트 생성
+        List<Long> strategyIds = findStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        //전략 id로 최신 dailystatistics 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        //dto에 정보 넣기
+        List<AdvancedSearchResultDto> dtoList = findStrategyPage.stream()
+                .map(strategyEntity -> {
+                            AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                                    strategyEntity.getStrategyId(),                               //전략id
+                                    strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
+                                    strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                                    strategyEntity.getStrategyIACEntities().stream()
+                                            .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                            .collect(Collectors.toList()),                        //투자자산분류 아이콘
+                                    strategyEntity.getStrategyTitle(),                            //전략명
+                                    BigDecimal.ZERO,                                              //누적손익률
+                                    BigDecimal.ZERO,                                              //최근1년손익률
+                                    BigDecimal.ZERO,                                              //MDD
+                                    strategyEntity.getSmScore(),                                  //sm-score
+                                    strategyEntity.getFollowersCount()                            //팔로워수
+                            );
+
+                            DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                            if (latestStatistics != null) {
+                                dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                                dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                                dto.setMdd(latestStatistics.getMaxDrawdownRate());
+                            }
+
+                            return dto;
+
+                        }).collect(Collectors.toList());
+
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyPage.getTotalElements());
 
         //필요한 값들만 담아 응답 map생성
-        return createPageResponse(strategyPage);
+        return createPageResponse(dtoPage);
     }
 
     /**
@@ -304,16 +396,16 @@ public class StrategyService {
                             strategyEntity.getStrategyTitle(),     //전략명
                             BigDecimal.ZERO, //누적손익률
                             BigDecimal.ZERO, //최근1년손익률
-                            BigDecimal.ZERO, //sm-score
-                            0L               //팔로워수
+                            BigDecimal.ZERO, //MDD
+                            strategyEntity.getSmScore(),           //sm-score
+                            strategyEntity.getFollowersCount()     //팔로워수
                     );
 
                     DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
                     if(latestStatistics != null) {
                         dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
                         dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
-                        dto.setSmScore(latestStatistics.getSmScore());
-//                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                        dto.setMdd(latestStatistics.getMaxDrawdownRate());
                     }
                     Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
                     dto.setFollowersCount(followersCount);
@@ -339,8 +431,9 @@ public class StrategyService {
         //페이지 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
 
+        //TODO)isApproved = Y 설정
         //전략명에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기 - isPosted = Y, isApproved = Y
-        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "Y", pageable);
+        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "N", pageable);
 
         //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
         //전략 id 리스트 생성
@@ -367,18 +460,18 @@ public class StrategyService {
                                     .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
                                     .collect(Collectors.toList()), //투자자산분류 아이콘
                             strategyEntity.getStrategyTitle(),     //전략명
-                            BigDecimal.ZERO, //누적손익률
-                            BigDecimal.ZERO, //최근1년손익률
-                            BigDecimal.ZERO, //sm-score
-                            0L               //팔로워수
+                            BigDecimal.ZERO,                       //누적손익률
+                            BigDecimal.ZERO,                       //최근1년손익률
+                            BigDecimal.ZERO,                       //MDD
+                            strategyEntity.getSmScore(),           //sm-score
+                            strategyEntity.getFollowersCount()     //팔로워수
                     );
 
                     DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
                     if (latestStatistics != null) {
                         dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
                         dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
-                        dto.setSmScore(latestStatistics.getSmScore());
-//                        dto.setFollowersCount(latestStatistics.getFollowersCount());
+                        dto.setMdd(latestStatistics.getMaxDrawdownRate());
                     }
                     Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
                     dto.setFollowersCount(followersCount);
@@ -434,9 +527,9 @@ public class StrategyService {
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
         //TODO)트레이더 정보 넣기
-        responseDto.setTraderId("1");
-        responseDto.setTraderName("곽두팔");
-        responseDto.setTraderImage("트레이더프로필이미지");
+        responseDto.setMemberId("1");
+        responseDto.setNickname("곽두팔");
+        responseDto.setProfilePath("트레이더프로필이미지");
 
         // 최신 팔로워 수 조회
         Long followersCount = strategyRepo.findFollowersCountByStrategyId(id);
@@ -583,9 +676,9 @@ public class StrategyService {
         responseDto.setStrategyProposalLink(strategyProposal);
 
         //TODO)트레이더 정보 넣기
-        responseDto.setTraderId("1");
-        responseDto.setTraderName("곽두팔");
-        responseDto.setTraderImage("트레이더프로필이미지");
+        responseDto.setMemberId("1");
+        responseDto.setNickname("곽두팔");
+        responseDto.setProfilePath("트레이더프로필이미지");
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("Data", responseDto);
@@ -616,7 +709,6 @@ public class StrategyService {
 
         //2-1. 운용 종료된 전략은 수정불가
         if (strategyEntity.getStrategyStatusCode().equals("STRATEGY_OPERATION_TERMINATED")){
-            System.out.println("strategyEntity.getStrategyStatusCode() = " + strategyEntity.getStrategyStatusCode());
             throw new StrategyTerminatedException("운용종료된 전략은 수정할 수 없습니다.");
         }
 
@@ -834,11 +926,11 @@ public class StrategyService {
 
         //전략 등록일을 가져와서 이후 일일 거래 데이터 3개 이상이면 진행
         //3개 미만이면 예외를 던진다.
-//        LocalDateTime createDatetime = strategyEntity.getCreatedAt();
-//        LocalDate createDate = createDatetime.toLocalDate();
-//        if(dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
-//            throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
-//        }
+        LocalDateTime createDatetime = strategyEntity.getCreatedAt();
+        LocalDate createDate = createDatetime.toLocalDate();
+        if(dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
+            throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
+        }
 
         //이미 승인받은 전략은 승인요청을 보낼 수 없다.
         if(strategyEntity.getIsApproved().equals("Y")){
@@ -904,7 +996,6 @@ public class StrategyService {
         return responseMap;
     }
 
-
     /**
      * 특정 전략과 관련된 DailyStatistics 및 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
      *
@@ -921,7 +1012,3 @@ public class StrategyService {
         strategyRepo.save(strategy); // StrategyEntity 저장
     }
 }
-
-
-
-//이미지 링크는 이미지 링크+{imageId}의 형태라서 imageId만 DB에 저장

@@ -8,8 +8,7 @@ import com.sysmatic2.finalbe.strategy.entity.StrategyIACEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyIACHistoryEntity;
 import com.sysmatic2.finalbe.strategy.repository.StrategyIACHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyIACRepository;
-import com.sysmatic2.finalbe.strategy.service.StrategyService;
-import com.sysmatic2.finalbe.util.DtoEntityConversionUtils;
+import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
@@ -20,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
-import static com.sysmatic2.finalbe.util.DtoEntityConversionUtils.toDto;
+import static com.sysmatic2.finalbe.common.DtoEntityConversion.toDto;
 
 //관리자 페이지 - 투자자산 분류 관리
 @Service
@@ -39,7 +38,7 @@ public class InvestmentAssetClassesService {
         //페이지 객체 리스트에 DB 데이터 엔티티들을 가져와서 넣는다.
         Page<InvestmentAssetClassesEntity> pageEntityList = iacRepository.findAll(pageable);
         //페이지 객체 리스트의 타입 변경
-        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(DtoEntityConversionUtils::toDto);
+        Page<InvestmentAssetClassesDto> pageDtoList = pageEntityList.map(DtoEntityConversion::toDto);
 
         return createPageResponse(pageDtoList);
     }

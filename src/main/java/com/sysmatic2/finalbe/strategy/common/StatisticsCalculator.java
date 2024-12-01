@@ -1,12 +1,18 @@
-package com.sysmatic2.finalbe.util;
+package com.sysmatic2.finalbe.strategy.common;
 
-import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
+import com.sysmatic2.finalbe.strategy.dto.DdDayAndMaxDdInRate;
+import com.sysmatic2.finalbe.strategy.dto.StrategyKpDto;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class StatisticsCalculator {
     private StatisticsCalculator() {
@@ -624,6 +630,15 @@ public class StatisticsCalculator {
         return sum.divide(BigDecimal.valueOf(dailyBalances.size()), 4, RoundingMode.HALF_EVEN);
     }
 
+    // 총 전략 운용일수 계산
+    public static Integer calculateStrategyOperationDays(LocalDate earliestDate, LocalDate latestDate) {
+        if (earliestDate == null || latestDate == null) {
+            return 1; // 기본값으로 운용일수 1 반환
+        }
+        // 두 날짜 간의 일 수 계산 (포함 관계로 인해 +1)
+        return (int) java.time.temporal.ChronoUnit.DAYS.between(earliestDate, latestDate) + 1;
+    }
+
     /**
      * 최근 1년 수익률을 계산합니다.
      * 수익률 계산 공식: ((오늘 기준가 / 1년 전 기준가) - 1) * 100
@@ -678,10 +693,16 @@ public class StatisticsCalculator {
      * @param tradingDays              총 거래일수 (tradingDays)
      * @return KP Ratio (소수점 10자리까지 반올림)
      */
-    public static BigDecimal calculateKPRatio(List<Object[]> ddDayAndMaxDdInRateList,
+    public static BigDecimal calculateKPRatio(List<DdDayAndMaxDdInRate> ddDayAndMaxDdInRateList,
                                               BigDecimal currentDrawdownRate,
                                               BigDecimal cumulativeProfitLossRate,
                                               int tradingDays) {
+
+        if (cumulativeProfitLossRate.compareTo(BigDecimal.ZERO) <= 0) {
+            // 누적손익률이 0 이하일 경우 KP Ratio는 0
+            return BigDecimal.ZERO;
+        }
+
         int ddDaySum = 0; // ddDay의 합
         BigDecimal maxDdInRateSum = BigDecimal.ZERO; // maxDDInRate의 합
 
@@ -690,12 +711,12 @@ public class StatisticsCalculator {
         BigDecimal prevMaxDdInRate = BigDecimal.ZERO;
 
         // ===== Step 1: ddDay와 maxDdInRate 합산 =====
-        for (Object[] row : ddDayAndMaxDdInRateList) {
-            int currentDdDay = (int) row[0];
-            BigDecimal currentMaxDdInRate = (BigDecimal) row[1];
+        for (DdDayAndMaxDdInRate row : ddDayAndMaxDdInRateList) {
+            int currentDdDay = row.getDdDay();
+            BigDecimal currentMaxDdInRate = row.getMaxDdInRate();
 
-            // 현재자본인하율(currentDrawdownRate)이 0 이상인 경우
-            if (currentDrawdownRate.compareTo(BigDecimal.ZERO) >= 0) {
+            // 현재자본인하율(currentDrawdownRate)이 0인 경우
+            if (currentDrawdownRate.compareTo(BigDecimal.ZERO) == 0) {
                 if (prevDdDay != 0 && prevMaxDdInRate.compareTo(BigDecimal.ZERO) != 0) {
                     // 이전 값이 0이 아닌 경우만 누적
                     ddDaySum += prevDdDay;
@@ -715,11 +736,6 @@ public class StatisticsCalculator {
         maxDdInRateSum = maxDdInRateSum.add(prevMaxDdInRate);
 
         // ===== Step 2: 유효성 검사 =====
-        if (cumulativeProfitLossRate.compareTo(BigDecimal.ZERO) <= 0) {
-            // 누적손익률이 0 이하일 경우 KP Ratio는 0
-            return BigDecimal.ZERO;
-        }
-
         if (maxDdInRateSum.compareTo(BigDecimal.ZERO) == 0 || ddDaySum == 0 || tradingDays <= 0) {
             // maxDdInRateSum, ddDaySum, 또는 tradingDays가 0 이하일 경우 KP Ratio는 0
             return BigDecimal.ZERO;
@@ -748,5 +764,60 @@ public class StatisticsCalculator {
                 .setScale(10, RoundingMode.HALF_UP); // 최종적으로 소수점 10자리로 반올림
 
         return kpRatio;
+    }
+
+    /**
+     * KP-RATIO 평균, 분산, 표준편차 및 SM-SCORE를 계산하고 갱신하는 메서드.
+     *
+     * @param kpRatios 전략별 KP-RATIO 리스트
+     * @return 전략별 SM-SCORE 리스트 (전략 ID와 SM-SCORE를 매핑)
+     */
+    public static Map<Long, BigDecimal> calculateAndUpdateSmScores(List<StrategyKpDto> kpRatios) {
+        // 1. KP-RATIO 평균 계산
+        BigDecimal kpMean = kpRatios.stream()
+                .map(StrategyKpDto::getKpRatio)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(kpRatios.size()), 10, RoundingMode.HALF_UP);
+
+        // 2. 분산 및 표준편차 계산
+        BigDecimal variance = kpRatios.stream()
+                .map(dto -> dto.getKpRatio().subtract(kpMean).pow(2)) // (KP - 평균)^2
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(kpRatios.size()), 10, RoundingMode.HALF_UP);
+
+        BigDecimal stdDev = BigDecimal.valueOf(Math.sqrt(variance.doubleValue()))
+                .setScale(10, RoundingMode.HALF_UP); // 소수점 10자리까지 반올림
+
+        // 3. 표준편차가 0인 경우 처리
+        if (stdDev.compareTo(BigDecimal.ZERO) == 0) {
+            // 모든 SM-SCORE를 0으로 설정
+            return kpRatios.stream().collect(Collectors.toMap(
+                    StrategyKpDto::getStrategyId,
+                    dto -> BigDecimal.ZERO
+            ));
+        }
+
+        // 3. SM-SCORE 계산 및 갱신
+        Map<Long, BigDecimal> smScores = new HashMap<>();
+        for (StrategyKpDto dto : kpRatios) {
+            // Z-Score = (KP - 평균) / 표준편차
+            BigDecimal zScore = dto.getKpRatio().subtract(kpMean).divide(stdDev, 10, RoundingMode.HALF_UP);
+
+            // 표준정규누적분포값 계산
+            double normDist = calculateNormDist(zScore.doubleValue()); // 표준정규누적분포
+
+            // SM-SCORE = 표준정규누적분포값 * 100
+            BigDecimal smScore = BigDecimal.valueOf(normDist * 100).setScale(2, RoundingMode.HALF_UP);
+
+            // SM-SCORE 저장
+            smScores.put(dto.getStrategyId(), smScore);
+        }
+
+        return smScores; // 전략 ID와 SM-SCORE를 매핑한 결과 반환
+    }
+
+    public static double calculateNormDist(double zScore) {
+        NormalDistribution normalDist = new NormalDistribution(); // Apache Commons Math 라이브러리
+        return normalDist.cumulativeProbability(zScore);
     }
 }

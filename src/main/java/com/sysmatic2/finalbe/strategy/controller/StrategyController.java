@@ -1,6 +1,5 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
-import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
@@ -13,8 +12,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -27,7 +24,6 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -77,9 +73,9 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseMap);
     }
 
-    // 3. 전략 목록
+    // 3. 전략 목록 - 랭킹
     /**
-     * 3. 필터 조건에 따라 전략 목록 반환 (페이징 포함)
+     * 3. 필터 조건에 따라 전략 목록 반환 (페이징 포함) - 랭킹
      *
      * @param tradingCycleId 투자주기 ID (nullable)
      * @param investmentAssetClassesId 투자자산 분류 ID (nullable)
@@ -88,7 +84,7 @@ public class StrategyController {
      * @return 필터링된 전략 목록 및 페이징 정보를 포함한 Map 객체
      */
     @GetMapping
-    @Operation(summary = "필터 조건으로 전략 목록 조회",
+    @Operation(summary = "필터 조건으로 전략 목록 조회 - 전략 랭킹",
             description = "투자주기와 투자자산 분류로 전략을 필터링하여 조회합니다. 페이징을 지원합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "전략 목록 조회 성공"),
@@ -104,7 +100,7 @@ public class StrategyController {
         Map<String, Object> response = strategyService.getStrategies(tradingCycleId, investmentAssetClassesId, page, pageSize);
 
         // 200 OK 응답과 함께 반환
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     // 4. 전략 상세
@@ -134,7 +130,7 @@ public class StrategyController {
     //6. 전략 수정 페이지(GET)
     //TODO) 관리자와 작성 트레이더만 수정할 수 있다.
     @Operation(summary = "전략 수정페이지에 필요한 정보 반환")
-    @GetMapping(value = "/update-form/{id}", produces = "application/json")
+    @GetMapping(value = "/{id}/update-form", produces = "application/json")
     public ResponseEntity<Map> updateStrategyForm(@PathVariable("id") Long id) throws Exception{
         Map<String, Object> dataMap = strategyService.getStrategyUpdateForm(id);
 
@@ -224,7 +220,7 @@ public class StrategyController {
         // 수기 데이터를 하나씩 처리하여 저장
         payload.getPayload().forEach(entry -> {
             /// 각 데이터 항목을 기반으로 수기 데이터를 처리하는 서비스 메서드 호출
-            dailyStatisticsService.processDailyStatistics(
+            dailyStatisticsService.registerDailyStatistics(
                     strategyId,  // 전략 ID를 서비스 메서드에 전달
                     DailyStatisticsReqDto.builder()
                             .date(entry.getDate())  // 수기 데이터의 날짜
@@ -280,7 +276,7 @@ public class StrategyController {
      * 특정 전략의 일간 분석 데이터를 삭제하고 필요한 데이터를 재계산합니다.
      *
      * @param strategyId        삭제할 데이터가 포함된 전략의 ID
-     * @param dailyStatisticsIds 삭제할 일간 분석 데이터 ID 리스트
+     * @param requestDto        삭제할 일간 분석 데이터 ID 리스트
      * @return 삭제 및 재계산 결과
      */
     @Operation(
@@ -457,7 +453,7 @@ public class StrategyController {
      */
     @GetMapping("/search")
     @Operation(summary = "키워드를 입력하여 전략명을 검색하는 메서드")
-    public ResponseEntity<Map<String, Object>> searchStrategy(@RequestParam String keyword,
+    public ResponseEntity<Map<String, Object>> searchStrategy(@RequestParam(required = false) String keyword,
                                                               @RequestParam(defaultValue = "0") Integer page,
                                                               @RequestParam(defaultValue = "6") Integer pageSize){
         Map<String, Object> responseData = strategyService.getStrategyListByKeyword(keyword, page, pageSize);
