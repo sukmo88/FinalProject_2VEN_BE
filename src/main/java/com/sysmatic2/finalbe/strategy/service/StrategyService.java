@@ -87,8 +87,15 @@ public class StrategyService {
      */
     @Transactional
     public Map<String, Long> register(StrategyPayloadDto strategyPayloadDto, String memberId) throws Exception {
+        //작성자 정보 가져오기, 확인
+        MemberEntity traderEntity = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("존재하지 않는 회원입니다."));
+
+
+        //등록 이력 시작
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
+
         //1. 전략 등록
         //전략 엔티티 생성
         StrategyEntity strategyEntity = new StrategyEntity();
@@ -353,7 +360,7 @@ public class StrategyService {
     }
 
     /**
-     * 2-3. 작성자 id로 필터링한 전략 목록을 반환(페이지네이션)
+     * 2-3. 작성자 id로 필터링한 전략 목록을 반환(페이지네이션) - 나의 전략
      *
      * @param traderId             작성한 트레이더 id
      * @param page                 현재 페이지
@@ -525,10 +532,20 @@ public class StrategyService {
         // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
-        //TODO)트레이더 정보 넣기
-        responseDto.setMemberId("1");
-        responseDto.setNickname("곽두팔");
-        responseDto.setProfilePath("트레이더프로필이미지");
+        //작성자 정보 넣기
+        memberRepository.findById(strategyEntity.getWriterId())
+                .ifPresentOrElse(
+                        memberEntity -> {
+                            responseDto.setMemberId(memberEntity.getMemberId());
+                            responseDto.setNickname(memberEntity.getNickname());
+                            responseDto.setProfilePath(memberEntity.getProfilePath());
+                        },
+                        () -> {
+                            responseDto.setMemberId(null);
+                            responseDto.setNickname(null);
+                            responseDto.setProfilePath(null);
+                        }
+                );
 
         // 최신 팔로워 수 조회
         Long followersCount = strategyRepo.findFollowersCountByStrategyId(id);
@@ -547,7 +564,6 @@ public class StrategyService {
                         }
                 );
 
-
         return responseDto;
     }
 
@@ -560,8 +576,11 @@ public class StrategyService {
      * 전략 이력 등록시작 -> 전략 관계 테이블 이력 등록 -> 전략 관계 테이블 삭제 -> 전략 삭제 -> 전략 이력 등록끝
      */
     @Transactional
-    public void deleteStrategy(Long id) {
-        //TODO) 관리자 or 작성한 트레이더 판별
+    public void deleteStrategy(Long id, String adminId) {
+        //작성자 있는지 확인
+        MemberEntity memberEntity = memberRepository.findById(adminId)
+                .orElseThrow(() -> new MemberNotFoundException("해당 회원이 존재하지 않습니다."));
+
         //1. 전략 이력 등록 시작
         //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
@@ -585,10 +604,8 @@ public class StrategyService {
         strategyHistoryEntity.setIsApproved(strategyEntity.getIsApproved());
         strategyHistoryEntity.setWritedAt(strategyEntity.getWritedAt());
         strategyHistoryEntity.setStrategyOverview(strategyEntity.getStrategyOverview());
-        //TODO) 삭제하는 사람 정보
-        strategyHistoryEntity.setUpdaterId("TestingTrader101");
+        strategyHistoryEntity.setUpdaterId(adminId);
         strategyHistoryEntity.setUpdatedAt(LocalDateTime.now());
-        //TODO) 종료일 기준
         strategyHistoryEntity.setExitDate(strategyEntity.getExitDate());
 
         //3. 전략 관계 테이블 이력 등록
@@ -676,6 +693,21 @@ public class StrategyService {
         // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
+        //작성자 정보 넣기
+        memberRepository.findById(strategyEntity.getWriterId())
+                .ifPresentOrElse(
+                        memberEntity -> {
+                            responseDto.setMemberId(memberEntity.getMemberId());
+                            responseDto.setNickname(memberEntity.getNickname());
+                            responseDto.setProfilePath(memberEntity.getProfilePath());
+                        },
+                        () -> {
+                            responseDto.setMemberId(null);
+                            responseDto.setNickname(null);
+                            responseDto.setProfilePath(null);
+                        }
+                );
+
         // 등록되어있는 제안서 정보
         strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
                 .ifPresentOrElse(
@@ -688,11 +720,6 @@ public class StrategyService {
                             responseDto.setStrategyProposalLink(null);
                         }
                 );
-
-        //TODO)트레이더 정보 넣기
-        responseDto.setMemberId("1");
-        responseDto.setNickname("곽두팔");
-        responseDto.setProfilePath("트레이더프로필이미지");
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("Data", responseDto);
@@ -711,14 +738,18 @@ public class StrategyService {
      * 생성자는 안바뀌고 수정자는 현재 수정자로 바뀐다.
      */
     @Transactional
-    public Map<String, Long> updateStrategy(Long id, StrategyPayloadDto strategyPayloadDto) {
+    public Map<String, Long> updateStrategy(String updaterId, Long strategyId, StrategyPayloadDto strategyPayloadDto) {
+        //수정자 정보 확인
+        MemberEntity memberEntity = memberRepository.findById(updaterId)
+                .orElseThrow(() -> new MemberNotFoundException("존재하지 않는 회원입니다."));
+
         //1. 전략 수정 이력 등록 시작
         //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
 
         //2. 전략의 id를 검색해서 유무 판별
-        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(
+        StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
 
         //2-1. 운용 종료된 전략은 수정불가
@@ -741,8 +772,7 @@ public class StrategyService {
         strategyEntity.setMinInvestmentAmount(strategyPayloadDto.getMinInvestmentAmount());
         strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
         strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
-        //TODO) 수정자 설정
-        strategyEntity.setUpdaterId("TestingTrader101");
+        strategyEntity.setUpdaterId(updaterId);
         strategyEntity.setUpdatedAt(LocalDateTime.now());
 
         //변경된 값으로 전략 저장
