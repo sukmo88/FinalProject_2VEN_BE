@@ -917,7 +917,9 @@ public class StrategyService {
     @Transactional
     public Map<String, Long> approvalRequest(Long strategyId, String applicantId){
         //승인 요청자 정보 가져오기
-        MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow();
+        MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow(
+                () -> new NoSuchElementException("해당 트레이더를 찾을 수 없습니다.")
+        );
 
         //승인 요청할 전략 정보 가져오기
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
@@ -927,11 +929,7 @@ public class StrategyService {
         //3개 미만이면 예외를 던진다.
         LocalDateTime createDatetime = strategyEntity.getWritedAt();
         LocalDate createDate = createDatetime.toLocalDate();
-        System.out.println("createDate = " + createDate);
-        System.out.println("dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) = " + dailyStatisticsRepository.countByDateBetween(createDate, LocalDate.now()));
-
         if(dailyStatisticsRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
-
             throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
         }
 
@@ -940,11 +938,17 @@ public class StrategyService {
             throw new StrategyAlreadyApprovedException("이미 승인받은 전략입니다.");
         }
 
+        //승인 요청중인 전략은 승인요청을 보낼 수 없다.
+        if(strategyEntity.getIsApproved().equals("P")){
+            throw new StrategyAlreadyApprovedException("승인 요청중인 전략입니다.");
+        }
+
         //새 요청 엔티티 생성
         StrategyApprovalRequestsEntity approvalRequestsEntity = new StrategyApprovalRequestsEntity();
 
         //요청 엔티티에 요청 정보 넣기
         approvalRequestsEntity.setRequestDatetime(LocalDateTime.now());
+        approvalRequestsEntity.setIsApproved("P"); //승인여부 결정안됐으니 P 설정
         approvalRequestsEntity.setStrategy(strategyEntity);
         approvalRequestsEntity.setIsPosted(strategyEntity.getIsPosted());
         approvalRequestsEntity.setApplicant(applicantEntity);
