@@ -46,16 +46,13 @@ public class MonthlyStatisticsHistoryEntity extends Auditable {
     private BigDecimal monthlyProfitLoss; // 월손익 - 해당 월의 일손익 합산
 
     @Column(name = "monthly_return", nullable = false, precision = 10, scale = 4)
-    private BigDecimal monthlyReturn; // 월 손익률 - 해당월 마지막 기준가 / 해당월 첫번째 기준가 -1
+    private BigDecimal monthlyReturn; // 월 손익률 - (해당월 마지막 기준가 - 저번달 마지막 기준가) / 저번달 마지막 기준가
 
     @Column(name = "monthly_cumulative_profit_loss", nullable = false, precision = 19, scale = 4)
     private BigDecimal monthlyCumulativeProfitLoss; // 월누적손익 - 해당월까지의 일손익 합산
 
     @Column(name = "monthly_cumulative_return", nullable = false, precision = 10, scale = 4)
     private BigDecimal monthlyCumulativeReturn; // 월누적손익률(%) - 해당월 마지막 기준가 / 1000 - 1
-
-    @Column(name = "monthly_average_balance", nullable = false, precision = 19, scale = 4)
-    private BigDecimal monthlyAvgBalance; // 월평균 잔고 - 해당 월의 잔고들의 평균값
 
     @Column(name = "change_start_date", nullable = false)
     private LocalDateTime changeStartDate; // 변경시작일시
