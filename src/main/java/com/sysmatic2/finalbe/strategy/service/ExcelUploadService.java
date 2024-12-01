@@ -2,6 +2,10 @@ package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.exception.ExcelValidationException;
+import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
+import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -20,8 +24,42 @@ import java.util.*;
 public class ExcelUploadService {
 
   private final Validator validator;
+  private final StrategyRepository strategyRepository;
+  private final DailyStatisticsRepository dailyStatisticsRepository;
   private static final int MAX_ROWS = 2000;
   private static final int EXPECTED_COLUMNS = 3;
+
+  /**
+   * 엑셀 파일의 데이터를 추출 및 저장
+   *
+   * @param file       업로드된 엑셀 파일
+   * @param strategyId 전략 ID
+   * @return 추출된 DailyStatisticsReqDto 리스트
+   */
+  public List<DailyStatisticsReqDto> extractAndSaveData(MultipartFile file, Long strategyId) {
+    // 1. 엑셀 데이터 추출
+    List<DailyStatisticsReqDto> dataList = extractAndValidateData(file);
+
+    // 2. StrategyEntity 조회
+    StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid strategyId: " + strategyId));
+
+    // 3. DailyStatisticsEntity로 변환 및 저장
+    List<DailyStatisticsEntity> entities = new ArrayList<>();
+    for (DailyStatisticsReqDto dto : dataList) {
+      DailyStatisticsEntity entity = new DailyStatisticsEntity();
+      entity.setStrategyEntity(strategyEntity);
+      entity.setDate(dto.getDate());
+      entity.setDepWdPrice(dto.getDepWdPrice());
+      entity.setDailyProfitLoss(dto.getDailyProfitLoss());
+      // 필요한 다른 필드들도 설정
+      entities.add(entity);
+    }
+
+    dailyStatisticsRepository.saveAll(entities);
+
+    return dataList; // 저장된 데이터를 반환
+  }
 
   /**
    * 엑셀 파일의 데이터를 추출 및 유효성 검증
@@ -71,11 +109,6 @@ public class ExcelUploadService {
           throw new ExcelValidationException("중복된 날짜가 발견되었습니다: " + dto.getDate() + " (행 " + firstRowNumber + ", " + rowNumber + ")");
         }
         dateMap.put(dto.getDate(), rowNumber);
-
-        // 금액 유효성 검사
-        // depWdPrice는 음수를 허용함 (양수: 입금, 음수: 출금)
-        // dailyProfitLoss는 음수를 허용함 (양수: 이익, 음수: 손실)
-        // 추가적인 검증 로직이 필요하면 여기에 추가
 
         // Bean Validation을 사용한 추가 검증
         validateDto(dto, rowNumber);
