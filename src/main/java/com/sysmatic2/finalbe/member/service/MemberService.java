@@ -8,7 +8,6 @@ import com.sysmatic2.finalbe.member.enums.TermType;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.common.DtoEntityConversion;
-import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

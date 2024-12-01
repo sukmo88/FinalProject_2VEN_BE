@@ -3,7 +3,7 @@ package com.sysmatic2.finalbe.attachment.service;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
-import com.sysmatic2.finalbe.exception.MetadataNotFoundException;
+import com.sysmatic2.finalbe.exception.FileMetadataNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +26,7 @@ public class IconService {
         String uploaderId = "admin";
 
         // 새로운 아이콘 등록
-        return fileService.uploadFile(file, uploaderId, category, null);
+        return fileService.uploadFile(file, uploaderId, category, null, category);
     }
 
     /**
@@ -60,7 +60,7 @@ public class IconService {
 
         // existingMetadataDto가 없으면 커스텀 예외 처리
         if (existingMetadataDto == null) {
-            throw new MetadataNotFoundException("Metadata not found for filePath: " + filePath);
+            throw new FileMetadataNotFoundException("Metadata not found for filePath: " + filePath);
         }
 
         // 제안서 메타데이터 초기화 및 S3 파일 삭제

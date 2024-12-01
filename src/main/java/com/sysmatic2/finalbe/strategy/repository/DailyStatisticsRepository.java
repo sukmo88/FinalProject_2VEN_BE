@@ -303,6 +303,7 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     Page<Long> findStrategyIdsWithoutDailyStatistics(@Param("date") LocalDate date, Pageable pageable);
 
     /**
+<<<<<<< HEAD
      * 특정 전략 ID와 연도, 월에 해당하는 모든 원금을 조회하는 메서드.
      *
      * - 일간 분석 데이터(DailyStatisticsEntity) 테이블에서 특정 전략 ID에 대한 데이터만 조회합니다.
@@ -389,4 +390,14 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
             @Param("month") int month,
             Pageable pageable
     );
+
+     /**
+     * 시작일과 종료일 사이의 엔티티 갯수 반환
+     *
+     * @param startDate 조회 시작일
+     * @param endDate 조회 종료일
+     * @return 엔티티 갯수
+     */
+    //시작일과 종료일 사이의 엔티티 갯수 반환
+    Long countByDateBetween(LocalDate startDate, LocalDate endDate);
 }
