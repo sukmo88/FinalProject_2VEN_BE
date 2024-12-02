@@ -21,4 +21,6 @@ public class AdvancedSearchResultDto {
 
     private BigDecimal smScore;                  //sm-score - strategy
     private Long followersCount;                 // 팔로워 수 - strategy
+
+    private List<Double> cumulativeProfitLossRateList; // 누적 수익률 전체 데이터 - dailystatistics
 }

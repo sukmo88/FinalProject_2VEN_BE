@@ -26,7 +26,6 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -85,15 +84,16 @@ public class StrategyController {
     /**
      * 3. 필터 조건에 따라 전략 목록 반환 (페이징 포함) - 랭킹
      *
-     * @param tradingCycleId 투자주기 ID (nullable)
+     * @param tradingCycleId           투자주기 ID (nullable)
      * @param investmentAssetClassesId 투자자산 분류 ID (nullable)
-     * @param page 현재 페이지 번호 (0부터 시작)
-     * @param pageSize 페이지당 데이터 개수
+     * @param page                     현재 페이지 번호 (0부터 시작)
+     * @param pageSize                 페이지당 데이터 개수
      * @return 필터링된 전략 목록 및 페이징 정보를 포함한 Map 객체
      */
     @GetMapping
     @Operation(summary = "필터 조건으로 전략 목록 조회 - 전략 랭킹",
-            description = "투자주기와 투자자산 분류로 전략을 필터링하여 조회합니다. 페이징을 지원합니다.")
+            description = "투자주기와 투자자산 분류로 전략을 필터링하여 조회합니다. 페이징을 지원합니다. " +
+                    "각 전략에 대해 누적 손익률, 최근 1년 손익률, 최대 자본 인하율(MDD)을 포함한 상세 정보를 제공합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "전략 목록 조회 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 입력 값"),
@@ -105,9 +105,12 @@ public class StrategyController {
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "30") @Min(1) int pageSize) {
 
+        // 1. 서비스 메서드 호출
+        // 필터 조건 및 페이징 정보를 전달하여 전략 목록 데이터를 가져옴
         Map<String, Object> response = strategyService.getStrategies(tradingCycleId, investmentAssetClassesId, page, pageSize);
 
-        // 200 OK 응답과 함께 반환
+        // 2. 응답 데이터 반환
+        // 200 OK 응답과 함께 결과 데이터를 반환
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
