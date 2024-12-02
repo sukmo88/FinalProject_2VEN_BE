@@ -158,7 +158,7 @@ public class DailyStatisticsEntity extends Auditable {
     @Column(name = "average_profit_loss_ratio", nullable = false, precision = 10, scale = 4)
     private BigDecimal averageProfitLossRatio; // 평균손익비 - 평균이익 / 평균손실(절대값)
 
-    @Column(name = "coefficient_of_variation", nullable = false, precision = 10, scale = 4)
+    @Column(name = "coefficient_of_variation", nullable = false, precision = 15, scale = 6)
     private BigDecimal coefficientOfVariation; // 변동계수 - 기준일까지의 일손익 표준편차 / 기준일 평균손익 * 100
 
     @Column(name = "sharp_ratio", nullable = false, precision = 10, scale = 4)
