@@ -5,6 +5,7 @@ import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
+import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.MonthlyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.StrategyService;
@@ -42,6 +43,7 @@ public class StrategyController {
     private final MonthlyStatisticsService monthlyStatisticsService;
     private final AuditorAwareImpl auditorAware;
     private final MemberRepository memberRepository;
+    private final StrategyRepository strategyRepository;
 
     // 1. 전략 생성페이지(GET)
     @Operation(summary = "전략 생성페이지 필요 정보")
@@ -120,6 +122,20 @@ public class StrategyController {
         // 2. 응답 데이터 반환
         // 200 OK 응답과 함께 결과 데이터를 반환
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
+     * 3. 승인 받은 전략의 갯수를 반환 - 메인페이지
+     *
+     * @return 승인 받은 전략의 갯수
+     */
+    @GetMapping(value = "approved-count", produces = "application/json")
+    public ResponseEntity<Map<String, Long>> approvedCount() throws Exception {
+        Long approvedCnt = strategyRepository.countByIsApproved("Y");
+        Map<String, Long> responseMap = new HashMap<>();
+        responseMap.put("strategyCnt", approvedCnt);
+
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
 
     // 4. 전략 상세
