@@ -16,4 +16,6 @@ public interface FileMetadataRepository extends JpaRepository<FileMetadata, Long
     Optional<FileMetadata> findByFileCategoryItemId(String strategyId);
 
     List<FileMetadata> findAllByFileCategoryItemId(String strategyId);
+
+    List<FileMetadata> findAllByFilePathIn(List<String> filePaths);
 }
