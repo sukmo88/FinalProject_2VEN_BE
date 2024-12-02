@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.ConstraintViolation;
@@ -25,40 +26,48 @@ public class ExcelUploadService {
 
   private final Validator validator;
   private final StrategyRepository strategyRepository;
+  private final DailyStatisticsService dailyStatisticsService;
   private final DailyStatisticsRepository dailyStatisticsRepository;
   private static final int MAX_ROWS = 2000;
   private static final int EXPECTED_COLUMNS = 3;
+
 
   /**
    * 엑셀 파일의 데이터를 추출 및 저장
    *
    * @param file       업로드된 엑셀 파일
    * @param strategyId 전략 ID
-   * @return 추출된 DailyStatisticsReqDto 리스트
+   * @return 저장된 DailyStatisticsEntity 리스트
    */
-  public List<DailyStatisticsReqDto> extractAndSaveData(MultipartFile file, Long strategyId) {
-    // 1. 엑셀 데이터 추출
-    List<DailyStatisticsReqDto> dataList = extractAndValidateData(file);
-
-    // 2. StrategyEntity 조회
-    StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid strategyId: " + strategyId));
-
-    // 3. DailyStatisticsEntity로 변환 및 저장
-    List<DailyStatisticsEntity> entities = new ArrayList<>();
-    for (DailyStatisticsReqDto dto : dataList) {
-      DailyStatisticsEntity entity = new DailyStatisticsEntity();
-      entity.setStrategyEntity(strategyEntity);
-      entity.setDate(dto.getDate());
-      entity.setDepWdPrice(dto.getDepWdPrice());
-      entity.setDailyProfitLoss(dto.getDailyProfitLoss());
-      // 필요한 다른 필드들도 설정
-      entities.add(entity);
+  @Transactional
+  public List<DailyStatisticsEntity> extractAndSaveData(MultipartFile file, Long strategyId) {
+    // 1. 전략 ID 유효성 검증
+    if (strategyId == null) {
+      throw new IllegalArgumentException("Strategy ID는 null일 수 없습니다.");
     }
 
-    dailyStatisticsRepository.saveAll(entities);
+    // 전략 존재 여부 확인
+    if (!strategyRepository.existsById(strategyId)) {
+      throw new IllegalArgumentException("유효하지 않은 전략 ID입니다: " + strategyId);
+    }
 
-    return dataList; // 저장된 데이터를 반환
+    // 2. 엑셀 데이터 추출 및 검증
+    List<DailyStatisticsReqDto> dataList = extractAndValidateData(file);
+
+    // 3. 각 데이터에 대해 DailyStatisticsService를 사용하여 계산 및 등록
+    List<DailyStatisticsEntity> savedEntities = new ArrayList<>();
+    for (DailyStatisticsReqDto dto : dataList) {
+      // DailyStatisticsService를 통해 데이터 등록 (반환값 없음)
+      dailyStatisticsService.registerDailyStatistics(strategyId, dto);
+
+      // 등록한 날짜와 전략 ID를 기준으로 저장된 엔티티 조회
+      DailyStatisticsEntity entity = dailyStatisticsRepository.findByStrategyIdAndDate(strategyId, dto.getDate())
+              .orElseThrow(() -> new IllegalStateException("Failed to save DailyStatisticsEntity for date " + dto.getDate()));
+
+      savedEntities.add(entity);
+    }
+
+    return savedEntities; // 저장된 엔티티 리스트를 반환
   }
 
   /**
