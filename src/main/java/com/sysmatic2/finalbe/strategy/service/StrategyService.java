@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -949,13 +950,22 @@ public class StrategyService {
         strategyHistoryRepo.save(strategyHistoryEntity);
 
         // 10. 제안서 수정 (sbwoo)
-        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니면, 제안서 등록
+        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니고, 링크의 변화가 있다면 제안서 등록
         if (strategyPayloadDto.getStrategyProposalLink() != null) {
-            // file이 업로드 되어 있는 링크라면,
-            if(fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+
+            // 파일이 업로드 되어 있는 링크라면
+            if (fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+
+                Optional<StrategyProposalEntity> existingProposal = strategyProposalRepository.findByStrategy(strategyEntity);
+
                 // strategyProposal이 있으면 수정
-                if (strategyProposalRepository.findByStrategy(strategyEntity).isPresent()) {
-                    strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                if (existingProposal.isPresent()) {
+                    String existingFileLink = existingProposal.get().getFileLink();
+
+                    // 기존 파일 링크와 같으면 수정하지 않음
+                    if (!existingFileLink.equals(strategyPayloadDto.getStrategyProposalLink())) {
+                        strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                    }
                 } else {
                     // 없으면 새로 등록
                     strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
@@ -963,6 +973,7 @@ public class StrategyService {
             } else { // 잘못된 링크를 보내주면 에러 메시지
                 throw new FileMetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
             }
+
         } else { // link 로 null 값이 들어오면,
             // 기존 strategyProposal이 있으면, strategyProposal 삭제
             if(strategyProposalRepository.findByStrategy(strategyEntity).isPresent()){
@@ -1119,8 +1130,9 @@ public class StrategyService {
         return responseMap;
     }
 
+    // 8. 해당 전략의 팔로워수 증가
     /**
-     * 특정 전략과 관련된 DailyStatistics 및 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
+     * 특정 전략과 관련된 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
      *
      * @param strategyId FollowersCount를 증가시킬 전략의 ID
      */
@@ -1133,6 +1145,31 @@ public class StrategyService {
 
         // 3. 변경 사항 저장
         strategyRepo.save(strategy); // StrategyEntity 저장
+    }
+
+    // 9. 전략 상세 차트 옵션 2개 조회
+    /**
+     * 특정 전략 ID에 대한 선택된 데이터 옵션을 날짜순으로 조회
+     *
+     * @param strategyId 전략 ID
+     * @param option1 첫 번째 데이터 옵션 (예: "referencePrice", "balance" 등)
+     * @param option2 두 번째 데이터 옵션 (예: "dailyProfitLoss", "cumulativeProfitLoss" 등)
+     * @return DailyStatisticsChartResponseDto (전략 차트 데이터와 타임스탬프)
+     */
+    public DailyStatisticsChartResponseDto getStrategyChartDetails(Long strategyId, String option1, String option2) {
+        // Repository에서 데이터를 조회하여 Map 형태로 반환
+        Map<String, List<?>> chartData = strategyRepo.findChartDataByOptions(strategyId, option1, option2);
+
+        // 반환된 데이터가 null 또는 비어 있을 경우 예외 처리
+        if (chartData == null || chartData.isEmpty()) {
+            throw new IllegalArgumentException("요청하신 데이터가 존재하지 않습니다. 전략 ID: " + strategyId);
+        }
+
+        // 현재 UTC 시간 추가
+        String timestamp = Instant.now().toString();
+
+        // DTO 생성 및 반환
+        return new DailyStatisticsChartResponseDto(chartData, timestamp);
     }
 
     /**
