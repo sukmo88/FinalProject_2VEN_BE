@@ -28,7 +28,6 @@ public class LiveAccountDataController {
      *
      * @param file         등록할 이미지 파일
      * @param strategyId   전략 ID
-     * @param displayName  파일 이름 (등록 날짜 형식: yyyy.MM.dd)
      * @param userDetails   업로더 ID (JWT 또는 인증정보에서 추출)
      * @return 등록된 실계좌 이미지 정보
      */
@@ -36,11 +35,10 @@ public class LiveAccountDataController {
     public ResponseEntity<LiveAccountDataResponseDto> uploadLiveAccountData(
             @RequestParam("file") MultipartFile file,
             @PathVariable Long strategyId,
-            @RequestParam String displayName,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // 서비스 호출
-        LiveAccountDataResponseDto response = liveAccountDataService.uploadLiveAccountData(file, userDetails.getMemberId(), strategyId, displayName);
+        LiveAccountDataResponseDto response = liveAccountDataService.uploadLiveAccountData(file, userDetails.getMemberId(), strategyId);
 
         // 응답 반환
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
