@@ -43,7 +43,7 @@ public class FollowingStrategyFolderEntity extends Auditable {
     @Column(name = "folder_order")
     private Integer folderOrder;
 
-    @OneToMany(mappedBy = "followingStrategyFolder")
+    @OneToMany(mappedBy = "followingStrategyFolder", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<FollowingStrategyEntity> followingStrategyList = new ArrayList<>();
 
 }
