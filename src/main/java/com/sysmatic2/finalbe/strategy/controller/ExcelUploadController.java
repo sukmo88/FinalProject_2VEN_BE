@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
+import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.service.ExcelUploadService;
 import com.sysmatic2.finalbe.exception.ExcelValidationException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -43,13 +45,22 @@ public class ExcelUploadController {
           @PathVariable Long strategyId,
           @RequestParam("file") MultipartFile file) {
     try {
-      // 엑셀 파일에서 데이터를 추출하고 저장
-      List<DailyStatisticsReqDto> result = excelUploadService.extractAndSaveData(file, strategyId);
+      // 엑셀 파일에서 데이터를 추출하고 저장 (엔티티 리스트 반환)
+      List<DailyStatisticsEntity> entities = excelUploadService.extractAndSaveData(file, strategyId);
+
+      // 엔티티 리스트를 DTO 리스트로 변환
+      List<DailyStatisticsReqDto> dtos = entities.stream()
+              .map(entity -> DailyStatisticsReqDto.builder()
+                      .date(entity.getDate())
+                      .depWdPrice(entity.getDepWdPrice())
+                      .dailyProfitLoss(entity.getDailyProfitLoss())
+                      .build())
+              .collect(Collectors.toList());
 
       // 성공적인 응답
       return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
               "msg", "CREATE_SUCCESS",
-              "data", result
+              "data", dtos
       ));
 
     } catch (ExcelValidationException e) {
