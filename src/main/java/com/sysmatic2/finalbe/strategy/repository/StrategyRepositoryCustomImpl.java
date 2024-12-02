@@ -1,9 +1,13 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.sysmatic2.finalbe.exception.InvalidFieldNameException;
+import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsChartResponseDto;
 import com.sysmatic2.finalbe.strategy.dto.SearchOptionsDto;
 import com.sysmatic2.finalbe.strategy.entity.QDailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.QStrategyEntity;
@@ -21,7 +25,9 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -62,11 +68,12 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         long total = queryFactory
                 .select(strategy.count())
                 .from(strategy)
-                .leftJoin(strategy.tradingCycleEntity, tradingCycle)
-                .leftJoin(strategy.tradingTypeEntity, tradingType)
                 .where(
                         tradingCycleId != null ? tradingCycle.tradingCycleId.eq(tradingCycleId) : null,
-                        investmentAssetClassesId != null ? strategy.strategyIACEntities.any().investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null
+                        investmentAssetClassesId != null ? strategy.strategyIACEntities.any().investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null,
+                        strategy.isPosted.eq("Y"),
+                        //TODO)Y로 변경
+                        strategy.isApproved.eq("N")
                 )
                 .fetchOne();
 
@@ -85,7 +92,6 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                 )
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .distinct()
                 .fetch();
 
         if(strategyEntities.isEmpty()) {
@@ -310,6 +316,67 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         }
 
         return new PageImpl<>(strategyEntities, pageable, resultCnt);
+    }
+
+    /**
+     * 특정 전략 ID와 두 가지 데이터 옵션에 해당하는 값을 날짜순으로 조회
+     *
+     * @param strategyId 전략 ID
+     * @param option1 첫 번째 데이터 옵션 (조회할 컬럼 이름)
+     * @param option2 두 번째 데이터 옵션 (조회할 컬럼 이름)
+     * @return Map<String, List<?>> (선택된 데이터 옵션 이름과 값 리스트)
+     */
+    @Override
+    public Map<String, List<?>> findChartDataByOptions(Long strategyId, String option1, String option2) {
+        QDailyStatisticsEntity dailyStatistics = QDailyStatisticsEntity.dailyStatisticsEntity;
+
+        // 유효한 필드 이름 목록
+        List<String> validFields = List.of(
+                "referencePrice", "balance", "principal", "cumulativeDepWdPrice",
+                "depWdPrice", "dailyProfitLoss", "dailyPlRate", "cumulativeProfitLoss",
+                "cumulativeProfitLossRate", "currentDrawdownAmount", "currentDrawdownRate",
+                "averageProfitLoss", "averageProfitLossRate", "winRate", "profitFactor",
+                "roa", "totalProfit", "totalLoss"
+        );
+
+        // 필드 검증
+        if (!validFields.contains(option1)) {
+            throw new InvalidFieldNameException("Invalid field name for option1: " + option1);
+        }
+        if (!validFields.contains(option2)) {
+            throw new InvalidFieldNameException("Invalid field name for option2: " + option2);
+        }
+
+        // 동적으로 PathBuilder를 사용하여 컬럼 선택
+        PathBuilder<Object> dailyStatisticsPath = new PathBuilder<>(Object.class, dailyStatistics.getMetadata());
+
+        Expression<Object> column1 = dailyStatisticsPath.get(option1, Object.class);
+
+        // 중복 여부에 따라 동일한 컬럼만 조회
+        List<Object> option1Values = queryFactory
+                .select(column1)
+                .from(dailyStatistics)
+                .where(dailyStatistics.strategyEntity.strategyId.eq(strategyId))
+                .orderBy(dailyStatistics.date.asc())
+                .fetch();
+
+        Map<String, List<?>> result = new HashMap<>();
+        result.put(option1, option1Values);
+
+        // 두 옵션이 다르면 두 번째 데이터 추가
+        if (!option1.equals(option2)) {
+            Expression<Object> column2 = dailyStatisticsPath.get(option2, Object.class);
+            List<Object> option2Values = queryFactory
+                    .select(column2)
+                    .from(dailyStatistics)
+                    .where(dailyStatistics.strategyEntity.strategyId.eq(strategyId))
+                    .orderBy(dailyStatistics.date.asc())
+                    .fetch();
+
+            result.put(option2, option2Values);
+        }
+
+        return result;
     }
 }
 
