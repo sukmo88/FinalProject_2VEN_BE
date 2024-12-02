@@ -23,7 +23,7 @@ public class FileService {
      * 파일 업로드
      */
     @Transactional
-    public FileMetadataDto uploadFile(MultipartFile file, String uploaderId, String category, String fileCategoryItemId, String displayName) {
+    public FileMetadataDto uploadFile(MultipartFile file, String uploaderId, String category, String fileCategoryItemId) {
         // 1. 파일 검증
         FileValidator.validateFile(file, category);
 
@@ -46,16 +46,11 @@ public class FileService {
             metadata.setFileName(uniqueFileName);
             metadata.setFilePath(fileUrl);
             metadata.setFileSize(file.getSize());
+            metadata.setDisplayName(file.getOriginalFilename());
             metadata.setContentType(file.getContentType());
             metadata.setFileCategory(category);
             metadata.setUploaderId(uploaderId);
 
-            // 실계좌인증인 경우, 전달받은 displayName 사용
-            if("liveaccount".equals(category)) {
-                metadata.setDisplayName(displayName);
-            } else {
-                metadata.setDisplayName(file.getOriginalFilename());
-            }
 
             // 카테고리 아이템 Id가 있는 경우,
             if (fileCategoryItemId != null) {
