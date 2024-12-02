@@ -400,4 +400,15 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
      */
     //시작일과 종료일 사이의 엔티티 갯수 반환
     Long countByDateBetween(LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 특정 전략 ID에 대한 누적수익률 데이터를 날짜 오름차순으로 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @return 날짜 오름차순으로 정렬된 누적수익률 리스트
+     */
+    @Query("SELECT d.cumulativeProfitLossRate FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date ASC")
+    List<Double> findCumulativeProfitLossRateByStrategyIdOrderByDate(Long strategyId);
 }
