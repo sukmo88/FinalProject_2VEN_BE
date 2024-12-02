@@ -60,9 +60,9 @@ public class ProfileService {
     /**
      * 프로필 url 조회
      */
-    public FileMetadataDto getProfileUrl(String uploaderId) {
+    public Optional<FileMetadataDto> getProfileUrl(String uploaderId) {
 
-        return fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile");
+        return Optional.ofNullable(fileService.getFileMetadataByUploaderIdAndCategory(uploaderId, "profile"));
     }
 
 }

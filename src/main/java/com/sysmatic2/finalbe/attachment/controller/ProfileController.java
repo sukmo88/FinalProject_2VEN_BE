@@ -10,7 +10,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/files/profile")
@@ -75,19 +77,23 @@ public class ProfileController {
      * @return 파일 메타데이터
      */
     @GetMapping("/{memberId}")
-    public ResponseEntity<?> getProfileUrl(@PathVariable String memberId) {
+    public ResponseEntity<Map<String, Object>> getProfileUrl(@PathVariable String memberId) {
 
 //        // uploaderId 추출 (로그인한 사람)
 //        String uploaderId = userDetails.getMemberId();
 
-        FileMetadataDto fileMetadataDto = profileService.getProfileUrl(memberId);
+        // 프로필 메타데이터 조회
+        Optional<FileMetadataDto> fileMetadataDto = profileService.getProfileUrl(memberId);
 
-        return ResponseEntity.ok(Map.of(
-                "fileUrl", fileMetadataDto.getFilePath(),
-                "displayName", fileMetadataDto.getDisplayName(),
-                "category", fileMetadataDto.getFileCategory(),
-                "message", "File url retrieved successfully"
-        ));
+        // 응답 데이터 생성
+        Map<String, Object> response = new HashMap<>();
+        response.put("fileId", fileMetadataDto.map(FileMetadataDto::getId).orElse(null));
+        response.put("fileUrl", fileMetadataDto.map(FileMetadataDto::getFilePath).orElse(null));
+        response.put("displayName", fileMetadataDto.map(FileMetadataDto::getDisplayName).orElse("No display name"));
+        response.put("category", fileMetadataDto.map(FileMetadataDto::getFileCategory).orElse("No category"));
+        response.put("message", fileMetadataDto.isPresent() ? "File URL retrieved successfully" : "No profile URL found");
+
+        return ResponseEntity.ok(response);
 
     }
 
