@@ -3,15 +3,14 @@ package com.sysmatic2.finalbe.attachment.service;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.entity.FileMetadata;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
+import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.util.FileValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Base64;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,16 +23,17 @@ public class FileService {
      * 파일 업로드
      */
     @Transactional
-    public FileMetadataDto uploadFile(MultipartFile file, String uploaderId, String category, String fileCategoryItemId) {
-        // 파일 검증
+    public FileMetadataDto uploadFile(MultipartFile file, String uploaderId, String category, String fileCategoryItemId, String displayName) {
+        // 1. 파일 검증
         FileValidator.validateFile(file, category);
 
-        // 고유 파일 이름 및 S3 키 생성
-        String originalFileName = file.getOriginalFilename() != null && !file.getOriginalFilename().isBlank()
+        // 2. 고유 파일 이름 및 S3 키 생성
+        String originalFileName = (file.getOriginalFilename() != null && !file.getOriginalFilename().isBlank())
                 ? file.getOriginalFilename() : "Unknown-File";
         String uniqueFileName = s3ClientService.generateUniqueFileName(originalFileName);
         String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
 
+        // 3. S3 업로드 및 FileMetadata 데이터 생성
         // 파일 URL 초기화
         String fileUrl = null;
 
@@ -43,7 +43,6 @@ public class FileService {
 
             // 새로운 파일 메타데이터 생성
             FileMetadata metadata = new FileMetadata();
-            metadata.setDisplayName(file.getOriginalFilename());
             metadata.setFileName(uniqueFileName);
             metadata.setFilePath(fileUrl);
             metadata.setFileSize(file.getSize());
@@ -51,11 +50,19 @@ public class FileService {
             metadata.setFileCategory(category);
             metadata.setUploaderId(uploaderId);
 
+            // 실계좌인증인 경우, 전달받은 displayName 사용
+            if("liveaccount".equals(category)) {
+                metadata.setDisplayName(displayName);
+            } else {
+                metadata.setDisplayName(file.getOriginalFilename());
+            }
+
+            // 카테고리 아이템 Id가 있는 경우,
             if (fileCategoryItemId != null) {
                 metadata.setFileCategoryItemId(fileCategoryItemId);
             }
 
-            // DB 저장
+            // FileMetadata 저장
             FileMetadata savedMetadata = fileMetadataRepository.save(metadata);
 
             // DTO로 변환 후 반환
@@ -66,7 +73,7 @@ public class FileService {
             if (fileUrl != null) {
                 s3ClientService.deleteFile(s3Key);
             }
-            throw new RuntimeException("Failed to upload file: " + e.getMessage(), e);
+            throw new S3FileUploadFiledException("Failed to upload file to S3: " + e.getMessage());
         }
     }
 
@@ -81,14 +88,14 @@ public class FileService {
 
         // 기존 메타데이터 조회
         FileMetadata metadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new IllegalArgumentException("File metadata not found for ID: " + fileId));
+                .orElseThrow(() -> new FileMetadataNotFoundException("File metadata not found for ID: " + fileId));
 
         // 권한 및 카테고리 검증
         if (!metadata.getUploaderId().equals(uploaderId)) {
-            throw new SecurityException("Unauthorized to modify this file.");
+            throw new UnauthorizedAccessException("User does not have access to uploader ID: " + uploaderId);
         }
         if (!metadata.getFileCategory().equals(category)) {
-            throw new IllegalArgumentException("Invalid category for the file.");
+            throw new InvalidCategoryException("Invalid category provided: " + category);
         }
 
         // 고유 파일 이름 및 S3 키 생성
@@ -123,7 +130,7 @@ public class FileService {
         } catch (Exception e) {
             // S3 업로드 성공 후 메타데이터 저장 실패 시 S3에서 삭제
             s3ClientService.deleteFile(s3Key);
-            throw new RuntimeException("Failed to modify file metadata or upload file: " + e.getMessage(), e);
+            throw new S3FileUploadFiledException("Failed to upload file to S3: " + e.getMessage());
         }
     }
 
@@ -143,7 +150,7 @@ public class FileService {
             try {
                 s3ClientService.deleteFile(s3Key);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to delete file from S3: " + e.getMessage(), e);
+                throw new S3FileDeleteFiledException("Failed to delete file from S3: " + e.getMessage(), e);
             }
         }
 
@@ -152,7 +159,7 @@ public class FileService {
             try {
                 fileMetadataRepository.delete(metadata);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to delete file metadata from database: " + e.getMessage(), e);
+                throw new FileMetadataDeleteFailedException("Failed to delete file metadata from database: " + e.getMessage(), e);
             }
         }
     }
@@ -222,7 +229,7 @@ public class FileService {
     public FileMetadata validateFileAccess(Long fileId, String uploaderId, String category) {
         // Check if the file exists
         FileMetadata metadata = fileMetadataRepository.findById(fileId)
-                .orElseThrow(() -> new IllegalArgumentException("The file does not exist."));
+                .orElseThrow(() -> new FileMetadataNotFoundException("The file does not exist fileId : " + fileId));
 
         // Validate uploader ID
         if (!metadata.getUploaderId().equals(uploaderId)) {

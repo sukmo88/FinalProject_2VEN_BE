@@ -26,6 +26,9 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     // 전략 상태 코드로 조회
     //List<StrategyEntity> findByStrategyStatusCode(String strategyStatusCode);
 
+    // 승인된 전략의 갯수 조회
+    Long countByIsApproved(String isApproved);
+
     // 작성일을 기준으로 전략 정렬 조회
     List<StrategyEntity> findByOrderByWritedAtDesc();
 
@@ -112,4 +115,7 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     @Query("SELECT new com.sysmatic2.finalbe.strategy.dto.StrategySmScoreDto(s.strategyId, s.smScore) " +
             "FROM StrategyEntity s ORDER BY s.strategyId ASC")
     Page<StrategySmScoreDto> findAllStrategySmScores(Pageable pageable);
+
+    // 전략 작성자 id로 전략 목록 전체 조회
+    List<StrategyEntity> findAllByWriterId(String writerId);
 }

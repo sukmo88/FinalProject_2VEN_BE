@@ -8,14 +8,13 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class StatisticsCalculator {
-    private StatisticsCalculator() {
+public class DailyStatisticsCalculator {
+    private DailyStatisticsCalculator() {
         // 유틸리티 클래스는 인스턴스화 금지
     }
 

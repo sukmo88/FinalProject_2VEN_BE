@@ -92,18 +92,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 500: 일반적인 예외 처리
-    @ExceptionHandler({Exception.class})
-    public ResponseEntity<Object> handleGeneralException(Exception ex) {
-        logger.error("Unhandled exception occurred: ", ex);
-        return ResponseUtils.buildErrorResponse(
-                "INTERNAL_SERVER_ERROR",
-                ex.getClass().getSimpleName(),
-                "알 수 없는 오류가 발생했습니다.",
-                HttpStatus.INTERNAL_SERVER_ERROR
-        );
-    }
-
     // 500: 이메일 전송 실패
     @ExceptionHandler(MailException.class)
     public ResponseEntity<Object> handleMailException(MailException ex) {
@@ -271,7 +259,7 @@ public class GlobalExceptionHandler {
         return ResponseUtils.buildErrorResponse(
                 "NOT_FOUND",
                 ex.getClass().getSimpleName(),
-                "해당되는 데이터를 찾을 수 없습니다.",
+                ex.getMessage(),
                 HttpStatus.NOT_FOUND
         );
     }
@@ -351,4 +339,26 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(InvalidFieldNameException.class)
+    public ResponseEntity<Object> handleInvalidFieldNameException(InvalidFieldNameException ex) {
+        logger.warn("Invalid field name: {}", ex.getMessage());
+        return ResponseUtils.buildErrorResponse(
+                "BAD_REQUEST",
+                ex.getClass().getSimpleName(),
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    // 500: 일반적인 예외 처리
+    @ExceptionHandler({Exception.class})
+    public ResponseEntity<Object> handleGeneralException(Exception ex) {
+        logger.error("Unhandled exception occurred: ", ex);
+        return ResponseUtils.buildErrorResponse(
+                "INTERNAL_SERVER_ERROR",
+                ex.getClass().getSimpleName(),
+                "알 수 없는 오류가 발생했습니다.",
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
 }
