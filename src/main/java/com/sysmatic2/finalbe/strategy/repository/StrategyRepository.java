@@ -115,4 +115,7 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     @Query("SELECT new com.sysmatic2.finalbe.strategy.dto.StrategySmScoreDto(s.strategyId, s.smScore) " +
             "FROM StrategyEntity s ORDER BY s.strategyId ASC")
     Page<StrategySmScoreDto> findAllStrategySmScores(Pageable pageable);
+
+    // 전략 작성자 id로 전략 목록 전체 조회
+    List<StrategyEntity> findAllByWriterId(String writerId);
 }
