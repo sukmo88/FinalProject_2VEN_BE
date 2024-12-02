@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -55,6 +56,8 @@ public class StrategyService {
     private final StrategyProposalRepository strategyProposalRepository;
     private final StrategyProposalService strategyProposalService;
     private final FileService fileService;
+    private final LiveAccountDataService liveAccountDataService;
+    private final LiveAccountDataRepository liveAccountDataRepository;
 
     //1. 전략 생성
     /**
@@ -87,8 +90,15 @@ public class StrategyService {
      */
     @Transactional
     public Map<String, Long> register(StrategyPayloadDto strategyPayloadDto, String memberId) throws Exception {
+        //작성자 정보 가져오기, 확인
+        MemberEntity traderEntity = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("존재하지 않는 회원입니다."));
+
+
+        //등록 이력 시작
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
+
         //1. 전략 등록
         //전략 엔티티 생성
         StrategyEntity strategyEntity = new StrategyEntity();
@@ -200,74 +210,92 @@ public class StrategyService {
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getStrategies(Integer tradingCycleId, Integer investmentAssetClassesId, int page, int pageSize) {
-        // 페이지 요청 객체 생성
+        // 1. 페이지 요청 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        //해당되는 전략을 가져온다.
+        // 2. 전략 필터링 데이터 가져오기
+        // 투자주기 ID와 투자자산 분류 ID를 기준으로 전략 목록을 페이징 처리하여 조회
         Page<StrategyEntity> findStrategyList = strategyRepo.findStrategiesByFilters(tradingCycleId, investmentAssetClassesId, pageable);
 
-        // 전략 id 리스트 생성
+        // 3. 전략 ID 리스트 생성
+        // 조회된 전략 목록에서 각 전략의 ID를 추출하여 리스트로 저장
         List<Long> strategyIds = findStrategyList.stream()
                 .map(StrategyEntity::getStrategyId)
                 .collect(Collectors.toList());
 
-        // 전략 id로 관련 최신 DailyStatics 데이터 가져오기
+        // 4. 최신 일간 통계 데이터 가져오기
+        // 각 전략 ID에 해당하는 최신 일간 통계 데이터를 조회하여 Map으로 변환
         List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
         Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
                 .collect(Collectors.toMap(
-                        stat -> stat.getStrategyEntity().getStrategyId(),
-                        stat -> stat
+                        stat -> stat.getStrategyEntity().getStrategyId(), // 키: 전략 ID
+                        stat -> stat // 값: DailyStatisticsEntity
                 ));
 
-        // DTO에 정보 넣기
+        // 5. 누적 수익률 데이터 조회
+        // 각 전략 ID에 대해 누적 수익률 데이터를 날짜 오름차순으로 조회하여 Map으로 변환
+        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+                .collect(Collectors.toMap(
+                        strategyId -> strategyId, // 키: 전략 ID
+                        strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 값: 누적 수익률 리스트
+                ));
+
+        // 6. DTO 생성
         List<AdvancedSearchResultDto> dtoList = findStrategyList.stream()
                 .map(strategyEntity -> {
-                    //기본 정보 DTO에 넣기
+                    // 기본 정보 DTO에 삽입
                     AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
-                            strategyEntity.getStrategyId(),        //전략id
-                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
-                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(),  //매매주기아이콘
+                            strategyEntity.getStrategyId(),        // 전략 ID
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   // 매매유형 아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(),  // 매매주기 아이콘
                             strategyEntity.getStrategyIACEntities().stream()
                                     .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
-                                    .collect(Collectors.toList()),  //투자자산분류 아이콘
-                            strategyEntity.getStrategyTitle(),      //전략명
-                            BigDecimal.ZERO,                        //누적손익률
-                            BigDecimal.ZERO,                        //최근1년손익률
-                            BigDecimal.ZERO,                        //MDD
-                            strategyEntity.getSmScore(),            //sm-score
-                            strategyEntity.getFollowersCount()      //팔로워수
+                                    .collect(Collectors.toList()),  // 투자자산 분류 아이콘
+                            strategyEntity.getStrategyTitle(),      // 전략명
+                            BigDecimal.ZERO,                        // 누적손익률 (초기값)
+                            BigDecimal.ZERO,                        // 최근 1년 손익률 (초기값)
+                            BigDecimal.ZERO,                        // MDD (초기값)
+                            strategyEntity.getSmScore(),            // SM-Score
+                            strategyEntity.getFollowersCount(),     // 팔로워 수
+                            null                                    // 누적 수익률 리스트 (초기값)
                     );
 
+                    // 최신 일간 통계 데이터 삽입
                     DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
-                    if(latestStatistics != null) {
-                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
-                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
-                        dto.setMdd(latestStatistics.getMaxDrawdownRate());
+                    if (latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate()); // 누적손익률
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());           // 최근 1년 손익률
+                        dto.setMdd(latestStatistics.getMaxDrawdownRate());                               // MDD
                     }
+
+                    // 누적 수익률 전체 데이터 삽입
+                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
 
                     return dto;
                 }).collect(Collectors.toList());
 
+        // 7. DTO 페이지 객체 생성
         Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyList.getTotalElements());
 
-
-        // 유틸 메서드를 사용해 Map 형태로 변환
+        // 8. 페이지 응답 생성 및 반환
         return createPageResponse(dtoPage);
     }
 
     /**
      * 2-2. 상세 필터를 적용한 전략 목록을 반환(페이지네이션)
      *
-     * @param searchOptionsPayload 필터 객체
-     * @param page                 현재 페이지
-     * @param pageSize             페이지크기
+     * @param searchOptionsPayload 필터 객체 (검색 조건을 포함한 DTO)
+     * @param page                 현재 페이지 번호
+     * @param pageSize             페이지당 데이터 크기
+     * @return 필터링된 전략 목록과 페이징 정보를 포함한 Map 객체
      */
     @Transactional(readOnly = true)
     public Map<String, Object> advancedSearch(@Valid SearchOptionsPayloadDto searchOptionsPayload, Integer page, Integer pageSize) {
         //페이지 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        //1)문자열들 리스트로 만들기
+        // 2. 문자열을 리스트로 변환 (필터 조건 처리)
         //투자자산 분류 id 리스트
         List<Integer> iacIds = ParseCsvToList.parseCsvToIntegerList(searchOptionsPayload.getInvestmentAssetClassesIdList());
         //전략 운용코드 리스트
@@ -281,6 +309,7 @@ public class StrategyService {
         //수익률 리스트
         List<Integer> returnRates = ParseCsvToList.parseCsvToIntegerList(searchOptionsPayload.getReturnRateList());
 
+        // 3. 필터 DTO 생성 및 설정
         //Repository 전달용 dto생성
         SearchOptionsDto searchOptionsDto = new SearchOptionsDto();
         //전달용 dto에 값 넣기
@@ -300,16 +329,17 @@ public class StrategyService {
         searchOptionsDto.setEndDate(searchOptionsPayload.getEndDate());
         searchOptionsDto.setReturnRateList(returnRates);
 
+        // 4. Repository 호출로 필터링된 전략 페이지 가져오기
         //2)필터객체, 페이지 객체넣고 db에서 데이터 가져오기
         Page<StrategyEntity> findStrategyPage = strategyRepo.findStrategiesByDetailSearchOptions(searchOptionsDto, pageable);
 
         //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
-        //전략 id 리스트 생성
+        // 5. 전략 ID 리스트 생성
         List<Long> strategyIds = findStrategyPage.stream()
                 .map(StrategyEntity::getStrategyId)
                 .collect(Collectors.toList());
 
-        //전략 id로 최신 dailystatistics 데이터 가져오기
+        // 6. 각 전략의 최신 일간 통계 데이터 가져오기
         List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
         Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
                 .collect(Collectors.toMap(
@@ -317,170 +347,209 @@ public class StrategyService {
                         stat -> stat
                 ));
 
-        //dto에 정보 넣기
-        List<AdvancedSearchResultDto> dtoList = findStrategyPage.stream()
-                .map(strategyEntity -> {
-                            AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
-                                    strategyEntity.getStrategyId(),                               //전략id
-                                    strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
-                                    strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
-                                    strategyEntity.getStrategyIACEntities().stream()
-                                            .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
-                                            .collect(Collectors.toList()),                        //투자자산분류 아이콘
-                                    strategyEntity.getStrategyTitle(),                            //전략명
-                                    BigDecimal.ZERO,                                              //누적손익률
-                                    BigDecimal.ZERO,                                              //최근1년손익률
-                                    BigDecimal.ZERO,                                              //MDD
-                                    strategyEntity.getSmScore(),                                  //sm-score
-                                    strategyEntity.getFollowersCount()                            //팔로워수
-                            );
-
-                            DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
-                            if (latestStatistics != null) {
-                                dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
-                                dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
-                                dto.setMdd(latestStatistics.getMaxDrawdownRate());
-                            }
-
-                            return dto;
-
-                        }).collect(Collectors.toList());
-
-        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyPage.getTotalElements());
-
-        //필요한 값들만 담아 응답 map생성
-        return createPageResponse(dtoPage);
-    }
-
-    /**
-     * 2-3. 작성자 id로 필터링한 전략 목록을 반환(페이지네이션)
-     *
-     * @param traderId             작성한 트레이더 id
-     * @param page                 현재 페이지
-     * @param pageSize             페이지크기
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> getStrategyListbyTraderId(String traderId, Integer page, Integer pageSize) {
-        //페이지 객체 생성
-        Pageable pageable = PageRequest.of(page, pageSize);
-
-        //traderid로 해당 전략 엔티티 객체들 가져오기
-        Page<StrategyEntity> traderStrategyPage = strategyRepo.findByWriterId(traderId, pageable);
-
-        //전략 페이지로 일간 데이터들 중 제일 최신값으로 가져오기
-        // 전략 id 리스트 생성
-        List<Long> strategyIds = traderStrategyPage.stream()
-                .map(StrategyEntity::getStrategyId)
-                .collect(Collectors.toList());
-
-        // 전략 id로 관련 최신 DailyStatics 데이터 가져오기
-        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
-        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+        // 7. 누적 수익률 데이터 가져오기 (날짜 오름차순)
+        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
                 .collect(Collectors.toMap(
-                        stat -> stat.getStrategyEntity().getStrategyId(),
-                        stat -> stat
+                        strategyId -> strategyId, // 전략 ID를 키로 사용
+                        strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
                 ));
 
-        // DTO에 정보 넣기
-        List<AdvancedSearchResultDto> dtoList = traderStrategyPage.stream()
-                .map(strategyEntity -> {
-                    //기본 정보 DTO에 넣기
-                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
-                            strategyEntity.getStrategyId(), //전략id
-                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
-                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
-                            strategyEntity.getStrategyIACEntities().stream()
-                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
-                                    .collect(Collectors.toList()), //투자자산분류 아이콘
-                            strategyEntity.getStrategyTitle(),     //전략명
-                            BigDecimal.ZERO, //누적손익률
-                            BigDecimal.ZERO, //최근1년손익률
-                            BigDecimal.ZERO, //MDD
-                            strategyEntity.getSmScore(),           //sm-score
-                            strategyEntity.getFollowersCount()     //팔로워수
-                    );
-
-                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
-                    if(latestStatistics != null) {
-                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
-                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
-                        dto.setMdd(latestStatistics.getMaxDrawdownRate());
-                    }
-                    Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
-                    dto.setFollowersCount(followersCount);
-
-                    return dto;
-                }).collect(Collectors.toList());
-
-        //페이지 객체로 변환
-        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, traderStrategyPage.getTotalElements());
-
-        return createPageResponse(dtoPage);
-    }
-
-    /**
-     * 2-4. 키워드로 전략명 필터링한 전략 목록을 반환(페이지네이션)
-     *
-     * @param keyword              검색 키워드
-     * @param page                 현재 페이지
-     * @param pageSize             페이지크기
-     */
-    @Transactional(readOnly = true)
-    public Map<String, Object> getStrategyListByKeyword(String keyword, Integer page, Integer pageSize) {
-        //페이지 객체 생성
-        Pageable pageable = PageRequest.of(page, pageSize);
-
-        //TODO)isApproved = Y 설정
-        //전략명에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기 - isPosted = Y, isApproved = Y
-        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "N", pageable);
-
-        //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
-        //전략 id 리스트 생성
-        List<Long> strategyIds = findStrategyPage.stream()
-                .map(StrategyEntity::getStrategyId)
-                .collect(Collectors.toList());
-
-        //전략 id로 최신 dailystatistics 데이터 가져오기
-        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
-        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
-                .collect(Collectors.toMap(
-                        stat -> stat.getStrategyEntity().getStrategyId(),
-                        stat -> stat
-                ));
-
-        //DTO에 정보 넣기
+        // 8. DTO 생성
         List<AdvancedSearchResultDto> dtoList = findStrategyPage.stream()
                 .map(strategyEntity -> {
                     AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
-                            strategyEntity.getStrategyId(), //전략id
-                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),   //매매유형아이콘
-                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(), //매매주기아이콘
+                            strategyEntity.getStrategyId(),                                // 전략 ID
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),    // 매매 유형 아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(),  // 매매 주기 아이콘
                             strategyEntity.getStrategyIACEntities().stream()
                                     .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
-                                    .collect(Collectors.toList()), //투자자산분류 아이콘
-                            strategyEntity.getStrategyTitle(),     //전략명
-                            BigDecimal.ZERO,                       //누적손익률
-                            BigDecimal.ZERO,                       //최근1년손익률
-                            BigDecimal.ZERO,                       //MDD
-                            strategyEntity.getSmScore(),           //sm-score
-                            strategyEntity.getFollowersCount()     //팔로워수
+                                    .collect(Collectors.toList()),                         // 투자 자산 분류 아이콘 리스트
+                            strategyEntity.getStrategyTitle(),                             // 전략명
+                            BigDecimal.ZERO,                                               // 누적 손익률 (초기값)
+                            BigDecimal.ZERO,                                               // 최근 1년 손익률 (초기값)
+                            BigDecimal.ZERO,                                               // MDD (초기값)
+                            strategyEntity.getSmScore(),                                   // SM-Score
+                            strategyEntity.getFollowersCount(),                            // 팔로워 수
+                            null                                                           // 누적 수익률 리스트 (초기값)
                     );
 
+                    // 최신 일간 통계 데이터 추가
                     DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
                     if (latestStatistics != null) {
                         dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
                         dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
                         dto.setMdd(latestStatistics.getMaxDrawdownRate());
                     }
-                    Long followersCount = strategyRepo.findFollowersCountByStrategyId(strategyEntity.getStrategyId());
-                    dto.setFollowersCount(followersCount);
+
+                    // 누적 수익률 리스트 추가
+                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
 
                     return dto;
-
                 }).collect(Collectors.toList());
-        //페이지 객체로 변환
+
+        // 9. DTO 리스트를 페이지 객체로 변환
         Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyPage.getTotalElements());
 
+        // 10. 페이지 응답 생성 및 반환
+        return createPageResponse(dtoPage);
+    }
+
+    /**
+     * 2-3. 작성자 ID로 필터링한 전략 목록을 반환(페이지네이션) - 나의 전략
+     *
+     * @param traderId 작성자(트레이더) ID
+     * @param page     현재 페이지 번호
+     * @param pageSize 페이지당 데이터 크기
+     * @return 작성자가 등록한 전략 목록과 페이징 정보를 포함한 Map 객체
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListbyTraderId(String traderId, Integer page, Integer pageSize) {
+        // 1. 페이지 요청 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        // 2. 트레이더 ID로 전략 페이지 가져오기
+        Page<StrategyEntity> traderStrategyPage = strategyRepo.findByWriterId(traderId, pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값으로 가져오기
+        // 3. 전략 ID 리스트 생성
+        List<Long> strategyIds = traderStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        // 4. 각 전략의 최신 일간 통계 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        // 5. 누적 수익률 데이터 가져오기 (날짜 오름차순)
+        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+                .collect(Collectors.toMap(
+                        strategyId -> strategyId, // 전략 ID를 키로 사용
+                        strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
+                ));
+
+        // 6. DTO 생성
+        List<AdvancedSearchResultDto> dtoList = traderStrategyPage.stream()
+                .map(strategyEntity -> {
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(),                                // 전략 ID
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),    // 매매 유형 아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(),  // 매매 주기 아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()),                         // 투자 자산 분류 아이콘 리스트
+                            strategyEntity.getStrategyTitle(),                             // 전략명
+                            BigDecimal.ZERO,                                               // 누적 손익률 (초기값)
+                            BigDecimal.ZERO,                                               // 최근 1년 손익률 (초기값)
+                            BigDecimal.ZERO,                                               // MDD (초기값)
+                            strategyEntity.getSmScore(),                                   // SM-Score
+                            strategyEntity.getFollowersCount(),                            // 팔로워 수
+                            null                                                           // 누적 수익률 리스트 (초기값)
+                    );
+
+                    // 최신 일간 통계 데이터 추가
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if (latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setMdd(latestStatistics.getMaxDrawdownRate());
+                    }
+
+                    // 누적 수익률 리스트 추가
+                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
+
+                    return dto;
+                }).collect(Collectors.toList());
+
+
+        // 7. DTO 리스트를 페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, traderStrategyPage.getTotalElements());
+
+        // 8. 페이지 응답 생성 및 반환
+        return createPageResponse(dtoPage);
+    }
+
+    /**
+     * 2-4. 키워드로 전략명 필터링한 전략 목록을 반환(페이지네이션)
+     *
+     * @param keyword  검색 키워드
+     * @param page     현재 페이지 번호
+     * @param pageSize 페이지당 데이터 크기
+     * @return 키워드로 필터링된 전략 목록과 페이징 정보를 포함한 Map 객체
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStrategyListByKeyword(String keyword, Integer page, Integer pageSize) {
+        // 1. 페이지 요청 객체 생성
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        //TODO)isApproved = Y 설정
+        //2. 키워드 검색으로 전략 페이지 가져오기 - isPosted = Y, isApproved = Y
+        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "N", pageable);
+
+        //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
+        // 3. 전략 ID 리스트 생성
+        List<Long> strategyIds = findStrategyPage.stream()
+                .map(StrategyEntity::getStrategyId)
+                .collect(Collectors.toList());
+
+        // 4. 각 전략의 최신 일간 통계 데이터 가져오기
+        List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+        Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+                .collect(Collectors.toMap(
+                        stat -> stat.getStrategyEntity().getStrategyId(),
+                        stat -> stat
+                ));
+
+        // 5. 누적 수익률 데이터 가져오기 (날짜 오름차순)
+        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+                .collect(Collectors.toMap(
+                        strategyId -> strategyId, // 전략 ID를 키로 사용
+                        strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
+                ));
+
+        // 6. DTO 생성
+        List<AdvancedSearchResultDto> dtoList = findStrategyPage.stream()
+                .map(strategyEntity -> {
+                    AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                            strategyEntity.getStrategyId(),                                // 전략 ID
+                            strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),    // 매매 유형 아이콘
+                            strategyEntity.getTradingCycleEntity().getTradingCycleIcon(),  // 매매 주기 아이콘
+                            strategyEntity.getStrategyIACEntities().stream()
+                                    .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                    .collect(Collectors.toList()),                         // 투자 자산 분류 아이콘 리스트
+                            strategyEntity.getStrategyTitle(),                             // 전략명
+                            BigDecimal.ZERO,                                               // 누적 손익률 (초기값)
+                            BigDecimal.ZERO,                                               // 최근 1년 손익률 (초기값)
+                            BigDecimal.ZERO,                                               // MDD (초기값)
+                            strategyEntity.getSmScore(),                                   // SM-Score
+                            strategyEntity.getFollowersCount(),                            // 팔로워 수
+                            null                                                           // 누적 수익률 리스트 (초기값)
+                    );
+
+                    // 최신 일간 통계 데이터 추가
+                    DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                    if (latestStatistics != null) {
+                        dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                        dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                        dto.setMdd(latestStatistics.getMaxDrawdownRate());
+                    }
+
+                    // 누적 수익률 리스트 추가
+                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
+
+                    return dto;
+                }).collect(Collectors.toList());
+
+        // 7. DTO 리스트를 페이지 객체로 변환
+        Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findStrategyPage.getTotalElements());
+
+        // 8. 페이지 응답 생성 및 반환
         return createPageResponse(dtoPage);
     }
 
@@ -525,20 +594,37 @@ public class StrategyService {
         // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
-        //TODO)트레이더 정보 넣기
-        responseDto.setMemberId("1");
-        responseDto.setNickname("곽두팔");
-        responseDto.setProfilePath("트레이더프로필이미지");
+        //작성자 정보 넣기
+        memberRepository.findById(strategyEntity.getWriterId())
+                .ifPresentOrElse(
+                        memberEntity -> {
+                            responseDto.setMemberId(memberEntity.getMemberId());
+                            responseDto.setNickname(memberEntity.getNickname());
+                            responseDto.setProfilePath(memberEntity.getProfilePath());
+                        },
+                        () -> {
+                            responseDto.setMemberId(null);
+                            responseDto.setNickname(null);
+                            responseDto.setProfilePath(null);
+                        }
+                );
 
         // 최신 팔로워 수 조회
         Long followersCount = strategyRepo.findFollowersCountByStrategyId(id);
         responseDto.setFollowersCount(followersCount);
 
-        // 제안서 URL 조회 (sbwoo)
-        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
-                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
-                .orElse(null); // 값이 없으면 null 반환
-        responseDto.setStrategyProposalLink(strategyProposal);
+        // 제안서 정보
+        strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .ifPresentOrElse(
+                        proposal -> {
+                            responseDto.setStrategyProposalFileTitle(proposal.getFileTitle());
+                            responseDto.setStrategyProposalLink(proposal.getFileLink());
+                        },
+                        () -> {
+                            responseDto.setStrategyProposalFileTitle(null);
+                            responseDto.setStrategyProposalLink(null);
+                        }
+                );
 
         return responseDto;
     }
@@ -552,8 +638,11 @@ public class StrategyService {
      * 전략 이력 등록시작 -> 전략 관계 테이블 이력 등록 -> 전략 관계 테이블 삭제 -> 전략 삭제 -> 전략 이력 등록끝
      */
     @Transactional
-    public void deleteStrategy(Long id) {
-        //TODO) 관리자 or 작성한 트레이더 판별
+    public void deleteStrategy(Long id, String adminId) {
+        //작성자 있는지 확인
+        MemberEntity memberEntity = memberRepository.findById(adminId)
+                .orElseThrow(() -> new MemberNotFoundException("해당 회원이 존재하지 않습니다."));
+
         //1. 전략 이력 등록 시작
         //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
@@ -577,10 +666,8 @@ public class StrategyService {
         strategyHistoryEntity.setIsApproved(strategyEntity.getIsApproved());
         strategyHistoryEntity.setWritedAt(strategyEntity.getWritedAt());
         strategyHistoryEntity.setStrategyOverview(strategyEntity.getStrategyOverview());
-        //TODO) 삭제하는 사람 정보
-        strategyHistoryEntity.setUpdaterId("TestingTrader101");
+        strategyHistoryEntity.setUpdaterId(adminId);
         strategyHistoryEntity.setUpdatedAt(LocalDateTime.now());
-        //TODO) 종료일 기준
         strategyHistoryEntity.setExitDate(strategyEntity.getExitDate());
 
         //3. 전략 관계 테이블 이력 등록
@@ -597,15 +684,20 @@ public class StrategyService {
             strategyIACHistoryRepository.save(strategyIACHistoryEntity);
         }
 
-        // 4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
+        //4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
         if(strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId()).isPresent()){
             strategyProposalService.deleteProposal(strategyEntity.getStrategyId(), strategyEntity.getWriterId());
         }
 
-        //5. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        //5. 실계좌 인증이 있는 경우, 실계좌 인증 데이터 삭제 (sbwoo)
+        if(!liveAccountDataRepository.findAllByStrategy(strategyEntity).isEmpty()){
+            liveAccountDataService.deleteAllLiveAccountData(strategyEntity.getStrategyId());
+        }
+
+        //6. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //6. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //7. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
@@ -668,16 +760,33 @@ public class StrategyService {
         // 변환된 투자자산 분류 데이터를 ResponseDto에 추가
         responseDto.setStrategyIACEntities(strategyIACDtos);
 
-        // 제안서 dto에 추가
-        String strategyProposal = strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
-                .map(StrategyProposalDto::getFileLink) // Optional<String>으로 변환
-                .orElse(null); // 값이 없으면 null 반환
-        responseDto.setStrategyProposalLink(strategyProposal);
+        //작성자 정보 넣기
+        memberRepository.findById(strategyEntity.getWriterId())
+                .ifPresentOrElse(
+                        memberEntity -> {
+                            responseDto.setMemberId(memberEntity.getMemberId());
+                            responseDto.setNickname(memberEntity.getNickname());
+                            responseDto.setProfilePath(memberEntity.getProfilePath());
+                        },
+                        () -> {
+                            responseDto.setMemberId(null);
+                            responseDto.setNickname(null);
+                            responseDto.setProfilePath(null);
+                        }
+                );
 
-        //TODO)트레이더 정보 넣기
-        responseDto.setMemberId("1");
-        responseDto.setNickname("곽두팔");
-        responseDto.setProfilePath("트레이더프로필이미지");
+        // 등록되어있는 제안서 정보
+        strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId())
+                .ifPresentOrElse(
+                        proposal -> {
+                            responseDto.setStrategyProposalFileTitle(proposal.getFileTitle());
+                            responseDto.setStrategyProposalLink(proposal.getFileLink());
+                        },
+                        () -> {
+                            responseDto.setStrategyProposalFileTitle(null);
+                            responseDto.setStrategyProposalLink(null);
+                        }
+                );
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("Data", responseDto);
@@ -696,14 +805,18 @@ public class StrategyService {
      * 생성자는 안바뀌고 수정자는 현재 수정자로 바뀐다.
      */
     @Transactional
-    public Map<String, Long> updateStrategy(Long id, StrategyPayloadDto strategyPayloadDto) {
+    public Map<String, Long> updateStrategy(String updaterId, Long strategyId, StrategyPayloadDto strategyPayloadDto) {
+        //수정자 정보 확인
+        MemberEntity memberEntity = memberRepository.findById(updaterId)
+                .orElseThrow(() -> new MemberNotFoundException("존재하지 않는 회원입니다."));
+
         //1. 전략 수정 이력 등록 시작
         //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
 
         //2. 전략의 id를 검색해서 유무 판별
-        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(
+        StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
 
         //2-1. 운용 종료된 전략은 수정불가
@@ -726,8 +839,7 @@ public class StrategyService {
         strategyEntity.setMinInvestmentAmount(strategyPayloadDto.getMinInvestmentAmount());
         strategyEntity.setStrategyOverview(strategyPayloadDto.getStrategyOverview());
         strategyEntity.setIsPosted(strategyPayloadDto.getIsPosted());
-        //TODO) 수정자 설정
-        strategyEntity.setUpdaterId("TestingTrader101");
+        strategyEntity.setUpdaterId(updaterId);
         strategyEntity.setUpdatedAt(LocalDateTime.now());
 
         //변경된 값으로 전략 저장
@@ -845,7 +957,7 @@ public class StrategyService {
                     strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
                 }
             } else { // 잘못된 링크를 보내주면 에러 메시지
-                throw new MetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
+                throw new FileMetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
             }
         } else { // link 로 null 값이 들어오면,
             // 기존 strategyProposal이 있으면, strategyProposal 삭제
@@ -917,7 +1029,9 @@ public class StrategyService {
     @Transactional
     public Map<String, Long> approvalRequest(Long strategyId, String applicantId){
         //승인 요청자 정보 가져오기
-        MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow();
+        MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow(
+                () -> new NoSuchElementException("해당 트레이더를 찾을 수 없습니다.")
+        );
 
         //승인 요청할 전략 정보 가져오기
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
@@ -927,11 +1041,7 @@ public class StrategyService {
         //3개 미만이면 예외를 던진다.
         LocalDateTime createDatetime = strategyEntity.getWritedAt();
         LocalDate createDate = createDatetime.toLocalDate();
-        System.out.println("createDate = " + createDate);
-        System.out.println("dailyStatisticsHistoryRepository.countByDateBetween(createDate, LocalDate.now()) = " + dailyStatisticsRepository.countByDateBetween(createDate, LocalDate.now()));
-
         if(dailyStatisticsRepository.countByDateBetween(createDate, LocalDate.now()) < 3){
-
             throw new DailyDataNotEnoughException("일일 거래 데이터가 3개 이상인 경우에만 승인 요청을 보낼 수 있습니다.");
         }
 
@@ -940,11 +1050,17 @@ public class StrategyService {
             throw new StrategyAlreadyApprovedException("이미 승인받은 전략입니다.");
         }
 
+        //승인 요청중인 전략은 승인요청을 보낼 수 없다.
+        if(strategyEntity.getIsApproved().equals("P")){
+            throw new StrategyAlreadyApprovedException("승인 요청중인 전략입니다.");
+        }
+
         //새 요청 엔티티 생성
         StrategyApprovalRequestsEntity approvalRequestsEntity = new StrategyApprovalRequestsEntity();
 
         //요청 엔티티에 요청 정보 넣기
         approvalRequestsEntity.setRequestDatetime(LocalDateTime.now());
+        approvalRequestsEntity.setIsApproved("P"); //승인여부 결정안됐으니 P 설정
         approvalRequestsEntity.setStrategy(strategyEntity);
         approvalRequestsEntity.setIsPosted(strategyEntity.getIsPosted());
         approvalRequestsEntity.setApplicant(applicantEntity);
@@ -999,8 +1115,9 @@ public class StrategyService {
         return responseMap;
     }
 
+    // 8. 해당 전략의 팔로워수 증가
     /**
-     * 특정 전략과 관련된 DailyStatistics 및 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
+     * 특정 전략과 관련된 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
      *
      * @param strategyId FollowersCount를 증가시킬 전략의 ID
      */
@@ -1013,5 +1130,30 @@ public class StrategyService {
 
         // 3. 변경 사항 저장
         strategyRepo.save(strategy); // StrategyEntity 저장
+    }
+
+    // 9. 전략 상세 차트 옵션 2개 조회
+    /**
+     * 특정 전략 ID에 대한 선택된 데이터 옵션을 날짜순으로 조회
+     *
+     * @param strategyId 전략 ID
+     * @param option1 첫 번째 데이터 옵션 (예: "referencePrice", "balance" 등)
+     * @param option2 두 번째 데이터 옵션 (예: "dailyProfitLoss", "cumulativeProfitLoss" 등)
+     * @return DailyStatisticsChartResponseDto (전략 차트 데이터와 타임스탬프)
+     */
+    public DailyStatisticsChartResponseDto getStrategyChartDetails(Long strategyId, String option1, String option2) {
+        // Repository에서 데이터를 조회하여 Map 형태로 반환
+        Map<String, List<?>> chartData = strategyRepo.findChartDataByOptions(strategyId, option1, option2);
+
+        // 반환된 데이터가 null 또는 비어 있을 경우 예외 처리
+        if (chartData == null || chartData.isEmpty()) {
+            throw new IllegalArgumentException("요청하신 데이터가 존재하지 않습니다. 전략 ID: " + strategyId);
+        }
+
+        // 현재 UTC 시간 추가
+        String timestamp = Instant.now().toString();
+
+        // DTO 생성 및 반환
+        return new DailyStatisticsChartResponseDto(chartData, timestamp);
     }
 }

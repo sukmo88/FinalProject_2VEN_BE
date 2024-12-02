@@ -21,7 +21,7 @@ public interface StrategyApprovalRequestsRepository extends JpaRepository<Strate
             "WHERE requestEntity.strategy.strategyId = :strategyId AND requestEntity.isApproved = 'N'")
     List<StrategyApprovalRequestsEntity> findRejectedRequestsByStrategyId(@Param("strategyId") Long strategyId);
 
-    //전략 id값, isApproved N인 값중 제일 최근값
+    //전략 id값, isApproved N인 값중 제일 최근값 - 거절사유용
     @Query(value = "SELECT * FROM strategy_approval_requests " +
             "WHERE strategy_id = :strategyId AND is_approved = 'N' " +
             "ORDER BY rejection_datetime DESC LIMIT 1",

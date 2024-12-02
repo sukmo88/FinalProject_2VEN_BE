@@ -35,6 +35,11 @@ public class LocalDateDeserializer extends JsonDeserializer<LocalDate> {
                     throw new IllegalArgumentException("공휴일 또는 주말은 허용되지 않는 날짜입니다.");
                 }
 
+                // 미래 날짜 제한
+                if (parsedDate.isAfter(LocalDate.now())) {
+                    throw new IllegalArgumentException("미래 날짜는 허용되지 않습니다.");
+                }
+
                 return parsedDate; // 유효한 날짜 반환
             } catch (Exception ignored) {
                 // 포맷 불일치 예외 무시

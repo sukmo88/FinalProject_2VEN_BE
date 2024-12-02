@@ -11,7 +11,6 @@ import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategyResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
-
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -239,10 +238,10 @@ public class DtoEntityConversion {
 
         responseDto.setStrategyApprovalRequestId(requestsEntity.getStrategyApprovalRequestsId());
         responseDto.setRequestDatetime(requestsEntity.getRequestDatetime());
-        responseDto.setIsApproved(requestsEntity.getStrategy().getIsApproved());
+        responseDto.setIsApproved(requestsEntity.getIsApproved());
         responseDto.setStrategyId(requestsEntity.getStrategy().getStrategyId());
         responseDto.setStrategyTitle(requestsEntity.getStrategy().getStrategyTitle());
-        responseDto.setIsPosted(requestsEntity.getStrategy().getIsPosted());
+        responseDto.setIsPosted(requestsEntity.getIsPosted());
         responseDto.setStrategyStatus(requestsEntity.getStrategy().getStrategyStatusCode());
         responseDto.setTradingTypeIcon(requestsEntity.getStrategy().getTradingTypeEntity().getTradingTypeIcon());
         responseDto.setTradingCycleIcon(requestsEntity.getStrategy().getTradingCycleEntity().getTradingCycleIcon());

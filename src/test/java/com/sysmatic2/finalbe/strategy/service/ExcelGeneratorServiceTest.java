@@ -178,7 +178,6 @@ class ExcelGeneratorServiceTest {
     monthly1.setMonthlyReturn(new BigDecimal("0.04"));
     monthly1.setMonthlyCumulativeProfitLoss(new BigDecimal("400.00"));
     monthly1.setMonthlyCumulativeReturn(new BigDecimal("0.04"));
-    monthly1.setMonthlyAvgBalance(new BigDecimal("12000.00"));
 
     monthlyStatistics = Arrays.asList(monthly1);
   }

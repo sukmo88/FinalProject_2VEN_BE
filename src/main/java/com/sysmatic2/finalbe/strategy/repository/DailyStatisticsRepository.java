@@ -303,6 +303,95 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     Page<Long> findStrategyIdsWithoutDailyStatistics(@Param("date") LocalDate date, Pageable pageable);
 
     /**
+<<<<<<< HEAD
+     * 특정 전략 ID와 연도, 월에 해당하는 모든 원금을 조회하는 메서드.
+     *
+     * - 일간 분석 데이터(DailyStatisticsEntity) 테이블에서 특정 전략 ID에 대한 데이터만 조회합니다.
+     * - 조건: 특정 연도와 월에 해당하는 데이터만 가져옵니다.
+     * - 원금 필드(principal)를 리스트 형태로 반환합니다.
+     *
+     * @param strategyId 전략 ID (DailyStatisticsEntity와 연관된 전략)
+     * @param year       조회할 연도 (yyyy)
+     * @param month      조회할 월 (1~12)
+     * @return 해당 월의 모든 원금(BigDecimal) 리스트
+     */
+    @Query("""
+    SELECT d.principal 
+    FROM DailyStatisticsEntity d
+    WHERE d.strategyEntity.strategyId = :strategyId 
+      AND FUNCTION('YEAR', d.date) = :year
+      AND FUNCTION('MONTH', d.date) = :month
+""")
+    List<BigDecimal> findDailyPrincipalsByStrategyIdAndMonth(@Param("strategyId") Long strategyId,
+                                                             @Param("year") int year,
+                                                             @Param("month") int month);
+
+    /**
+     * 특정 전략의 특정 월의 모든 입출금 금액을 조회하는 메서드.
+     *
+     * @param strategyId 전략 ID
+     * @param year       조회할 연도
+     * @param month      조회할 월
+     * @return 해당 월의 모든 입출금 금액 리스트 (없으면 빈 리스트 반환)
+     */
+    @Query("""
+    SELECT d.depWdPrice 
+    FROM DailyStatisticsEntity d
+    WHERE d.strategyEntity.strategyId = :strategyId 
+      AND FUNCTION('YEAR', d.date) = :year
+      AND FUNCTION('MONTH', d.date) = :month
+""")
+    List<BigDecimal> findDailyDepWdAmountsByStrategyIdAndMonth(@Param("strategyId") Long strategyId,
+                                                               @Param("year") int year,
+                                                               @Param("month") int month);
+
+    /**
+     * 특정 전략의 특정 월의 모든 손익 데이터를 조회하는 메서드.
+     *
+     * @param strategyId 전략 ID
+     * @param year       조회할 연도
+     * @param month      조회할 월
+     * @return 해당 월의 모든 손익 리스트 (없으면 빈 리스트 반환)
+     */
+    @Query("""
+    SELECT d.dailyProfitLoss 
+    FROM DailyStatisticsEntity d
+    WHERE d.strategyEntity.strategyId = :strategyId 
+      AND FUNCTION('YEAR', d.date) = :year
+      AND FUNCTION('MONTH', d.date) = :month
+""")
+    List<BigDecimal> findDailyProfitLossesByStrategyIdAndMonth(@Param("strategyId") Long strategyId,
+                                                               @Param("year") int year,
+                                                               @Param("month") int month);
+
+    /**
+     * 특정 전략의 특정 월 마지막 기준가를 조회하는 메서드.
+     *
+     * - 일간 분석 테이블에서 특정 월의 마지막 기준가를 조회합니다.
+     * - 해당 월 데이터가 없으면 빈 리스트를 반환합니다.
+     *
+     * @param strategyId 전략 ID
+     * @param year       조회할 연도
+     * @param month      조회할 월
+     * @param pageable   페이징 정보 (한 개의 데이터만 가져오기 위해 Pageable 사용)
+     * @return 특정 월의 마지막 기준가 리스트 (없으면 빈 리스트 반환)
+     */
+    @Query("""
+    SELECT d.referencePrice
+    FROM DailyStatisticsEntity d
+    WHERE d.strategyEntity.strategyId = :strategyId
+      AND FUNCTION('YEAR', d.date) = :year
+      AND FUNCTION('MONTH', d.date) = :month
+    ORDER BY d.date DESC
+""")
+    List<BigDecimal> findLastReferencePriceByStrategyIdAndMonth(
+            @Param("strategyId") Long strategyId,
+            @Param("year") int year,
+            @Param("month") int month,
+            Pageable pageable
+    );
+
+     /**
      * 시작일과 종료일 사이의 엔티티 갯수 반환
      *
      * @param startDate 조회 시작일
@@ -311,4 +400,15 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
      */
     //시작일과 종료일 사이의 엔티티 갯수 반환
     Long countByDateBetween(LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 특정 전략 ID에 대한 누적수익률 데이터를 날짜 오름차순으로 조회합니다.
+     *
+     * @param strategyId 조회할 전략의 ID
+     * @return 날짜 오름차순으로 정렬된 누적수익률 리스트
+     */
+    @Query("SELECT d.cumulativeProfitLossRate FROM DailyStatisticsEntity d " +
+            "WHERE d.strategyEntity.strategyId = :strategyId " +
+            "ORDER BY d.date ASC")
+    List<Double> findCumulativeProfitLossRateByStrategyIdOrderByDate(Long strategyId);
 }

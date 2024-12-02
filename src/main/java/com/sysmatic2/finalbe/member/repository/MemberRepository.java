@@ -46,4 +46,7 @@ public interface MemberRepository extends JpaRepository<MemberEntity, String> {
             "AND m.memberGradeCode = 'MEMBER_ROLE_TRADER' " +
             "AND m.memberStatusCode = 'ACTIVE' ")
     Page<MemberEntity> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    //회원 등급별 인원수
+    Long countBymemberGradeCode(String gradeCode);
 }
