@@ -271,7 +271,7 @@ public class GlobalExceptionHandler {
         return ResponseUtils.buildErrorResponse(
                 "NOT_FOUND",
                 ex.getClass().getSimpleName(),
-                "해당되는 데이터를 찾을 수 없습니다.",
+                ex.getMessage(),
                 HttpStatus.NOT_FOUND
         );
     }
