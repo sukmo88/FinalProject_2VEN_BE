@@ -1,5 +1,8 @@
 package com.sysmatic2.finalbe.strategy.service;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.sysmatic2.finalbe.strategy.common.LocalDateDeserializer;
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.exception.ExcelValidationException;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
@@ -8,7 +11,6 @@ import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,7 +32,7 @@ public class ExcelUploadService {
   private final DailyStatisticsRepository dailyStatisticsRepository;
   private static final int MAX_ROWS = 2000;
   private static final int EXPECTED_COLUMNS = 3;
-
+  private final LocalDateDeserializer localDateDeserializer = new LocalDateDeserializer(); // LocalDateDeserializer 객체 생성
 
   /**
    * 엑셀 파일의 데이터를 추출 및 저장
@@ -41,33 +43,25 @@ public class ExcelUploadService {
    */
   @Transactional
   public List<DailyStatisticsEntity> extractAndSaveData(MultipartFile file, Long strategyId) {
-    // 1. 전략 ID 유효성 검증
     if (strategyId == null) {
       throw new IllegalArgumentException("Strategy ID는 null일 수 없습니다.");
     }
 
-    // 전략 존재 여부 확인
     if (!strategyRepository.existsById(strategyId)) {
       throw new IllegalArgumentException("유효하지 않은 전략 ID입니다: " + strategyId);
     }
 
-    // 2. 엑셀 데이터 추출 및 검증
     List<DailyStatisticsReqDto> dataList = extractAndValidateData(file);
 
-    // 3. 각 데이터에 대해 DailyStatisticsService를 사용하여 계산 및 등록
     List<DailyStatisticsEntity> savedEntities = new ArrayList<>();
     for (DailyStatisticsReqDto dto : dataList) {
-      // DailyStatisticsService를 통해 데이터 등록 (반환값 없음)
       dailyStatisticsService.registerDailyStatistics(strategyId, dto);
-
-      // 등록한 날짜와 전략 ID를 기준으로 저장된 엔티티 조회
       DailyStatisticsEntity entity = dailyStatisticsRepository.findByStrategyIdAndDate(strategyId, dto.getDate())
               .orElseThrow(() -> new IllegalStateException("Failed to save DailyStatisticsEntity for date " + dto.getDate()));
-
       savedEntities.add(entity);
     }
 
-    return savedEntities; // 저장된 엔티티 리스트를 반환
+    return savedEntities;
   }
 
   /**
@@ -78,60 +72,52 @@ public class ExcelUploadService {
    */
   public List<DailyStatisticsReqDto> extractAndValidateData(MultipartFile file) {
     List<DailyStatisticsReqDto> excelData = new ArrayList<>();
-    // 날짜와 해당 날짜가 처음 발견된 행 번호를 저장
     Map<LocalDate, Integer> dateMap = new HashMap<>();
 
     try (InputStream inputStream = file.getInputStream();
-         Workbook workbook = new XSSFWorkbook(inputStream)) {
+         Workbook workbook = WorkbookFactory.create(inputStream)) {
 
-      // 시트 수 검증: 첫 번째 시트만 허용
       if (workbook.getNumberOfSheets() > 1) {
         throw new ExcelValidationException("엑셀 파일에 여러 시트가 포함되어 있습니다. 첫 번째 시트만 허용됩니다.");
       }
 
-      Sheet sheet = workbook.getSheetAt(0); // 첫 번째 시트만 처리
+      Sheet sheet = workbook.getSheetAt(0);
 
       int rowNumber = 0;
       for (Row row : sheet) {
         rowNumber++;
 
-        // 최대 행 수 제한
-        if (rowNumber > MAX_ROWS + 1) { // +1을 하는 이유는 첫 번째 행이 헤더일 수 있으므로
+        if (rowNumber > MAX_ROWS + 1) {
           throw new ExcelValidationException("엑셀 파일의 행 수가 2000개를 초과했습니다.");
         }
 
-        // 첫 번째 행이 헤더인 경우 건너뜀
         if (rowNumber == 1) {
           continue;
         }
 
-        // 칼럼 수 검증
         if (row.getPhysicalNumberOfCells() != EXPECTED_COLUMNS) {
           throw new ExcelValidationException("행 " + rowNumber + "의 칼럼 수가 정확히 " + EXPECTED_COLUMNS + "개가 아닙니다.");
         }
 
         DailyStatisticsReqDto dto = parseRowToDto(row, rowNumber);
 
-        // 중복된 날짜 확인
         if (dateMap.containsKey(dto.getDate())) {
           int firstRowNumber = dateMap.get(dto.getDate());
           throw new ExcelValidationException("중복된 날짜가 발견되었습니다: " + dto.getDate() + " (행 " + firstRowNumber + ", " + rowNumber + ")");
         }
         dateMap.put(dto.getDate(), rowNumber);
 
-        // Bean Validation을 사용한 추가 검증
         validateDto(dto, rowNumber);
 
         excelData.add(dto);
       }
 
-      // 행 수가 0개인 경우 검증
       if (excelData.isEmpty()) {
         throw new ExcelValidationException("엑셀 파일에 데이터가 존재하지 않습니다.");
       }
 
     } catch (ExcelValidationException e) {
-      throw e; // 커스텀 예외는 그대로 던짐
+      throw e;
     } catch (Exception e) {
       throw new ExcelValidationException("엑셀 데이터 추출 중 오류가 발생했습니다: " + e.getMessage(), e);
     }
@@ -157,11 +143,17 @@ public class ExcelUploadService {
         if (dateCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dateCell)) {
           date = dateCell.getLocalDateTimeCellValue().toLocalDate();
         } else if (dateCell.getCellType() == CellType.STRING) {
-          // 문자열로 된 날짜 처리
           try {
-            date = LocalDate.parse(dateCell.getStringCellValue());
+            // JsonParser 생성 (JSON 형식으로 감싸기)
+            String dateString = dateCell.getStringCellValue();
+            String jsonDate = "\"" + dateString + "\""; // JSON 문자열로 감싸기
+            JsonParser parser = new JsonFactory().createParser(jsonDate);
+            parser.nextToken(); // 첫 번째 토큰으로 이동
+
+            // LocalDateDeserializer를 사용해 날짜 파싱
+            date = localDateDeserializer.deserialize(parser, null); // Context는 null로 전달
           } catch (Exception e) {
-            throw new ExcelValidationException("행 " + rowNumber + "의 날짜 형식이 유효하지 않습니다.");
+            throw new ExcelValidationException("행 " + rowNumber + "의 날짜 형식이 유효하지 않거나 공휴일/주말입니다.", e);
           }
         } else {
           throw new ExcelValidationException("행 " + rowNumber + "의 날짜 형식이 유효하지 않습니다.");
@@ -192,7 +184,7 @@ public class ExcelUploadService {
               .dailyProfitLoss(dailyProfitLoss)
               .build();
     } catch (ExcelValidationException e) {
-      throw e; // 커스텀 예외는 그대로 던짐
+      throw e;
     } catch (Exception e) {
       throw new ExcelValidationException("행 " + rowNumber + "을(를) 파싱하는 중 오류가 발생했습니다.", e);
     }
