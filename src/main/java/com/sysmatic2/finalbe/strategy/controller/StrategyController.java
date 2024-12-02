@@ -561,4 +561,35 @@ public class StrategyController {
         // 월간 분석 서비스 호출 및 결과 반환
         return monthlyStatisticsService.getMonthlyAnalysis(strategyId, page, pageSize);
     }
+
+    // 18. 전략 상세 차트 조회 API
+    /**
+     * 전략 상세 차트 데이터를 조회하는 API
+     *
+     * @param strategyId 차트 데이터를 조회할 전략 ID
+     * @param option1 첫 번째 데이터 옵션 (예: "referencePrice", "balance" 등)
+     * @param option2 두 번째 데이터 옵션 (예: "dailyProfitLoss", "cumulativeProfitLoss" 등)
+     * @return ResponseEntity<DailyStatisticsChartResponseDto> (전략 차트 데이터와 타임스탬프)
+     */
+    @Operation(
+            summary = "전략 상세 차트 데이터 조회",
+            description = "특정 전략 ID와 선택된 데이터 옵션(예: referencePrice, balance 등)을 날짜순으로 조회합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "차트 데이터 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/{id}/details-chart")
+    public ResponseEntity<DailyStatisticsChartResponseDto> getStrategyChartDetails(
+            @PathVariable("id") Long strategyId,
+            @RequestParam("option1") String option1,
+            @RequestParam("option2") String option2) {
+        // Service에서 데이터와 타임스탬프 포함한 DTO 생성
+        DailyStatisticsChartResponseDto responseDto = strategyService.getStrategyChartDetails(strategyId, option1, option2);
+
+        // 바로 반환
+        return ResponseEntity.ok(responseDto);
+    }
 }
