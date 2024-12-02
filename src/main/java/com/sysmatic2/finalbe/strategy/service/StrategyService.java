@@ -55,6 +55,8 @@ public class StrategyService {
     private final StrategyProposalRepository strategyProposalRepository;
     private final StrategyProposalService strategyProposalService;
     private final FileService fileService;
+    private final LiveAccountDataService liveAccountDataService;
+    private final LiveAccountDataRepository liveAccountDataRepository;
 
     //1. 전략 생성
     /**
@@ -681,15 +683,20 @@ public class StrategyService {
             strategyIACHistoryRepository.save(strategyIACHistoryEntity);
         }
 
-        // 4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
+        //4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
         if(strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId()).isPresent()){
             strategyProposalService.deleteProposal(strategyEntity.getStrategyId(), strategyEntity.getWriterId());
         }
 
-        //5. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        //5. 실계좌 인증이 있는 경우, 실계좌 인증 데이터 삭제 (sbwoo)
+        if(!liveAccountDataRepository.findAllByStrategy(strategyEntity).isEmpty()){
+            liveAccountDataService.deleteAllLiveAccountData(strategyEntity.getStrategyId());
+        }
+
+        //6. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //6. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //7. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 

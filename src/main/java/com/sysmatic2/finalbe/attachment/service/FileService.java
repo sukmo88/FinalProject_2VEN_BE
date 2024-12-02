@@ -24,24 +24,16 @@ public class FileService {
      */
     @Transactional
     public FileMetadataDto uploadFile(MultipartFile file, String uploaderId, String category, String fileCategoryItemId, String displayName) {
-        // 파일 검증
+        // 1. 파일 검증
         FileValidator.validateFile(file, category);
 
-        // 실계좌인증인 경우, 전달받은 displayName 사용
-        String originalFileName;
-        if ("liveaccount".equals(category)) {
-            // 실계좌 인증인 경우, 전달받은 displayName 사용
-            originalFileName = displayName;
-        } else {
-            // 그 외는 파일에서 이름 생성
-            originalFileName = (file.getOriginalFilename() != null && !file.getOriginalFilename().isBlank())
-                    ? file.getOriginalFilename() : "Unknown-File";
-        }
-
-        // 고유 파일 이름 및 S3 키 생성
+        // 2. 고유 파일 이름 및 S3 키 생성
+        String originalFileName = (file.getOriginalFilename() != null && !file.getOriginalFilename().isBlank())
+                ? file.getOriginalFilename() : "Unknown-File";
         String uniqueFileName = s3ClientService.generateUniqueFileName(originalFileName);
         String s3Key = s3ClientService.generateS3Key(uploaderId, category, uniqueFileName);
 
+        // 3. S3 업로드 및 FileMetadata 데이터 생성
         // 파일 URL 초기화
         String fileUrl = null;
 
@@ -51,7 +43,6 @@ public class FileService {
 
             // 새로운 파일 메타데이터 생성
             FileMetadata metadata = new FileMetadata();
-            metadata.setDisplayName(file.getOriginalFilename());
             metadata.setFileName(uniqueFileName);
             metadata.setFilePath(fileUrl);
             metadata.setFileSize(file.getSize());
@@ -59,11 +50,19 @@ public class FileService {
             metadata.setFileCategory(category);
             metadata.setUploaderId(uploaderId);
 
+            // 실계좌인증인 경우, 전달받은 displayName 사용
+            if("liveaccount".equals(category)) {
+                metadata.setDisplayName(displayName);
+            } else {
+                metadata.setDisplayName(file.getOriginalFilename());
+            }
+
+            // 카테고리 아이템 Id가 있는 경우,
             if (fileCategoryItemId != null) {
                 metadata.setFileCategoryItemId(fileCategoryItemId);
             }
 
-            // DB 저장
+            // FileMetadata 저장
             FileMetadata savedMetadata = fileMetadataRepository.save(metadata);
 
             // DTO로 변환 후 반환
