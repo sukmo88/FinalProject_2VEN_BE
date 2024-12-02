@@ -42,17 +42,16 @@ public class LiveAccountDataService {
      * @param file          등록할 실계좌 이미지 파일
      * @param uploaderId    업로더 ID
      * @param strategyId    전략 ID (실계좌 인증이 속하는 전략 ID)
-     * @param displayName   파일 이름 (실계좌 인증 날짜 ex. 2024.01.01)
      *
      * @return 해당 전략에 속한 실계좌 이미지 정보를 포함한 LiveAccountDataResponseDto
      */
     @Transactional
-    public LiveAccountDataResponseDto uploadLiveAccountData(MultipartFile file, String uploaderId, Long strategyId, String displayName) {
+    public LiveAccountDataResponseDto uploadLiveAccountData(MultipartFile file, String uploaderId, Long strategyId) {
         String category = "liveaccount";
 
         // 1. Validation
         // displayName (2024.01.01 인지 확인)
-        validateDateFormat(displayName);
+        //validateDateFormat(displayName);
 
         // strategy가 유효한 전략인지 확인하고 조회
         validateStrategy(strategyId);
@@ -60,12 +59,12 @@ public class LiveAccountDataService {
                 .orElseThrow(() -> new StrategyNotFoundException("Strategy not found with ID: " + strategyId + "in live account data uploading."));
 
         // 2. s3에 이미지 파일 업로드 및 FileMetadata 데이터
-        FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, strategyId.toString(), displayName);
+        FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, strategyId.toString());
 
         // 3. LiveAccountData 데이터 등록
         LiveAccountDataEntity liveAccountDataEntity = new LiveAccountDataEntity();
         liveAccountDataEntity.setStrategy(strategyEntity);
-        liveAccountDataEntity.setFileName(displayName);
+        liveAccountDataEntity.setFileName(fileMetadataDto.getDisplayName());
         liveAccountDataEntity.setFileLink(fileMetadataDto.getFilePath());
         liveAccountDataEntity.setFileSize(fileMetadataDto.getFileSize());
         liveAccountDataEntity.setFileType(fileMetadataDto.getContentType());
