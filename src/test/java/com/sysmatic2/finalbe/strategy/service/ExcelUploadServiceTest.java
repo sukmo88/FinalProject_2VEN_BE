@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.strategy.service;
 
 import com.sysmatic2.finalbe.exception.ExcelValidationException;
+import com.sysmatic2.finalbe.strategy.common.HolidayUtil;
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
@@ -24,6 +25,8 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+
+import org.mockito.MockedStatic;
 
 public class ExcelUploadServiceTest {
 
@@ -61,8 +64,9 @@ public class ExcelUploadServiceTest {
     header.createCell(1).setCellValue("DepWdPrice");
     header.createCell(2).setCellValue("DailyProfitLoss");
 
+    // 유효한 날짜와 데이터 추가 (공휴일/주말이 아닌 날짜)
     Row row1 = sheet.createRow(1);
-    row1.createCell(0).setCellValue(LocalDate.of(2024, 1, 1).toString());
+    row1.createCell(0).setCellValue("2024-01-02"); // 유효한 날짜 (평일)
     row1.createCell(1).setCellValue(1000.00); // 입금
     row1.createCell(2).setCellValue(200.00); // 이익
 
@@ -76,44 +80,47 @@ public class ExcelUploadServiceTest {
             bos.toByteArray()
     );
 
-    // 전략 ID 설정 및 StrategyEntity 생성
+    // 전략 ID 설정
     Long strategyId = 1L;
     StrategyEntity strategyEntity = new StrategyEntity();
     strategyEntity.setStrategyId(strategyId);
 
-    when(strategyRepository.existsById(eq(strategyId))).thenReturn(true);
+    // Mocking HolidayUtil to not consider the test date as holiday/weekend
+    try (MockedStatic<HolidayUtil> mockedHolidayUtil = mockStatic(HolidayUtil.class)) {
+      mockedHolidayUtil.when(() -> HolidayUtil.isHolidayOrWeekend(eq(LocalDate.of(2024, 1, 2))))
+              .thenReturn(false);
 
-    // Mock the registerDailyStatistics method
-    doNothing().when(dailyStatisticsService).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
+      // Mock Repository와 서비스 동작
+      when(strategyRepository.existsById(eq(strategyId))).thenReturn(true);
+      doNothing().when(dailyStatisticsService).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
+      DailyStatisticsEntity savedEntity = DailyStatisticsEntity.builder()
+              .dailyStatisticsId(1L)
+              .strategyEntity(strategyEntity)
+              .date(LocalDate.of(2024, 1, 2))
+              .depWdPrice(new BigDecimal("1000.00"))
+              .dailyProfitLoss(new BigDecimal("200.00"))
+              .build();
 
-    // Mock the repository to return the saved entity
-    DailyStatisticsEntity savedEntity = DailyStatisticsEntity.builder()
-            .dailyStatisticsId(1L)
-            .strategyEntity(strategyEntity)
-            .date(LocalDate.of(2024, 1, 1))
-            .depWdPrice(new BigDecimal("1000.00"))
-            .dailyProfitLoss(new BigDecimal("200.00"))
-            .build();
+      when(dailyStatisticsRepository.findByStrategyIdAndDate(eq(strategyId), eq(LocalDate.of(2024, 1, 2))))
+              .thenReturn(Optional.of(savedEntity));
 
-    when(dailyStatisticsRepository.findByStrategyIdAndDate(eq(strategyId), eq(LocalDate.of(2024, 1, 1))))
-            .thenReturn(Optional.of(savedEntity));
+      // 메서드 실행
+      List<DailyStatisticsEntity> result = excelUploadService.extractAndSaveData(validFile, strategyId);
 
-    // 메서드 실행
-    List<DailyStatisticsEntity> result = excelUploadService.extractAndSaveData(validFile, strategyId);
+      // 검증
+      assertNotNull(result);
+      assertEquals(1, result.size());
+      DailyStatisticsEntity entity = result.get(0);
+      assertEquals(LocalDate.of(2024, 1, 2), entity.getDate());
+      assertTrue(entity.getDepWdPrice().compareTo(new BigDecimal("1000.00")) == 0, "depWdPrice should be 1000.00");
+      assertTrue(entity.getDailyProfitLoss().compareTo(new BigDecimal("200.00")) == 0,
+              "dailyProfitLoss should be 200.00");
 
-    // 검증
-    assertNotNull(result);
-    assertEquals(1, result.size());
-
-    DailyStatisticsEntity entity = result.get(0);
-    assertEquals(LocalDate.of(2024, 1, 1), entity.getDate());
-    assertTrue(entity.getDepWdPrice().compareTo(new BigDecimal("1000.00")) == 0, "depWdPrice should be 1000.00");
-    assertTrue(entity.getDailyProfitLoss().compareTo(new BigDecimal("200.00")) == 0, "dailyProfitLoss should be 200.00");
-
-    // Repository 메서드 호출 검증
-    verify(strategyRepository, times(1)).existsById(eq(strategyId));
-    verify(dailyStatisticsService, times(1)).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
-    verify(dailyStatisticsRepository, times(1)).findByStrategyIdAndDate(eq(strategyId), eq(LocalDate.of(2024, 1, 1)));
+      // 호출 검증
+      verify(strategyRepository, times(1)).existsById(eq(strategyId));
+      verify(dailyStatisticsService, times(1)).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
+      verify(dailyStatisticsRepository, times(1)).findByStrategyIdAndDate(eq(strategyId), eq(LocalDate.of(2024, 1, 2)));
+    }
   }
 
 
@@ -131,7 +138,7 @@ public class ExcelUploadServiceTest {
     header.createCell(2).setCellValue("DailyProfitLoss");
 
     Row row1 = sheet.createRow(1);
-    row1.createCell(0).setCellValue(LocalDate.of(2024, 1, 1).toString());
+    row1.createCell(0).setCellValue("2024-01-01"); // 유효한 날짜 (평일)
     row1.createCell(1).setCellValue(1000.00); // 입금
     row1.createCell(2).setCellValue(200.00); // 이익
 
@@ -177,7 +184,7 @@ public class ExcelUploadServiceTest {
     header.createCell(2).setCellValue("DailyProfitLoss");
 
     Row row1 = sheet.createRow(1);
-    row1.createCell(0).setCellValue(LocalDate.of(2024, 1, 1).toString());
+    row1.createCell(0).setCellValue("2024-01-02"); // 유효한 날짜 (평일)
     row1.createCell(1).setCellValue(1000.00); // 입금
     row1.createCell(2).setCellValue(200.00); // 이익
 
@@ -193,25 +200,33 @@ public class ExcelUploadServiceTest {
 
     // 전략 ID 설정 및 StrategyEntity 생성
     Long strategyId = 1L;
+    StrategyEntity strategyEntity = new StrategyEntity();
+    strategyEntity.setStrategyId(strategyId);
 
-    // Mocking repository and service behavior
-    when(strategyRepository.existsById(eq(strategyId))).thenReturn(true);
+    // Mocking HolidayUtil to not consider the test date as holiday/weekend
+    try (MockedStatic<HolidayUtil> mockedHolidayUtil = mockStatic(HolidayUtil.class)) {
+      mockedHolidayUtil.when(() -> HolidayUtil.isHolidayOrWeekend(eq(LocalDate.of(2024, 1, 2))))
+              .thenReturn(false);
 
-    // Mocking the service method to throw an exception
-    doThrow(new RuntimeException("Database error"))
-            .when(dailyStatisticsService).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
+      // Mock Repository와 서비스 동작
+      when(strategyRepository.existsById(eq(strategyId))).thenReturn(true);
 
-    // 메서드 실행 및 예외 검증
-    RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-      excelUploadService.extractAndSaveData(validFile, strategyId);
-    });
+      // Mocking the service method to throw an exception
+      doThrow(new RuntimeException("Database error"))
+              .when(dailyStatisticsService).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
 
-    assertEquals("Database error", exception.getMessage());
+      // 메서드 실행 및 예외 검증
+      RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        excelUploadService.extractAndSaveData(validFile, strategyId);
+      });
 
-    // Repository 및 서비스 호출 검증
-    verify(strategyRepository, times(1)).existsById(eq(strategyId));
-    verify(dailyStatisticsService, times(1)).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
-    verify(dailyStatisticsRepository, times(0)).findByStrategyIdAndDate(anyLong(), any(LocalDate.class));
+      assertEquals("Database error", exception.getMessage());
+
+      // Repository 및 서비스 호출 검증
+      verify(strategyRepository, times(1)).existsById(eq(strategyId));
+      verify(dailyStatisticsService, times(1)).registerDailyStatistics(eq(strategyId), any(DailyStatisticsReqDto.class));
+      verify(dailyStatisticsRepository, times(0)).findByStrategyIdAndDate(anyLong(), any(LocalDate.class));
+    }
   }
 
   /**
@@ -233,7 +248,7 @@ public class ExcelUploadServiceTest {
             bos.toByteArray()
     );
 
-    // 전략 ID 설정 및 StrategyEntity 생성 (빌더 패턴 사용하지 않음)
+    // 전략 ID 설정 및 StrategyEntity 생성
     Long strategyId = 1L;
     StrategyEntity strategyEntity = new StrategyEntity();
     strategyEntity.setStrategyId(strategyId);
@@ -242,20 +257,20 @@ public class ExcelUploadServiceTest {
 
     when(strategyRepository.existsById(strategyId)).thenReturn(true);
 
-    // Mocking the repository to throw exception when multiple sheets are present
-    // Since the service itself checks for multiple sheets and throws exception,
-    // we don't need to mock repository behavior here.
+    // Mocking HolidayUtil to not consider the test date as holiday/weekend (optional)
+    try (MockedStatic<HolidayUtil> mockedHolidayUtil = mockStatic(HolidayUtil.class)) {
+      // No need to mock HolidayUtil for this test as it should throw before reaching date parsing
+      // 메서드 실행 및 예외 검증
+      ExcelValidationException exception = assertThrows(ExcelValidationException.class, () -> {
+        excelUploadService.extractAndSaveData(invalidFile, strategyId);
+      });
 
-    // 메서드 실행 및 예외 검증
-    ExcelValidationException exception = assertThrows(ExcelValidationException.class, () -> {
-      excelUploadService.extractAndSaveData(invalidFile, strategyId);
-    });
+      assertEquals("엑셀 파일에 여러 시트가 포함되어 있습니다. 첫 번째 시트만 허용됩니다.", exception.getMessage());
 
-    assertEquals("엑셀 파일에 여러 시트가 포함되어 있습니다. 첫 번째 시트만 허용됩니다.", exception.getMessage());
-
-    // Repository 메서드 호출 검증
-    verify(strategyRepository, times(1)).existsById(strategyId);
-    verify(dailyStatisticsService, times(0)).registerDailyStatistics(anyLong(), any(DailyStatisticsReqDto.class));
-    verify(dailyStatisticsRepository, times(0)).findByStrategyIdAndDate(anyLong(), any(LocalDate.class));
+      // Repository 메서드 호출 검증
+      verify(strategyRepository, times(1)).existsById(strategyId);
+      verify(dailyStatisticsService, times(0)).registerDailyStatistics(anyLong(), any(DailyStatisticsReqDto.class));
+      verify(dailyStatisticsRepository, times(0)).findByStrategyIdAndDate(anyLong(), any(LocalDate.class));
+    }
   }
 }
