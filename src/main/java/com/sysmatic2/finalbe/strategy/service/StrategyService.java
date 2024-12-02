@@ -945,13 +945,22 @@ public class StrategyService {
         strategyHistoryRepo.save(strategyHistoryEntity);
 
         // 10. 제안서 수정 (sbwoo)
-        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니면, 제안서 등록
+        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니고, 링크의 변화가 있다면 제안서 등록
         if (strategyPayloadDto.getStrategyProposalLink() != null) {
-            // file이 업로드 되어 있는 링크라면,
-            if(fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+
+            // 파일이 업로드 되어 있는 링크라면
+            if (fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+
+                Optional<StrategyProposalEntity> existingProposal = strategyProposalRepository.findByStrategy(strategyEntity);
+
                 // strategyProposal이 있으면 수정
-                if (strategyProposalRepository.findByStrategy(strategyEntity).isPresent()) {
-                    strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                if (existingProposal.isPresent()) {
+                    String existingFileLink = existingProposal.get().getFileLink();
+
+                    // 기존 파일 링크와 같으면 수정하지 않음
+                    if (!existingFileLink.equals(strategyPayloadDto.getStrategyProposalLink())) {
+                        strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                    }
                 } else {
                     // 없으면 새로 등록
                     strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
@@ -959,6 +968,7 @@ public class StrategyService {
             } else { // 잘못된 링크를 보내주면 에러 메시지
                 throw new FileMetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
             }
+
         } else { // link 로 null 값이 들어오면,
             // 기존 strategyProposal이 있으면, strategyProposal 삭제
             if(strategyProposalRepository.findByStrategy(strategyEntity).isPresent()){
