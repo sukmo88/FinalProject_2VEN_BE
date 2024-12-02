@@ -20,4 +20,7 @@ public interface FollowingStrategyFolderRepository extends JpaRepository<Followi
             "WHERE f.member = :member")
     List<FollowingStrategyFolderDto> findFolderDtosByMember(@Param("member") MemberEntity member);
 
+    List<FollowingStrategyFolderEntity> findByMember(MemberEntity member);
+
+    void deleteAllByMember(MemberEntity member);
 }
