@@ -125,15 +125,18 @@ public class StrategyController {
     }
 
     /**
-     * 3. 승인 받은 전략의 갯수를 반환 - 메인페이지
+     * 3. 승인 받은 전략의 갯수와 트레이더 수를 반환 - 메인페이지
      *
-     * @return 승인 받은 전략의 갯수
+     * @return 승인 받은 전략수, 트레이더수
      */
-    @GetMapping(value = "approved-count", produces = "application/json")
-    public ResponseEntity<Map<String, Long>> approvedCount() throws Exception {
+    @GetMapping(value = "strategy-trader-count", produces = "application/json")
+    public ResponseEntity<Map<String, Long>> strategyTraderCount() throws Exception {
         Long approvedCnt = strategyRepository.countByIsApproved("Y");
+        Long traderCnt = memberRepository.countBymemberGradeCode("MEMBER_ROLE_TRADER");
+
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("strategyCnt", approvedCnt);
+        responseMap.put("traderCnt", traderCnt);
 
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
