@@ -41,11 +41,12 @@ public class TraderStrategyController {
     @GetMapping("/search")
     @Operation(summary = "키워드로 검색한 트레이더 목록을 보여주는 메서드")
     public ResponseEntity<Map<String, Object>> traderKeywordSearch(
-            @RequestParam String keyword,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sortOption,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "4") Integer pageSize){
 
-        Map<String, Object> responseData = memberService.getTraderListByKeyword(keyword, page, pageSize);
+        Map<String, Object> responseData = memberService.getTraderListByKeyword(keyword, sortOption, page, pageSize);
         //가변맵 변경
         responseData = new HashMap<>(responseData);
         responseData.put("keyword", keyword);

@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface MemberRepository extends JpaRepository<MemberEntity, String> {
+public interface MemberRepository extends JpaRepository<MemberEntity, String>, MemberRepositoryCustom {
 
     // 이메일로 회원 조회
     Optional<MemberEntity> findByEmail(String email);
@@ -22,7 +22,7 @@ public interface MemberRepository extends JpaRepository<MemberEntity, String> {
     Optional<MemberEntity> findByNickname(String nickname);
 
     // 간단한 프로필 조회
-    @Query("SELECT new com.sysmatic2.finalbe.member.dto.SimpleProfileDTO(m.nickname, m.memberGradeCode, m.introduction, m.fileId) " +
+    @Query("SELECT new com.sysmatic2.finalbe.member.dto.SimpleProfileDTO(m.nickname, m.memberGradeCode, m.introduction, m.fileId, m.profilePath) " +
             "FROM MemberEntity m " +
             "WHERE m.memberId = :memberId")
     Optional<SimpleProfileDTO> findSimpleProfileByMemberId(@Param("memberId") String memberId);

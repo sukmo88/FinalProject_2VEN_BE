@@ -162,8 +162,9 @@ class MemberControllerTest {
         String memberType = "MEMBER_ROLE_TRADER";
         String introduction = "introduction";
         String fileId = "fileId";
+        String profilePath = "profilePath";
 
-        SimpleProfileDTO simpleProfileDTO = new SimpleProfileDTO(nickname, memberType, introduction, fileId);
+        SimpleProfileDTO simpleProfileDTO = new SimpleProfileDTO(nickname, memberType, introduction, fileId, profilePath);
 
         // 저장된 MemberId로 sidebar profile 조회 시 SimpleProfileDTO 반환하도록 설정
         doReturn(simpleProfileDTO).when(memberService).getSimpleProfile(memberId);

@@ -13,12 +13,14 @@ public class SimpleProfileDTO {
     private String memberType;
     private String introduction;
     private String fileId;
+    private String profilePath;
 
-    public SimpleProfileDTO(String nickname, String memberType, String introduction, String fileId) {
+    public SimpleProfileDTO(String nickname, String memberType, String introduction, String fileId, String profilePath) {
         this.nickname = nickname;
         this.memberType = memberType.replace("MEMBER_ROLE_", "");
         this.introduction = introduction;
         this.fileId = fileId;
+        this.profilePath = profilePath;
     }
 
 }
