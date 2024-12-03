@@ -129,6 +129,10 @@ public class StrategyController {
      *
      * @return 승인 받은 전략수, 트레이더수
      */
+    @Operation(
+            summary = "승인된 전략 수 및 트레이더 수 조회",
+            description = "승인된 전략의 총 개수와 'MEMBER_ROLE_TRADER' 역할을 가진 트레이더의 총 수를 반환합니다."
+    )
     @GetMapping(value = "strategy-trader-count", produces = "application/json")
     public ResponseEntity<Map<String, Long>> strategyTraderCount() throws Exception {
         Long approvedCnt = strategyRepository.countByIsApproved("Y");
