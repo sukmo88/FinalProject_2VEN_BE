@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,7 +29,6 @@ public class LiveAccountDataController {
      *
      * @param file         등록할 이미지 파일
      * @param strategyId   전략 ID
-     * @param displayName  파일 이름 (등록 날짜 형식: yyyy.MM.dd)
      * @param userDetails   업로더 ID (JWT 또는 인증정보에서 추출)
      * @return 등록된 실계좌 이미지 정보
      */
@@ -36,11 +36,10 @@ public class LiveAccountDataController {
     public ResponseEntity<LiveAccountDataResponseDto> uploadLiveAccountData(
             @RequestParam("file") MultipartFile file,
             @PathVariable Long strategyId,
-            @RequestParam String displayName,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // 서비스 호출
-        LiveAccountDataResponseDto response = liveAccountDataService.uploadLiveAccountData(file, userDetails.getMemberId(), strategyId, displayName);
+        LiveAccountDataResponseDto response = liveAccountDataService.uploadLiveAccountData(file, userDetails.getMemberId(), strategyId);
 
         // 응답 반환
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -77,18 +76,18 @@ public class LiveAccountDataController {
      * @param liveAccountId pagenation에 page 값(default = 0)
      * @return 삭제 완료 메시지
      */
-    @DeleteMapping("/{liveAccountId}")
-    public ResponseEntity<Map<String, String>> deleteLiveAccountData(
-            @RequestParam Long strategyId,
-            @PathVariable Long liveAccountId){
+    @DeleteMapping("/{strategyId}")
+    public ResponseEntity<Map<String, Object>> deleteLiveAccountData(
+            @PathVariable Long strategyId,
+            @RequestBody List<Long> liveAccountId){
 
         // 실계좌 인증 삭제
-        liveAccountDataService.deleteLiveAccountData(strategyId, liveAccountId);
+        liveAccountDataService.deleteLiveAccountDataList(strategyId, liveAccountId);
 
         // 응답 반환
-        Map<String, String> response = new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
         response.put("message", "Live account data successfully deleted.");
-        response.put("liveAccountId", liveAccountId.toString());
+        response.put("deletedIds", liveAccountId);
         response.put("strategyId", strategyId.toString());
 
         return ResponseEntity.ok(response);
