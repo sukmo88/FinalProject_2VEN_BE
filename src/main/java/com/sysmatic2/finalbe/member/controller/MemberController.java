@@ -34,7 +34,7 @@ public class MemberController {
 
     //로그인
     @PostMapping("/login")
-    public String login(HttpServletRequest request) {
+    public String login(HttpServletRequest request, @RequestBody LoginDTO LoginDto) {
         return "login";
     }
     //로그아웃
