@@ -166,7 +166,55 @@ public class LiveAccountDataService {
     }
 
     /**
-     * 3-2. 실계좌 이미지 삭제 - 모두 삭제 (전략 삭제시)
+     * 3-2. 실계좌 이미지 삭제 - 다중 삭제(리스트로 받아서)
+     *
+     * @param strategyId 전략 Id
+     */
+    @Transactional
+    public void deleteLiveAccountDataList(Long strategyId, List<Long> liveAccountIds) {
+        String category = "liveaccount";
+
+        // 1. validation
+        // 전략 유효성 확인 및 조회
+        validateStrategy(strategyId);
+        StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
+                .orElseThrow(() -> new StrategyNotFoundException("Strategy not found with ID: " + strategyId + "in live account data uploading."));
+
+
+        // 2. 실계좌 인증 리스트 조회
+        List<LiveAccountDataEntity> liveAccountDataEntities = liveAccountDataRepository.findAllByLiveAccountIdInAndStrategy(liveAccountIds, strategyEntity);
+
+        if (liveAccountDataEntities.isEmpty()) {
+            throw new LiveAccountDataNotFoundException("No LiveAccountData found for strategy ID: " + strategyId);
+        }
+
+        try {
+            // 3. 실계좌 인증 데이터 삭제
+            List<String> fileLinks = liveAccountDataEntities.stream()
+                    .map(LiveAccountDataEntity::getFileLink)
+                    .toList();
+
+            List<FileMetadata> fileMetadataList = fileMetadataRepository.findAllByFilePathIn(fileLinks);
+
+            if (fileMetadataList.size() != fileLinks.size()) {
+                throw new FileMetadataNotFoundException("Some FileMetadata entries not found for live account file links.");
+            }
+
+            // DB에서 실계좌 데이터 삭제
+            liveAccountDataRepository.deleteAll(liveAccountDataEntities);
+
+            // S3 및 파일 메타데이터 삭제
+            for (FileMetadata fileMetadata : fileMetadataList) {
+                fileService.deleteFile(fileMetadata.getId(), fileMetadata.getUploaderId(), category, true, true);
+            }
+
+        } catch (Exception e) {
+            throw new LiveAccountDataException("Failed to delete all Live Account Data for strategy ID: " + strategyId, e);
+        }
+    }
+
+    /**
+     * 3-3. 실계좌 이미지 삭제 - 모두 삭제 (전략 삭제시)
      *
      * @param strategyId 전략 Id
      */
