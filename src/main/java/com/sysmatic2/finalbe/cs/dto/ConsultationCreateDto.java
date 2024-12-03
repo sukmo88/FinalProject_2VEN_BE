@@ -48,5 +48,6 @@ public class ConsultationCreateDto {
   private String content;
 
   @NotNull(message = "상담 상태는 필수입니다.")
-  private ConsultationStatus status;
+  @Builder.Default
+  private ConsultationStatus status = ConsultationStatus.PENDING; // 기본값 설정
 }

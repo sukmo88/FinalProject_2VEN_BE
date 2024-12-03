@@ -44,12 +44,12 @@ public class ConsultationMapper {
   public ConsultationDetailResponseDto toDetailResponseDto(ConsultationEntity entity) {
     return ConsultationDetailResponseDto.builder()
             .id(entity.getId())
-            .investorId(entity.getInvestor().getMemberId())
-            .investorName(entity.getInvestor().getNickname())
-            .traderId(entity.getTrader().getMemberId())
-            .traderName(entity.getTrader().getNickname())
-            .strategyId(entity.getStrategy().getStrategyId())
-            .strategyName(entity.getStrategy().getStrategyTitle())
+            .investorId(entity.getInvestor() == null ? null : entity.getInvestor().getMemberId())
+            .investorName(entity.getInvestor() == null ? "탈퇴한 사용자" : entity.getInvestor().getNickname())
+            .traderId(entity.getTrader() == null ? null : entity.getTrader().getMemberId())
+            .traderName(entity.getTrader() == null ? "탈퇴한 사용자" : entity.getTrader().getNickname())
+            .strategyId(entity.getStrategy() == null ? null : entity.getStrategy().getStrategyId())
+            .strategyName(entity.getStrategy() == null ? "전략 정보 없음" : entity.getStrategy().getStrategyTitle())
             .investmentAmount(entity.getInvestmentAmount())
             .investmentDate(entity.getInvestmentDate())
             .title(entity.getTitle())
@@ -61,6 +61,8 @@ public class ConsultationMapper {
             .answerDate(entity.getAnswerDate())
             .replyCreatedAt(entity.getReplyCreatedAt())
             .replyUpdatedAt(entity.getReplyUpdatedAt())
+            .investorProfileUrl(entity.getInvestor() == null ? null : entity.getInvestor().getProfilePath())
+            .traderProfileUrl(entity.getTrader() == null ? null : entity.getTrader().getProfilePath())
             .build();
   }
 
@@ -70,13 +72,15 @@ public class ConsultationMapper {
   public ConsultationListResponseDto toListResponseDto(ConsultationEntity entity) {
     return ConsultationListResponseDto.builder()
             .id(entity.getId())
-            .investorName(entity.getInvestor().getNickname())
-            .traderName(entity.getTrader().getNickname())
-            .strategyName(entity.getStrategy().getStrategyTitle())
+            .investorName(entity.getInvestor() == null ? "탈퇴한 사용자" : entity.getInvestor().getNickname())
+            .traderName(entity.getTrader() == null ? "탈퇴한 사용자" : entity.getTrader().getNickname())
+            .strategyName(entity.getStrategy() == null ? "전략 정보 없음" : entity.getStrategy().getStrategyTitle())
             .investmentDate(entity.getInvestmentDate())
             .title(entity.getTitle())
             .status(entity.getStatus())
             .createdAt(entity.getCreatedAt())
+            .investorProfileUrl(entity.getInvestor() == null ? null : entity.getInvestor().getProfilePath())
+            .traderProfileUrl(entity.getTrader() == null ? null : entity.getTrader().getProfilePath())
             .build();
   }
 
