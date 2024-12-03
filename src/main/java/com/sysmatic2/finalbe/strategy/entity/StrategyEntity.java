@@ -90,4 +90,15 @@ public class StrategyEntity extends Auditable {
     //전략(1) : 관계(N)
     @OneToMany(mappedBy = "strategyEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StrategyIACEntity> strategyIACEntities;
+
+    public void incrementFollowersCount() {
+        this.followersCount++;
+    }
+
+    // 팔로우 감소 (followersCount가 음수가 되지 않도록 보호)
+    public void decrementFollowersCount() {
+        if (this.followersCount > 0) {
+            this.followersCount--;
+        }
+    }
 }
