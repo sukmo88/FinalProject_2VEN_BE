@@ -17,10 +17,7 @@ import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -280,49 +277,25 @@ public class MemberService {
         return emailByPhoneNumber;
     }
 
-    //keyword로 트레이더명 검색, 트레이더명, 트레이더 소개, 소유 전략 갯수 반환
+    /**
+     * 키워드로 트레이더를 검색하고, 정렬 조건에 따라 결과 반환
+     *
+     * @param keyword    검색 키워드 (트레이더 닉네임의 일부 또는 전체)
+     * @param sortOption 정렬 옵션 ("latestSignup"이면 최신 가입일 순, 기본값은 전략 수 많은 순)
+     * @param page       현재 페이지 번호 (0부터 시작)
+     * @param pageSize   페이지 크기 (한 페이지에 포함될 데이터 수)
+     * @return 페이징된 트레이더 검색 결과를 Map 형식으로 반환
+     *
+     */
     @Transactional(readOnly = true)
-    public Map<String, Object> getTraderListByKeyword(String keyword, Integer page, Integer pageSize){
-        //페이지 객체 생성
+    public Map<String, Object> getTraderListByKeyword(String keyword, String sortOption, Integer page, Integer pageSize) {
+        // 페이지 요청 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        //트레이더 닉네임에 키워드를 포함한 해당 전략 엔티티 객체들 가져오기
-        Page<MemberEntity> findTraderPage = memberRepository.searchByKeyword(keyword, pageable);
+        // 검색된 결과와 정렬 조건에 따라 DTO 페이지 가져오기
+        Page<TraderSearchResultDto> dtoPage = memberRepository.searchByKeywordWithSorting(keyword, sortOption, pageable);
 
-        //트레이더 엔티티에서 트레이더 id 가져와서 리스트로 만들기
-        List<String> traderIds = findTraderPage.stream()
-                .map(MemberEntity::getMemberId)
-                .collect(Collectors.toList());
-
-        // 트레이더 id : 전략 갯수 map
-        Map<String, Integer> strategyCountMap = new HashMap<>();
-
-        //트레이더 id로 전략 갯수 가져오기 - 승인 받은 전략 갯수만 출력함
-        for(String traderId : traderIds){
-            Integer strategyCnt = strategyRepository.countByWriterIdAndIsApproved(traderId, "Y");
-            strategyCountMap.put(traderId, strategyCnt);
-        }
-
-        //DTO에 정보 넣기
-        List<TraderSearchResultDto> dtoList = findTraderPage.stream()
-                .map(memberEntity -> {
-                    TraderSearchResultDto dto = new TraderSearchResultDto(
-                            memberEntity.getMemberId(),      //트레이더 id
-                            memberEntity.getNickname(),      //트레이더 닉네임
-                            memberEntity.getIntroduction(),  //트레이더 소개글
-                            memberEntity.getFileId(),        //트레이더 프로필 이미지 id
-                            memberEntity.getProfilePath(),   //트레이더 프로필 이미지 링크
-                            0                                //전략 수 0 설정
-                    );
-                    Integer strategyCnt = strategyCountMap.get(memberEntity.getMemberId());
-                    dto.setStrategyCnt(strategyCnt);
-
-                    return dto;
-
-                }).collect(Collectors.toList());
-
-        Page<TraderSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findTraderPage.getTotalElements());
-
+        // 결과를 페이징 응답 형식으로 반환
         return createPageResponse(dtoPage);
     }
 

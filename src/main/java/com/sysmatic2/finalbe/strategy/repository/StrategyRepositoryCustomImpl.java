@@ -90,6 +90,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                         //TODO)Y로 변경
                         strategy.isApproved.eq("N")
                 )
+                .orderBy(strategy.smScore.desc()) // smScore 내림차순 정렬 추가
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
