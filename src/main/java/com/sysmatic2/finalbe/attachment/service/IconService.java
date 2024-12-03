@@ -26,7 +26,7 @@ public class IconService {
         String uploaderId = "admin";
 
         // 새로운 아이콘 등록
-        return fileService.uploadFile(file, uploaderId, category, null, category);
+        return fileService.uploadFile(file, uploaderId, category, null);
     }
 
     /**

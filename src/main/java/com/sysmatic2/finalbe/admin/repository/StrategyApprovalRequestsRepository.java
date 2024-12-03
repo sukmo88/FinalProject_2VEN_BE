@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.admin.repository;
 
 import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,4 +28,6 @@ public interface StrategyApprovalRequestsRepository extends JpaRepository<Strate
             "ORDER BY rejection_datetime DESC LIMIT 1",
             nativeQuery = true)
     Optional<StrategyApprovalRequestsEntity> findLatestRejectedRequestByStrategyId(@Param("strategyId") Long strategyId);
+
+    void deleteAllByStrategy(StrategyEntity strategy);
 }

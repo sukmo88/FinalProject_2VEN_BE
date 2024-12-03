@@ -26,7 +26,7 @@ public class ProposalService {
         String category = "proposal";
 
         // 새로운 제안서 등록
-        return fileService.uploadFile(file, uploaderId, category, null, category);
+        return fileService.uploadFile(file, uploaderId, category, null);
     }
 
     /**

@@ -8,8 +8,10 @@ import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
 import com.sysmatic2.finalbe.attachment.service.FileService;
 import com.sysmatic2.finalbe.attachment.service.ProposalService;
+import com.sysmatic2.finalbe.cs.repository.ConsultationRepository;
 import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
+import com.sysmatic2.finalbe.member.repository.FollowingStrategyRepository;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
@@ -58,6 +60,9 @@ public class StrategyService {
     private final FileService fileService;
     private final LiveAccountDataService liveAccountDataService;
     private final LiveAccountDataRepository liveAccountDataRepository;
+    private final FollowingStrategyRepository followingStrategyRepository;
+    private final ConsultationRepository consultationRepository;
+    private final MonthlyStatisticsRepository monthlyStatisticsRepository;
 
     //1. 전략 생성
     /**
@@ -945,13 +950,22 @@ public class StrategyService {
         strategyHistoryRepo.save(strategyHistoryEntity);
 
         // 10. 제안서 수정 (sbwoo)
-        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니면, 제안서 등록
+        // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니고, 링크의 변화가 있다면 제안서 등록
         if (strategyPayloadDto.getStrategyProposalLink() != null) {
-            // file이 업로드 되어 있는 링크라면,
-            if(fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+
+            // 파일이 업로드 되어 있는 링크라면
+            if (fileService.getFileMetadataByFilePath(strategyPayloadDto.getStrategyProposalLink()) != null) {
+
+                Optional<StrategyProposalEntity> existingProposal = strategyProposalRepository.findByStrategy(strategyEntity);
+
                 // strategyProposal이 있으면 수정
-                if (strategyProposalRepository.findByStrategy(strategyEntity).isPresent()) {
-                    strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                if (existingProposal.isPresent()) {
+                    String existingFileLink = existingProposal.get().getFileLink();
+
+                    // 기존 파일 링크와 같으면 수정하지 않음
+                    if (!existingFileLink.equals(strategyPayloadDto.getStrategyProposalLink())) {
+                        strategyProposalService.modifyProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
+                    }
                 } else {
                     // 없으면 새로 등록
                     strategyProposalService.uploadProposal(strategyPayloadDto.getStrategyProposalLink(), strategyEntity.getWriterId(), strategyEntity.getStrategyId());
@@ -959,6 +973,7 @@ public class StrategyService {
             } else { // 잘못된 링크를 보내주면 에러 메시지
                 throw new FileMetadataNotFoundException("The provided file link is invalid or does not exist : " + strategyPayloadDto.getStrategyProposalLink());
             }
+
         } else { // link 로 null 값이 들어오면,
             // 기존 strategyProposal이 있으면, strategyProposal 삭제
             if(strategyProposalRepository.findByStrategy(strategyEntity).isPresent()){
@@ -1155,5 +1170,33 @@ public class StrategyService {
 
         // DTO 생성 및 반환
         return new DailyStatisticsChartResponseDto(chartData, timestamp);
+    }
+
+    /**
+     * 회원 탈퇴 시 전략과 전략에 관련된 데이터 모두 삭제하는 메소드
+     * 관련 데이터 : 전략이력, 전략제안서, 실계좌인증, 전략승인요청, 관계테이블이력, 일간통계, 월간통계, 관심전략, 상담, 리뷰
+     */
+    @Transactional
+    public void deleteStrategyForWithdrawal(StrategyEntity strategy) {
+        Long strategyId = strategy.getStrategyId();
+
+        // TODO) 전략 ID로 등록된 리뷰를 모두 삭제한다.
+
+        strategyHistoryRepo.deleteAllByStrategyId(strategyId);  // 전략이력 삭제 [X]
+        if(strategyProposalService.getProposalByStrategyId(strategy.getStrategyId()).isPresent()){  // 전략제안서 삭제
+            strategyProposalService.deleteProposal(strategy.getStrategyId(), strategy.getWriterId());
+        }
+        if(!liveAccountDataRepository.findAllByStrategy(strategy).isEmpty()){  // 실계좌인증 삭제
+            liveAccountDataService.deleteAllLiveAccountData(strategy.getStrategyId());
+        }
+        strategyApprovalRequestsRepository.deleteAllByStrategy(strategy);  // 전략승인요청 삭제
+        monthlyStatisticsRepository.deleteByStrategyEntity(strategy);  // 월간통계 삭제 [X]
+        dailyStatisticsRepository.deleteAllByStrategyEntity(strategy);  // 일간통계 삭제 [X]
+        followingStrategyRepository.deleteAllByStrategy(strategy);  // 관심전략 삭제 [X]
+        consultationRepository.deleteAllByStrategy(strategy);  // 상담 삭제 [X]
+        strategyIACHistoryRepository.deleteAllByStrategyId(strategyId);  // 관계테이블이력 삭제 [X]
+        strategyIACRepository.deleteAllByStrategyEntity(strategy);  // 관계테이블 삭제 [X]
+
+        strategyRepo.delete(strategy);  // 전략 삭제 [X]
     }
 }
