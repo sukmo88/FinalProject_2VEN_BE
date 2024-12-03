@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -75,18 +76,18 @@ public class LiveAccountDataController {
      * @param liveAccountId pagenation에 page 값(default = 0)
      * @return 삭제 완료 메시지
      */
-    @DeleteMapping("/{liveAccountId}")
-    public ResponseEntity<Map<String, String>> deleteLiveAccountData(
-            @RequestParam Long strategyId,
-            @PathVariable Long liveAccountId){
+    @DeleteMapping("/{strategyId}")
+    public ResponseEntity<Map<String, Object>> deleteLiveAccountData(
+            @PathVariable Long strategyId,
+            @RequestBody List<Long> liveAccountId){
 
         // 실계좌 인증 삭제
-        liveAccountDataService.deleteLiveAccountData(strategyId, liveAccountId);
+        liveAccountDataService.deleteLiveAccountDataList(strategyId, liveAccountId);
 
         // 응답 반환
-        Map<String, String> response = new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
         response.put("message", "Live account data successfully deleted.");
-        response.put("liveAccountId", liveAccountId.toString());
+        response.put("deletedIds", liveAccountId);
         response.put("strategyId", strategyId.toString());
 
         return ResponseEntity.ok(response);

@@ -63,6 +63,8 @@ public class StrategyService {
     private final FollowingStrategyRepository followingStrategyRepository;
     private final ConsultationRepository consultationRepository;
     private final MonthlyStatisticsRepository monthlyStatisticsRepository;
+    private final StrategyReviewRepository strategyReviewRepository;
+    private final StrategyReviewService strategyReviewService;
 
     //1. 전략 생성
     /**
@@ -699,10 +701,15 @@ public class StrategyService {
             liveAccountDataService.deleteAllLiveAccountData(strategyEntity.getStrategyId());
         }
 
-        //6. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        //6. 전략 리뷰가 있는 경우, 전략 리뷰 삭제 (sbwoo)
+        if(!strategyReviewRepository.findAllByStrategy(strategyEntity).isEmpty()){
+            strategyReviewService.deleteAllReviewsByStrategy(strategyEntity.getStrategyId());
+        }
+
+        //7. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //7. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //8. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
