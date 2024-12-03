@@ -164,7 +164,11 @@ public class MemberController {
 
     //회원탈퇴
     @DeleteMapping("/withdrawal")
-    public ResponseEntity<Map<String, String>> delete() {
+    public ResponseEntity<Map<String, String>> withdrawal(@AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        String memberId = userDetails.getMemberId();
+        memberService.withdrawal(memberId);
+
         return ResponseEntity.ok(Map.of(
                 "status", "success",
                 "message", "회원탈퇴에 성공하였습니다."

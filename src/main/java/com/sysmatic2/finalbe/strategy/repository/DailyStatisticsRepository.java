@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.strategy.repository;
 import com.sysmatic2.finalbe.strategy.dto.DateRange;
 import com.sysmatic2.finalbe.strategy.dto.DdDayAndMaxDdInRate;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -411,4 +412,7 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
             "WHERE d.strategyEntity.strategyId = :strategyId " +
             "ORDER BY d.date ASC")
     List<Double> findCumulativeProfitLossRateByStrategyIdOrderByDate(Long strategyId);
+
+    // strategy id로 일일통계 데이터 모두 삭제
+    void deleteAllByStrategyEntity(StrategyEntity strategyEntity);
 }

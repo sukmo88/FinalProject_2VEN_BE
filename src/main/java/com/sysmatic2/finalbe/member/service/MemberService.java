@@ -1,12 +1,19 @@
 package com.sysmatic2.finalbe.member.service;
 
+import com.sysmatic2.finalbe.attachment.service.FileService;
+import com.sysmatic2.finalbe.cs.entity.ConsultationEntity;
+import com.sysmatic2.finalbe.cs.repository.ConsultationRepository;
 import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.entity.MemberTermEntity;
 import com.sysmatic2.finalbe.member.enums.TermType;
+import com.sysmatic2.finalbe.member.repository.FollowingStrategyFolderRepository;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import com.sysmatic2.finalbe.strategy.repository.StrategyHistoryRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
+import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import com.sysmatic2.finalbe.common.DtoEntityConversion;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +43,11 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final StrategyRepository strategyRepository;
+    private final FollowingStrategyFolderService fsFolderService;
+    private final FollowingStrategyFolderRepository fsFolderRepository;
+    private final StrategyService strategyService;
+    private final ConsultationRepository consultationRepository;
+    private final FileService fileService;
 
     @Transactional
     public void signup(SignupDTO signupDTO) {
@@ -45,7 +57,7 @@ public class MemberService {
         comparePassword(signupDTO.getPassword(), signupDTO.getConfirmPassword());
 
 
-        // SignupDTO를 MemberEntity로 변환 후 저장
+        // SignupDTO를 MemberEntity로 변환
         MemberEntity member = DtoEntityConversion.convertToMemberEntity(signupDTO, passwordEncoder);
 
         // 필수약관 동의여부 확인 후 약관 및 광고성정보수신 동의내역 저장
@@ -53,7 +65,6 @@ public class MemberService {
             throw new RequiredAgreementException("개인정보처리방침과 서비스이용약관은 필수 동의 항목입니다.");
         }
 
-        // 약관동의내역 저장
         LocalDateTime decisionDate = member.getSignupAt();
         String memberId = member.getMemberId();
 
@@ -73,9 +84,14 @@ public class MemberService {
             member.getMemberTermList().add(memberTerm);
         }
 
-        // TODO) 관심전략 기본폴더 생성
+        // TODO) 약관동의내역이력에 동의내역 데이터 저장
 
         memberRepository.save(member);
+
+        // 회원 타입이 일반투자자(INVESTOR)이면 관심전략 기본폴더 생성
+        if ("INVESTOR".equals(signupDTO.getMemberType())) {
+            fsFolderService.createDefaultFolder(member);
+        }
     }
 
     // 확인 비밀번호 값이 일치하는지 확인하는 메소드
@@ -308,6 +324,47 @@ public class MemberService {
         Page<TraderSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, findTraderPage.getTotalElements());
 
         return createPageResponse(dtoPage);
+    }
+
+    @Transactional
+    public void withdrawal(String memberId) {
+        // memberId로 회원을 찾은 후 회원이 존재하지 않으면 예외를 발생시킨다.
+        MemberEntity member = memberRepository.findById(memberId).orElseThrow(MemberNotFoundException::new);
+        String memberGradeCode = member.getMemberGradeCode();
+
+        // 1. 회원의 유형이 일반투자자일 경우
+        if (memberGradeCode.equals("MEMBER_ROLE_INVESTOR")) {
+            // 1.1 회원의 관심전략폴더와 관심전략을 모두 삭제한다.
+            fsFolderRepository.deleteAllByMember(member);
+
+            // 1.2 회원 ID가 상담신청자 ID인 상담을 모두 찾아서 null 로 바꾼다.
+            List<ConsultationEntity> consultationsByInvestor = consultationRepository.findAllByInvestor(member);
+            for (ConsultationEntity consultation : consultationsByInvestor) {
+                consultation.setInvestor(null);
+                consultationRepository.save(consultation);
+            }
+
+        // 2. 회원의 유형이 트레이더일 경우
+        } else if (memberGradeCode.equals("MEMBER_ROLE_TRADER")) {
+            // 회원 ID로 저장된 나의전략을 모두 찾아서 삭제한다.
+            // 연관된 테이블 : 전략이력, 전략제안서, 실계좌인증, 전략승인요청, 일간통계, 월간통계, 관심전략, 상담, 리뷰, 관계테이블, 관계테이블이력
+            List<StrategyEntity> strategies = strategyRepository.findAllByWriterId(memberId);
+            for (StrategyEntity strategy : strategies) {
+                strategyService.deleteStrategyForWithdrawal(strategy);
+            }
+        }
+
+        // 3. 공통
+        // 회원 ID로 S3와 파일메타데이터에 저장된 프로필 사진 데이터를 삭제한다.
+        String profileId = member.getFileId();
+        if (profileId != null) {
+            fileService.deleteFile(Long.valueOf(profileId), member.getMemberId(), "profile", true,  true);
+        }
+
+        // 회원 ID로 저장된 회원을 찾아서 삭제한다. (약관동의내역도 함꼐 삭제됨)
+        memberRepository.deleteById(memberId);
+
+        // TODO) 관리자일 경우 삭제 처리
     }
 
 }

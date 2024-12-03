@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface StrategyHistoryRepository extends JpaRepository<StrategyHistoryEntity, Long> {
+    void deleteAllByStrategyId(Long strategyId);
 }

@@ -36,7 +36,7 @@ public class ProfileService {
             return fileMetadataDto;
         } else {
             // 새로운 파일 업로드
-            FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, null, category);
+            FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, null);
 
             // 회원 정보의 fileId 업데이트
             memberHelper.initMemberFileId(uploaderId, fileMetadataDto.getId().toString(), fileMetadataDto.getFilePath());

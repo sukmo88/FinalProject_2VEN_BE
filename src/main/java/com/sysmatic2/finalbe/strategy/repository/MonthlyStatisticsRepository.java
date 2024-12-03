@@ -7,6 +7,7 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -68,4 +69,7 @@ public interface MonthlyStatisticsRepository extends JpaRepository<MonthlyStatis
    * @return 전략의 월간 분석 페이지 결과
    */
   Page<MonthlyStatisticsEntity> findByStrategyEntityStrategyIdOrderByAnalysisMonthDesc(Long strategyId, Pageable pageable);
+
+  // strategy id로 월간통계 데이터 모두 삭제
+  void deleteByStrategyEntity(StrategyEntity strategyEntity);
 }
