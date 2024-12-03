@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.common.Auditable;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
+@NoArgsConstructor
 public class FollowingStrategyEntity extends Auditable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,4 +36,12 @@ public class FollowingStrategyEntity extends Auditable {
 
     @Column(name = "followed_at", nullable = false)
     private LocalDateTime followedAt;
+
+    public FollowingStrategyEntity(FollowingStrategyFolderEntity followingStrategyFolder, MemberEntity member, StrategyEntity strategy, LocalDateTime followedAt) {
+
+        this.followingStrategyFolder = followingStrategyFolder;
+        this.member = member;
+        this.strategy = strategy;
+        this.followedAt = followedAt;
+    }
 }
