@@ -11,4 +11,5 @@ import java.util.List;
 public interface LiveAccountDataRepository extends JpaRepository<LiveAccountDataEntity, Long> {
     Page<LiveAccountDataEntity> findAllByStrategy(StrategyEntity strategy, Pageable pageable);
     List<LiveAccountDataEntity> findAllByStrategy(StrategyEntity strategy);
+    List<LiveAccountDataEntity> findAllByLiveAccountIdInAndStrategy(List<Long> ids, StrategyEntity strategy);
 }
