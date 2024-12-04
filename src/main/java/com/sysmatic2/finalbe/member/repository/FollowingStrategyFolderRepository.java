@@ -15,10 +15,13 @@ public interface FollowingStrategyFolderRepository extends JpaRepository<Followi
 
     Optional<FollowingStrategyFolderEntity> findByfolderIdAndMember(Long folderId, MemberEntity member);
 
-    @Query("SELECT new com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto(f.folderId, f.folderName, f.modifiedAt, f.isDefaultFolder) " +
+    @Query("SELECT new com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto(f.folderId, f.folderName, f.modifiedAt, f.isDefaultFolder, COUNT(fs)) " +
             "FROM FollowingStrategyFolderEntity f " +
-            "WHERE f.member = :member")
+            "LEFT JOIN FollowingStrategyEntity fs ON fs.followingStrategyFolder.folderId = f.folderId " +
+            "WHERE f.member = :member " +
+            "GROUP BY f.folderId, f.folderName, f.modifiedAt, f.isDefaultFolder")
     List<FollowingStrategyFolderDto> findFolderDtosByMember(@Param("member") MemberEntity member);
+
 
     List<FollowingStrategyFolderEntity> findByMember(MemberEntity member);
 
