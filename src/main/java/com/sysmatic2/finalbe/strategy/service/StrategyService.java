@@ -13,6 +13,7 @@ import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.FollowingStrategyRepository;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import com.sysmatic2.finalbe.member.service.FollowingStrategyService;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.entity.*;
@@ -566,7 +567,7 @@ public class StrategyService {
      *
      */
     @Transactional
-    public StrategyResponseDto getStrategyDetails(Long id) {
+    public StrategyResponseDto getStrategyDetails(Long id, String memberId) {
         //id값으로 해당 전략 조회
         StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(() ->
                 new NoSuchElementException());
@@ -629,6 +630,9 @@ public class StrategyService {
                             responseDto.setStrategyProposalLink(null);
                         }
                 );
+
+//        FollowingStrategyService.
+//        responseDto.setIsFollowed();
 
         return responseDto;
     }
