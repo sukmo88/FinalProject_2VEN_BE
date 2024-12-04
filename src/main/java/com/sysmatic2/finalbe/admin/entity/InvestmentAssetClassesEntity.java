@@ -12,7 +12,6 @@ import java.util.Objects;
 
 @Getter
 @Setter
-//@ToString(exclude = "strategyIACEntities")
 @ToString
 @Entity
 @Table(name = "investment_asset_classes") //투자자산 분류
@@ -37,13 +36,10 @@ public class InvestmentAssetClassesEntity extends Auditable {
     @Column(name = "introduce", length = 3000, nullable = true)
     private String introduce; //투자자산분류 설명
 
-    @Column(name = "is_Active", nullable = false, columnDefinition = "CHAR(1)")
+    //사용X
+    @Column(name = "is_Active", nullable = true, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
     private String isActive = "Y"; //사용 유무 default = Y
-
-    //IAC(1) : 관계(N)
-//    @OneToMany(mappedBy = "investmentAssetClassesEntity")
-//    private List<StrategyIACEntity> strategyIACEntities;
 
     //equals()
     @Override

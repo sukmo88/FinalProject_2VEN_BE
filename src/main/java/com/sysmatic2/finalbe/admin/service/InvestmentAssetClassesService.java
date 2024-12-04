@@ -102,10 +102,10 @@ public class InvestmentAssetClassesService {
 
         //최초 작성자, 최초 작성일시, 최종 수정자, 최종 수정일시 넣기 - 시스템컬럼
         //TODO) User 객체 받아오기 - spring security
-//        iacEntity.setCreatedBy(100L);
-        iacEntity.setCreatedAt(LocalDateTime.now());
-//        iacEntity.setModifiedBy(100L);
-        iacEntity.setModifiedAt(LocalDateTime.now());
+////        iacEntity.setCreatedBy(100L);
+//        iacEntity.setCreatedAt(LocalDateTime.now());
+////        iacEntity.setModifiedBy(100L);
+//        iacEntity.setModifiedAt(LocalDateTime.now());
 
         //save()
         iacRepository.save(iacEntity);

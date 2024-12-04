@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mail.MailException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -213,14 +214,14 @@ public class GlobalExceptionHandler {
     }
 
     // 401: 인증 실패
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException e) {
-        logger.warn("Authentication failed: {}", e.getMessage());
+    @ExceptionHandler(InsufficientAuthenticationException.class)
+    public ResponseEntity<Object> handleInsufficientAuthenticationException(InsufficientAuthenticationException e) {
+        logger.warn("Insufficient authentication: {}", e.getMessage());
         return ResponseUtils.buildErrorResponse(
                 "UNAUTHORIZED",
                 e.getClass().getSimpleName(),
                 "로그인 정보가 없습니다.",
-                HttpStatus.UNAUTHORIZED
+                HttpStatus.FORBIDDEN
         );
     }
 
@@ -236,10 +237,10 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 403: 권한 없음
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException e) {
-        logger.warn("Access denied: {}", e.getMessage());
+    // 403: 권한 없음 - spring security
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException e) {
+        logger.warn("Access Denied : {}", e.getMessage());
         return ResponseUtils.buildErrorResponse(
                 "FORBIDDEN",
                 e.getClass().getSimpleName(),
@@ -247,6 +248,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.FORBIDDEN
         );
     }
+
 
     // 404: 데이터 없음
     @ExceptionHandler({NoSuchElementException.class, TradingTypeNotFoundException.class,

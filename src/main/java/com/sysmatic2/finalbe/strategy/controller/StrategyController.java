@@ -188,7 +188,7 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.OK).body(dataMap);
     }
 
-    //7. 전략 수정(POST)
+    //7. 전략 수정(PUT)
     @Operation(summary = "전략 수정")
     @PutMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> updateStrategy(@PathVariable("id") Long strategyId, @RequestBody StrategyPayloadDto strategyPayloadDto,
