@@ -149,8 +149,8 @@ public class StrategyController {
     //TODO) isPosted=N인 경우 관리자와 작성트레이더만 볼 수 있다.
     @Operation(summary = "전략 상세")
     @GetMapping(value = "/{id}", produces = "application/json")
-    public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long id) throws Exception{
-        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id);
+    public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long id, @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
+        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id, userDetails);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", strategyResponseDto);
 

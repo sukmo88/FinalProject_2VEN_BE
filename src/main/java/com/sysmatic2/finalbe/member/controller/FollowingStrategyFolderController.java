@@ -1,11 +1,13 @@
 package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
+import com.sysmatic2.finalbe.member.dto.FolderNameDto;
 import com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.member.service.FollowingStrategyFolderService;
 import com.sysmatic2.finalbe.member.service.MemberService;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,11 +31,11 @@ public class FollowingStrategyFolderController {
 
     //신규 관심 전략 폴더 생성.
     @PostMapping("/following-strategy-folders")
-    public ResponseEntity<Map<String,Object>> createFolder(@RequestBody FollowingStrategyFolderDto folderDto,
+    public ResponseEntity<Map<String,Object>> createFolder(@RequestBody FolderNameDto folderName,
                                                            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         FollowingStrategyFolderDto dd = new FollowingStrategyFolderDto();
         String memberId = customUserDetails.getMemberId(); // 예: Member ID 추출
-        FollowingStrategyFolderDto createdFolderDto = folderService.createFolder(folderDto,customUserDetails);
+        FollowingStrategyFolderDto createdFolderDto = folderService.createFolder(folderName,customUserDetails);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "message", "폴더가 정상적으로 생성되었습니다.",
                 "data", createdFolderDto
