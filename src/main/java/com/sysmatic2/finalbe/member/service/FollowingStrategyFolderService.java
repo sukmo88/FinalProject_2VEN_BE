@@ -13,6 +13,8 @@ import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,8 @@ public class FollowingStrategyFolderService {
         folderEntity.setIsActive("Y");
         folderEntity.setIsDefaultFolder("Y");
         folderEntity.setMember(member);
+        folderEntity.setCreatedBy(member.getMemberId());
+        folderEntity.setModifiedBy(member.getMemberId());
         folderEntity.setFolderCreationDate(LocalDateTime.now());
         folderRepository.save(folderEntity);
     }
@@ -107,6 +111,13 @@ public class FollowingStrategyFolderService {
         );
 
     }
+
+    // 회원탈퇴를 위한 회원의 전체 관심전략폴더 삭제
+    @Transactional
+    public void deleteFoldersByMember(MemberEntity member) {
+        folderRepository.deleteAllByMember(member);
+    }
+
     /*
     public List<FollowingStrategyFolderDto> getStrategiesInFolder(Long folderId) {
         FollowingStrategyFolder folder = folderRepository.findById(folderId)

@@ -1,9 +1,7 @@
 package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.member.dto.*;
-import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.member.service.FollowingStrategyService;
-import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -73,17 +71,17 @@ public class FollowingStrategyController {
     }
 
 
-
+    //수정사항 (followingStrategyId -> strategyId)
     //관심 전략 삭제
-    @DeleteMapping("/following-strategy/{followingStrategyId}")
-    public ResponseEntity<Map<String,String>> deleteFollowingStrategy(@PathVariable Long followingStrategyId, FollowingStrategyRequestDto followingStrategyRequestDto, @AuthenticationPrincipal CustomUserDetails customUserDetails){
-        followingStrategyService.deleteFollowingStrategy(followingStrategyRequestDto,customUserDetails);
+    //@DeleteMapping("/following-strategy/{followingStrategyId}")
+    @DeleteMapping("/following-strategy/{strategyId}")
+    public ResponseEntity<Map<String,String>> deleteFollowingStrategy(@PathVariable Long strategyId, FollowingStrategyRequestDto followingStrategyRequestDto, @AuthenticationPrincipal CustomUserDetails customUserDetails){
+        //followingStrategyService.deleteFollowingStrategy(followingStrategyRequestDto,customUserDetails);
+        followingStrategyService.unFollowingStrategy(strategyId,customUserDetails);
         return ResponseEntity.status(HttpStatus.OK).body(Map.of(
                 "message","관심전략이 정상적으로 삭제되었습니다."
         ));
     }
-
-    //관심 전략 이동
 
     //관심전략폴더ID별 관심 전략 갯수 count
     @GetMapping("/following-strategy/{folderId}")
@@ -92,6 +90,18 @@ public class FollowingStrategyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "message","정상적으로 조회 성공했습니다.",
                 "count",count
+        ));
+    }
+
+    //관심전략 폴더 이동
+    //followingStrategyId: 이동하려는 관심 전략의 ID.
+    //folderId: 대상 폴더의 ID.
+    @PutMapping("/following-strategy/{followingStrategyId}/folder/{folderId}")
+    public ResponseEntity<Map<String,Object>> moveFollowingStrategy(@PathVariable Long followingStrategyId, @PathVariable Long folderId, @AuthenticationPrincipal CustomUserDetails customUserDetails){
+
+        followingStrategyService.moveFollowingStrategy(followingStrategyId,folderId,customUserDetails);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "message","선택한 전략의 폴더 이동에 성공했습니다."
         ));
     }
 
