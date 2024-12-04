@@ -39,7 +39,7 @@ public class InvestmentAssetClassesEntity extends Auditable {
     //사용X
     @Column(name = "is_Active", nullable = true, columnDefinition = "CHAR(1)")
     @Pattern(regexp = "Y|N", message = "isActive 필드는 'Y' 또는 'N'만 허용됩니다.")
-    private String isActive = "Y"; //사용 유무 default = Y
+    private String isActive; //사용 유무 default = Y
 
     //equals()
     @Override

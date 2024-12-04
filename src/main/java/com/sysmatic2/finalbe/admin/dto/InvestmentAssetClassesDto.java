@@ -13,6 +13,5 @@ public class InvestmentAssetClassesDto {
     private Integer order;
     private String investmentAssetClassesName;
     private String investmentAssetClassesIcon;
-    private String isActive;
 }
 
