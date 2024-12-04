@@ -5,10 +5,10 @@ import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.member.service.MemberService;
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -61,7 +60,7 @@ public class MemberController {
 
     // 비밀번호 변경을 위한 계정 확인 & 이메일 인증 코드 전송
     @PostMapping("/check-account")
-    public ResponseEntity<Map<String, String>> checkAccount(@Valid @RequestBody EmailCheckDTO emailCheckDTO, HttpServletRequest req) {
+    public ResponseEntity<Map<String, String>> checkAccount(@Valid @RequestBody EmailCheckDTO emailCheckDTO, HttpServletRequest req) throws MessagingException {
 
         // 1. 가입된 이메일인지 확인
         String email = emailCheckDTO.getEmail();
@@ -146,7 +145,7 @@ public class MemberController {
 
     //이메일 체크(중복체크) & 이메일 인증 코드 전송
     @PostMapping("/check-email")
-    public ResponseEntity<Map<String, String>> checkEmail(@Valid @RequestBody EmailCheckDTO emailCheckDTO, HttpServletRequest req) {
+    public ResponseEntity<Map<String, String>> checkEmail(@Valid @RequestBody EmailCheckDTO emailCheckDTO, HttpServletRequest req) throws MessagingException {
 
         // 1. 이메일 중복 검사
         String email = emailCheckDTO.getEmail();
@@ -234,7 +233,7 @@ public class MemberController {
     }
 
     // 인증번호를 메일로 보내고 세션 저장하는 메소드
-    private void sendVerificationMail(String email, HttpSession session) {
+    private void sendVerificationMail(String email, HttpSession session) throws MessagingException {
         // 2-1. 인증코드 생성
         String verificationCode = RandomKeyGenerator.generateVerificationCode(6);
 

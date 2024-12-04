@@ -7,6 +7,7 @@ import com.sysmatic2.finalbe.member.dto.EmailVerificationDTO;
 import com.sysmatic2.finalbe.member.service.AuthService;
 import com.sysmatic2.finalbe.member.service.EmailService;
 import com.sysmatic2.finalbe.util.RandomKeyGenerator;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -35,7 +36,7 @@ public class AuthController {
     //이메일로 인증번호 전송
     //관리자 인증번호 전송
     @PostMapping("/admin/send-verification-code")
-    public ResponseEntity<Map<String, String>>  sendVerificationCode(HttpServletRequest req) {
+    public ResponseEntity<Map<String, String>>  sendVerificationCode(HttpServletRequest req) throws MessagingException {
         //이메일을 바디로 보내주는걸로 알고 있겠지?
         BufferedReader reader = null;
         String bodyEmail = null;
