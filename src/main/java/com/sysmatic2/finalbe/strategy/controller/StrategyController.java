@@ -263,13 +263,6 @@ public class StrategyController {
 
     // 10. 전략 수기 데이터 등록
     @Operation(summary = "전략 수기 데이터 등록", description = "날짜, 입출금, 일손익을 최대 5행까지 입력받아 전략 데이터를 등록합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "수기 데이터 등록 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     @PostMapping(value = "/{id}/daily-data", produces = "application/json")
     public ResponseEntity<Map<String, Object>> registerManualDailyData(
             @PathVariable("id") Long strategyId,
@@ -320,13 +313,6 @@ public class StrategyController {
      * @return 성공 메시지
      */
     @Operation(summary = "전략 수기 데이터 수정", description = "수정된 날짜 이후 데이터까지 재등록하여 지표를 갱신합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "수정 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "데이터 또는 전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     @PutMapping("/{strategyId}/daily-data/{dailyDataId}")
     public ResponseEntity<Map<String, String>> updateDailyData(
             @PathVariable Long strategyId,
@@ -354,12 +340,6 @@ public class StrategyController {
             summary = "특정 전략의 일간 분석 데이터 삭제",
             description = "특정 전략의 일간 분석 데이터를 삭제하고, 삭제된 데이터 이후의 데이터들을 재계산합니다."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "데이터 삭제 및 재계산 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "404", description = "전략 ID 또는 데이터 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     @PostMapping("/{strategyId}/daily-analyses/delete")
     public ResponseEntity<?> deleteDailyAnalyses(
             @PathVariable Long strategyId,
@@ -391,13 +371,6 @@ public class StrategyController {
             summary = "특정 전략의 일간 분석 데이터 조회",
             description = "특정 전략 ID에 대한 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     @GetMapping("/{strategyId}/daily-analyses")
     public ResponseEntity<Map<String, Object>> getDailyAnalyses(
             @PathVariable Long strategyId,
@@ -425,13 +398,6 @@ public class StrategyController {
             summary = "특정 전략의 통계 데이터 조회",
             description = "특정 전략 ID에 대한 최신 통계 데이터를 반환합니다."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     @GetMapping("/{strategyId}/statistics")
     public ResponseEntity<Map<String, Object>> getStrategyStatistics(
             @PathVariable Long strategyId) {
@@ -549,13 +515,6 @@ public class StrategyController {
             summary = "특정 전략의 월간 분석 데이터 조회",
             description = "특정 전략 ID에 대한 월간 분석 데이터를 최신 월 순으로 페이징하여 반환합니다."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "데이터 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     @GetMapping("/{strategyId}/monthly-analysis")
     public Map<String, Object> getMonthlyAnalysis(
             @PathVariable Long strategyId,
@@ -579,12 +538,6 @@ public class StrategyController {
             summary = "전략 상세 차트 데이터 조회",
             description = "특정 전략 ID와 선택된 데이터 옵션(예: referencePrice, balance 등)을 날짜순으로 조회합니다."
     )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "차트 데이터 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @ApiResponse(responseCode = "404", description = "전략 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     @GetMapping("/{id}/details-chart")
     public ResponseEntity<DailyStatisticsChartResponseDto> getStrategyChartDetails(
             @PathVariable("id") Long strategyId,
@@ -595,5 +548,16 @@ public class StrategyController {
 
         // 바로 반환
         return ResponseEntity.ok(responseDto);
+    }
+
+    // 19. SM Score 기반 상위 5개 전략 리스트
+    @Operation(
+            summary = "SM SCORE 상위 5개 전략 조회",
+            description = "SM SCORE 기준 상위 5개의 전략 리스트를 반환합니다. 응답에는 전략 ID, 전략명, 작성자 프로필, 작성자 닉네임, 전일대비, 누적 수익률의 정보가 포함됩니다."
+    )
+    @GetMapping("/top5-sm-score")
+    public ResponseEntity<Map<String, Object>> getTop5SmScoreStrategies() {
+        Map<String, Object> response = strategyService.getSmScoreTop5Strategies();
+        return ResponseEntity.ok(response);
     }
 }
