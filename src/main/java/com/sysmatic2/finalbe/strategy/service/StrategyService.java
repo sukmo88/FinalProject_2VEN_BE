@@ -63,6 +63,8 @@ public class StrategyService {
     private final FollowingStrategyRepository followingStrategyRepository;
     private final ConsultationRepository consultationRepository;
     private final MonthlyStatisticsRepository monthlyStatisticsRepository;
+    private final StrategyReviewRepository strategyReviewRepository;
+    private final StrategyReviewService strategyReviewService;
 
     //1. 전략 생성
     /**
@@ -699,10 +701,15 @@ public class StrategyService {
             liveAccountDataService.deleteAllLiveAccountData(strategyEntity.getStrategyId());
         }
 
-        //6. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        //6. 전략 리뷰가 있는 경우, 전략 리뷰 삭제 (sbwoo)
+        if(!strategyReviewRepository.findAllByStrategy(strategyEntity).isEmpty()){
+            strategyReviewService.deleteAllReviewsByStrategy(strategyEntity.getStrategyId());
+        }
+
+        //7. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //7. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        //8. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
@@ -1132,19 +1139,29 @@ public class StrategyService {
 
     // 8. 해당 전략의 팔로워수 증가
     /**
-     * 특정 전략과 관련된 Strategy의 FollowersCount를 각각 1씩 증가시킵니다.
+     * 특정 전략의 팔로워 수를 증가하거나 감소시킵니다.
      *
-     * @param strategyId FollowersCount를 증가시킬 전략의 ID
+     * @param strategyId 전략의 ID
+     * @param increment  true이면 팔로워 수를 증가시키고, false이면 감소시킵니다.
+     * @throws IllegalArgumentException 주어진 전략 ID가 존재하지 않을 경우 예외 발생
      */
     @Transactional
-    public void increaseFollowersCount(Long strategyId) {
-        // 1. StrategyEntity의 FollowersCount 증가
+    public void updateFollowersCount(Long strategyId, boolean increment) {
+        // 1. 전략 엔티티를 ID로 조회
         StrategyEntity strategy = strategyRepo.findById(strategyId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 ID를 가진 전략이 존재하지 않습니다: " + strategyId));
-        strategy.setFollowersCount(strategy.getFollowersCount() + 1);
 
-        // 3. 변경 사항 저장
-        strategyRepo.save(strategy); // StrategyEntity 저장
+        // 2. 팔로워 수 업데이트 (증가 또는 감소)
+        if (increment) {
+            // 팔로워 수 증가
+            strategy.setFollowersCount(strategy.getFollowersCount() + 1);
+        } else {
+            // 팔로워 수 감소 (최소 0을 유지)
+            strategy.setFollowersCount(Math.max(strategy.getFollowersCount() - 1, 0));
+        }
+
+        // 3. 변경된 엔티티 저장
+        strategyRepo.save(strategy);
     }
 
     // 9. 전략 상세 차트 옵션 2개 조회

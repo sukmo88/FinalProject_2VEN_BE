@@ -72,8 +72,7 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                         tradingCycleId != null ? tradingCycle.tradingCycleId.eq(tradingCycleId) : null,
                         investmentAssetClassesId != null ? strategy.strategyIACEntities.any().investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null,
                         strategy.isPosted.eq("Y"),
-                        //TODO)Y로 변경
-                        strategy.isApproved.eq("N")
+                        strategy.isApproved.eq("Y")
                 )
                 .fetchOne();
 
@@ -87,9 +86,9 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
                         investmentAssetClassesId != null ? strategy.strategyIACEntities.any()
                                 .investmentAssetClassesEntity.investmentAssetClassesId.eq(investmentAssetClassesId) : null,
                         strategy.isPosted.eq("Y"),
-                        //TODO)Y로 변경
-                        strategy.isApproved.eq("N")
+                        strategy.isApproved.eq("Y")
                 )
+                .orderBy(strategy.smScore.desc()) // smScore 내림차순 정렬 추가
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -125,9 +124,8 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         // 1. is_posted = Y 필터
         strategyBuilder.and(strategyQ.isPosted.eq("Y"));
 
-        //TODO) Y로 변경하기
         // 2. is_Approved = Y 필터
-        strategyBuilder.and(strategyQ.isApproved.eq("N"));
+        strategyBuilder.and(strategyQ.isApproved.eq("Y"));
 
         // 3. 최소 운용 가능 금액 필터 - ex) 1000만원 ~ 2000만원
         if (searchOptions.getMinInvestmentAmount() != null) {

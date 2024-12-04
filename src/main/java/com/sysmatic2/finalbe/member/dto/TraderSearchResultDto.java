@@ -13,7 +13,6 @@ public class TraderSearchResultDto {
     private String memberId;
     private String nickname;
     private String introduction;
-    private String fileId;
     private String profilePath;
     private Integer strategyCnt;
 }

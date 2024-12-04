@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class FollowingStrategyFolderDto {
     private Long folderId;
 
@@ -16,4 +15,20 @@ public class FollowingStrategyFolderDto {
     private String folderName;
     private LocalDateTime modifiedAt;
     private String isDefaultFolder;
+    private Long strategyCount;
+
+    public FollowingStrategyFolderDto(Long folderId, String folderName, LocalDateTime modifiedAt, String isDefaultFolder) {
+        this.folderId = folderId;
+        this.folderName = folderName;
+        this.modifiedAt = modifiedAt;
+        this.isDefaultFolder = isDefaultFolder;
+    }
+
+    public FollowingStrategyFolderDto(Long folderId, String folderName, LocalDateTime modifiedAt, String isDefaultFolder, Long strategyCount) {
+        this.folderId = folderId;
+        this.folderName = folderName;
+        this.modifiedAt = modifiedAt;
+        this.isDefaultFolder = isDefaultFolder;
+        this.strategyCount = strategyCount;
+    }
 }
