@@ -52,7 +52,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                         member.introduction,                      // 자기소개
                         member.profilePath,                       // 프로필 이미지 링크
                         Expressions.numberTemplate(Integer.class, // 전략 수 서브쿼리
-                                "(SELECT COUNT(s.strategyId) FROM StrategyEntity s WHERE s.writerId = {0} AND s.isApproved = 'N' AND s.isPosted = 'Y')",
+                                "(SELECT COUNT(s.strategyId) FROM StrategyEntity s WHERE s.writerId = {0} AND s.isApproved = 'Y' AND s.isPosted = 'Y')",
                                 member.memberId)
                 ))
                 .from(member)

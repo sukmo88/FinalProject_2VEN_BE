@@ -162,4 +162,28 @@ public class StrategyReviewService {
         }
     }
 
+    /**
+     * 5-3. 전략에 해당하는 리뷰 삭제 (트레이더 회원 탈퇴로 인한 전략 삭제 시)
+     */
+    @Transactional
+    public void deleteReviewsByStrategy(StrategyEntity strategy) {
+        try {
+            reviewRepository.deleteAllByStrategy(strategy);
+        } catch (Exception e) {
+            throw new StrategyReviewFailedException("Failed to delete all reviews for strategy ID: " + strategy.getStrategyId(), e);
+        }
+    }
+
+    /**
+     * 5-4. 리뷰 작성자로 리뷰 삭제 (회원 탈퇴 시)
+     */
+    @Transactional
+    public void deleteReviewsByWriter(MemberEntity writer) {
+        try {
+            reviewRepository.deleteAllByWriterId(writer);
+        } catch (Exception e) {
+            throw new StrategyReviewFailedException("Failed to delete all reviews for writer ID: " + writer.getMemberId(), e);
+        }
+    }
+
 }

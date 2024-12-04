@@ -273,5 +273,15 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
 
         return followingStrategyRepository.existsByStrategyAndMember(strategy, member);
     }
-
+    // 전략에 해당하는 관심전략 삭제 (트레이더 회원 탈퇴 시)
+    @Transactional
+    public void deleteFollowingStrategiesByStrategy(StrategyEntity strategy){
+        try {
+            followingStrategyRepository.deleteAllByStrategy(strategy);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to delete following strategies by strategy: " + strategy.getStrategyTitle(), e);
+        }
+    }
 }
+
+
