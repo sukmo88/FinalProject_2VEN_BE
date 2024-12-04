@@ -128,4 +128,9 @@ public class StrategyApprovalRequestsService {
         requestEntity.setRejectionDatetime(LocalDateTime.now());
         strategyApprovalRequestsRepository.save(requestEntity);
     }
+
+    // 4. 전략에 해당하는 전략 승인 요청 내역 삭제
+    public void deleteStrategyApprovalRequestsByStrategy(StrategyEntity strategy) {
+        strategyApprovalRequestsRepository.deleteAllByStrategy(strategy);
+    }
 }
