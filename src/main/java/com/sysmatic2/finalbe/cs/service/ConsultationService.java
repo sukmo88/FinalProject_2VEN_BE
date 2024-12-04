@@ -96,11 +96,11 @@ public class ConsultationService {
     PageRequest pageRequest = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     if (investorId != null && !investorId.isEmpty()) {
-      consultationsPage = consultationRepository.findAllByInvestor_MemberId(investorId, PageRequest.of(page, 10));
+      consultationsPage = consultationRepository.findAllByInvestor_MemberId(investorId, pageRequest);
     } else if (traderId != null && !traderId.isEmpty()) {
-      consultationsPage = consultationRepository.findAllByTrader_MemberId(traderId, PageRequest.of(page, 10));
+      consultationsPage = consultationRepository.findAllByTrader_MemberId(traderId, pageRequest);
     } else {
-      consultationsPage = consultationRepository.findAll(PageRequest.of(page, 10));
+      consultationsPage = consultationRepository.findAll(pageRequest);
     }
 
     return new PaginatedResponseDto<>(
