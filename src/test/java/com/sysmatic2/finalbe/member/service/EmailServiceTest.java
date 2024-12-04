@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.member.service;
 
+import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,7 +26,7 @@ class EmailServiceTest {
     EmailService emailService;
 
     @Test
-    public void verificationCodeSenderTest_success() {
+    public void verificationCodeSenderTest_success() throws MessagingException {
         String toMail = "test@test.com";
         String verificationCode = "123123";
 

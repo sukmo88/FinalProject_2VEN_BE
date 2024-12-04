@@ -17,6 +17,11 @@ public interface StrategyApprovalRequestsRepository extends JpaRepository<Strate
     //Pagination 적용한 리스트
     Page<StrategyApprovalRequestsEntity> findAll(Pageable pageable);
 
+    //Pagination 적용, 승인, 승인대기인 요청만 가져오도록
+    Page<StrategyApprovalRequestsEntity> findByIsApprovedIn(List<String> isApprovedList, Pageable pageable);
+
+
+
     //전략 id값으로 해당 객체 가져오기
     @Query("SELECT requestEntity FROM StrategyApprovalRequestsEntity requestEntity " +
             "WHERE requestEntity.strategy.strategyId = :strategyId AND requestEntity.isApproved = 'N'")

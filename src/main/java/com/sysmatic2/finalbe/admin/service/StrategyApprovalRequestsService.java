@@ -42,7 +42,8 @@ public class StrategyApprovalRequestsService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("requestDatetime").descending());
 
         //페이지 객체를 넣고 요청 엔티티 목록을 가져온다.
-        Page<StrategyApprovalRequestsEntity> requestsEntityPage = strategyApprovalRequestsRepository.findAll(pageable);
+        List<String> isApprovedList = Arrays.asList("Y", "P"); //승인, 승인대기인 것만
+        Page<StrategyApprovalRequestsEntity> requestsEntityPage = strategyApprovalRequestsRepository.findByIsApprovedIn(isApprovedList, pageable);
 
         //엔티티 목록을 dto목록으로 변환한다.
         Page<ApprovalRequestResponseDto> requestResponseDtos = requestsEntityPage.map(DtoEntityConversion::convertToApprovalDto);
