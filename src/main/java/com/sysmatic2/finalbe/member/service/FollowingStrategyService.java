@@ -1,26 +1,30 @@
 package com.sysmatic2.finalbe.member.service;
 
 import com.sysmatic2.finalbe.exception.DuplicateFollowingStrategyException;
-import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
-import com.sysmatic2.finalbe.member.dto.FollowingStrategyListDto;
-import com.sysmatic2.finalbe.member.dto.FollowingStrategyRequestDto;
-import com.sysmatic2.finalbe.member.dto.FollowingStrategyResponseDto;
+import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyEntity;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.FollowingStrategyFolderRepository;
 import com.sysmatic2.finalbe.member.repository.FollowingStrategyRepository;
+import com.sysmatic2.finalbe.strategy.dto.AdvancedSearchResultDto;
+import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,7 @@ public class FollowingStrategyService {
     private final FollowingStrategyRepository followingStrategyRepository;
     private final StrategyRepository strategyRepository;
     private final FollowingStrategyFolderRepository followingStrategyFolderRepository;
+    private final DailyStatisticsRepository dailyStatisticsRepository;
 
     //폴더별 관심전략 목록 조회 서비스
     public List<FollowingStrategyListDto> getListFollowingStrategy1(Long folderId){
@@ -53,10 +58,84 @@ public class FollowingStrategyService {
         return followingStrategyRepository.getListFollowingStrategyPage(folderEntity,pageable);
     }
 
+    //폴더별 관심전략 list
+    public List<Long> getListFollowingStrategyList(Long folderId){
+        FollowingStrategyFolderEntity followingStrategyFolder = followingStrategyFolderRepository.findById(folderId).get();
+        List<Long> list = followingStrategyRepository.getListFollowingStrategyList(followingStrategyFolder);
+        return list;
+    }
+
+
 //    public Page<FollowingStrategyEntity> getEntitesByStatus(String status,int page,int size){
 //        Pageable pageable = PageRequest.of(page, size);
 //        return followingStrategyRepository.findByStats(status,pageable);
 //    }
+
+@Transactional
+public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer page, Integer pageSize) {
+    // 페이지 객체 생성 (SM-SCORE 기준 정렬)
+    Pageable pageable = PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "smScore"));
+
+    // 전략 페이지 가져오기 (SM-SCORE 정렬)
+    Page<StrategyEntity> strategyPage = strategyRepository.findByStrategyIdsOrderBySmScore(strategyIds, pageable);
+
+    // 4. 각 전략의 최신 일간 통계 데이터 가져오기
+    List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
+    Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
+            .collect(Collectors.toMap(
+                    stat -> stat.getStrategyEntity().getStrategyId(),
+                    stat -> stat
+            ));
+
+    // 5. 누적 수익률 데이터 가져오기 (날짜 오름차순)
+    Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+            .collect(Collectors.toMap(
+                    strategyId -> strategyId, // 전략 ID를 키로 사용
+                    strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
+            ));
+
+    // 6. DTO 생성
+    List<AdvancedSearchResultDto> dtoList = strategyPage.stream()
+            .map(strategyEntity -> {
+                AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
+                        strategyEntity.getStrategyId(),                                // 전략 ID
+                        strategyEntity.getTradingTypeEntity().getTradingTypeIcon(),    // 매매 유형 아이콘
+                        strategyEntity.getTradingCycleEntity().getTradingCycleIcon(),  // 매매 주기 아이콘
+                        strategyEntity.getStrategyIACEntities().stream()
+                                .map(iac -> iac.getInvestmentAssetClassesEntity().getInvestmentAssetClassesIcon())
+                                .collect(Collectors.toList()),                         // 투자 자산 분류 아이콘 리스트
+                        strategyEntity.getStrategyTitle(),                             // 전략명
+                        BigDecimal.ZERO,                                               // 누적 손익률 (초기값)
+                        BigDecimal.ZERO,                                               // 최근 1년 손익률 (초기값)
+                        BigDecimal.ZERO,                                               // MDD (초기값)
+                        strategyEntity.getSmScore(),                                   // SM-Score
+                        strategyEntity.getFollowersCount(),                            // 팔로워 수
+                        null                                                           // 누적 수익률 리스트 (초기값)
+                );
+
+                // 최신 일간 통계 데이터 추가
+                DailyStatisticsEntity latestStatistics = latestStatisticsMap.get(strategyEntity.getStrategyId());
+                if (latestStatistics != null) {
+                    dto.setCumulativeProfitLossRate(latestStatistics.getCumulativeProfitLossRate());
+                    dto.setRecentOneYearReturn(latestStatistics.getRecentOneYearReturn());
+                    dto.setMdd(latestStatistics.getMaxDrawdownRate());
+                }
+
+                // 누적 수익률 리스트 추가
+                List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
+
+                return dto;
+            }).collect(Collectors.toList());
+
+
+    // 7. DTO 리스트를 페이지 객체로 변환
+    Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, strategyPage.getTotalElements());
+
+    // 8. 페이지 응답 생성 및 반환
+    return createPageResponse(dtoPage);
+}
+
 
     //폴더ID 별 등록된 관심전략 폴더 Count 조회
     public int countFollowingStrategy(long folderId) {

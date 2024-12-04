@@ -48,4 +48,14 @@ public interface FollowingStrategyRepository extends JpaRepository<FollowingStra
             "AND s.isApproved = 'y'")
     Page<FollowingStrategyListDto> getListFollowingStrategyPage(@Param("followingStrategyFolder") FollowingStrategyFolderEntity followingStrategyFolder, Pageable pageable);
 
+    @Query("SELECT s.strategyId " +
+            "FROM FollowingStrategyEntity f " +
+            "JOIN f.strategy s " +
+            "WHERE f.followingStrategyFolder = :followingStrategyFolder AND s.isPosted = 'y' " +
+            "AND s.isApproved = 'y'")
+    List<Long> getListFollowingStrategyList(@Param("followingStrategyFolder") FollowingStrategyFolderEntity followingStrategyFolder);
+
+
+
+
 }
