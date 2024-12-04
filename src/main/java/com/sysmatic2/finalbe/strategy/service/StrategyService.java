@@ -26,10 +26,7 @@ import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
 import com.sysmatic2.finalbe.util.ParseCsvToList;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -246,7 +243,7 @@ public class StrategyService {
 
         // 5. 누적 수익률 데이터 조회
         // 각 전략 ID에 대해 누적 수익률 데이터를 날짜 오름차순으로 조회하여 Map으로 변환
-        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+        Map<Long, List<BigDecimal>> cumulativeProfitLossRateMap = strategyIds.stream()
                 .collect(Collectors.toMap(
                         strategyId -> strategyId, // 키: 전략 ID
                         strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 값: 누적 수익률 리스트
@@ -281,7 +278,7 @@ public class StrategyService {
                     }
 
                     // 누적 수익률 전체 데이터 삽입
-                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    List<BigDecimal> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
                     dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
 
                     return dto;
@@ -360,7 +357,7 @@ public class StrategyService {
                 ));
 
         // 7. 누적 수익률 데이터 가져오기 (날짜 오름차순)
-        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+        Map<Long, List<BigDecimal>> cumulativeProfitLossRateMap = strategyIds.stream()
                 .collect(Collectors.toMap(
                         strategyId -> strategyId, // 전략 ID를 키로 사용
                         strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
@@ -394,7 +391,7 @@ public class StrategyService {
                     }
 
                     // 누적 수익률 리스트 추가
-                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    List<BigDecimal> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
                     dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
 
                     return dto;
@@ -438,7 +435,7 @@ public class StrategyService {
                 ));
 
         // 5. 누적 수익률 데이터 가져오기 (날짜 오름차순)
-        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+        Map<Long, List<BigDecimal>> cumulativeProfitLossRateMap = strategyIds.stream()
                 .collect(Collectors.toMap(
                         strategyId -> strategyId, // 전략 ID를 키로 사용
                         strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
@@ -472,7 +469,7 @@ public class StrategyService {
                     }
 
                     // 누적 수익률 리스트 추가
-                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    List<BigDecimal> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
                     dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
 
                     return dto;
@@ -518,7 +515,7 @@ public class StrategyService {
                 ));
 
         // 5. 누적 수익률 데이터 가져오기 (날짜 오름차순)
-        Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+        Map<Long, List<BigDecimal>> cumulativeProfitLossRateMap = strategyIds.stream()
                 .collect(Collectors.toMap(
                         strategyId -> strategyId, // 전략 ID를 키로 사용
                         strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
@@ -552,7 +549,7 @@ public class StrategyService {
                     }
 
                     // 누적 수익률 리스트 추가
-                    List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                    List<BigDecimal> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
                     dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
 
                     return dto;
@@ -1223,5 +1220,44 @@ public class StrategyService {
 
             strategyRepo.delete(strategy);  // 전략 삭제 [X]
         }
+    }
+
+    // 10. SM SCORE 기반 상위 전략 5개 리스트
+    @Transactional(readOnly = true)
+    public Map<String, Object> getSmScoreTop5Strategies() {
+        Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "smScore"));
+        Page<StrategyEntity> strategyPage = strategyRepo.findAll(pageable);
+
+        List<SmScoreRankingResponseDto> dtoList = strategyPage.stream().map(strategy -> {
+            // MemberEntity에서 프로필 이미지 정보 가져오기
+            MemberEntity member = memberRepository.findById(strategy.getWriterId())
+                    .orElseThrow(() -> new IllegalArgumentException("Member not found: " + strategy.getWriterId()));
+
+            // DailyStatisticsEntity에서 누적 수익률 리스트 가져오기
+            List<BigDecimal> cumulativeProfitLossRateList = dailyStatisticsRepository
+                    .findCumulativeProfitLossRateByStrategyIdOrderByDate(strategy.getStrategyId());
+
+            // DailyStatisticsEntity에서 오늘 기준 일손익률 가져오기
+            BigDecimal dailyPlRate = dailyStatisticsRepository.findByStrategyIdAndDate(strategy.getStrategyId(), LocalDate.now())
+                    .map(DailyStatisticsEntity::getDailyPlRate)
+                    .orElse(BigDecimal.ZERO);
+
+            // DTO 생성
+            return new SmScoreRankingResponseDto(
+                    strategy.getStrategyId(),
+                    strategy.getStrategyTitle(),
+                    member.getProfilePath(),
+                    member.getNickname(),
+                    cumulativeProfitLossRateList,
+                    dailyPlRate
+            );
+        }).collect(Collectors.toList());
+
+        // 결과를 Map으로 변환
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", dtoList);
+        response.put("timestamp", Instant.now());
+
+        return response;
     }
 }

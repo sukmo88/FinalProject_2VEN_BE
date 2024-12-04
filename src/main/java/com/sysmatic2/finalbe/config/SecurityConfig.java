@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -71,7 +72,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
-                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/strategies/registration-form","/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
+                                "/api/strategies/{id}/rejection-info", "/api/strategies/{id}/termination", "/api/strategies/{id}/daily-data",
+                                "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete",
+                                "/api/strategies/{strategyId}/upload", "/api/live-account-data/", "/api/strategies/{strategyId}/reviews/{reviewId}"
+                                ).hasAnyRole("ADMIN", "TRADER") //전략 관련
+                        .requestMatchers(HttpMethod.POST, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 등록
+                        .requestMatchers(HttpMethod.DELETE, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 삭제
+                        .requestMatchers(HttpMethod.PUT, "/api/strategies/{id}").hasAnyRole("ADMIN", "TRADER") //전략 수정
                         .requestMatchers("/**").permitAll()
                 )
                 .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화
@@ -101,7 +110,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
-                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/swagger-ui/**", "/api/**").permitAll()
                         .requestMatchers("/**").permitAll()
                 )

@@ -18,6 +18,7 @@ import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,12 +93,15 @@ public class ConsultationService {
   public PaginatedResponseDto<ConsultationListResponseDto> getConsultations(String investorId, String traderId, int page) {
     Page<ConsultationEntity> consultationsPage;
 
+    // PageRequest에 정렬 기준 추가 (createdAt 필드를 기준으로 내림차순 정렬)
+    PageRequest pageRequest = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+
     if (investorId != null && !investorId.isEmpty()) {
-      consultationsPage = consultationRepository.findAllByInvestor_MemberId(investorId, PageRequest.of(page, 10));
+      consultationsPage = consultationRepository.findAllByInvestor_MemberId(investorId, pageRequest);
     } else if (traderId != null && !traderId.isEmpty()) {
-      consultationsPage = consultationRepository.findAllByTrader_MemberId(traderId, PageRequest.of(page, 10));
+      consultationsPage = consultationRepository.findAllByTrader_MemberId(traderId, pageRequest);
     } else {
-      consultationsPage = consultationRepository.findAll(PageRequest.of(page, 10));
+      consultationsPage = consultationRepository.findAll(pageRequest);
     }
 
     return new PaginatedResponseDto<>(

@@ -20,6 +20,4 @@ public class InvestmentAssetClassesPayloadDto {
 
     private String investmentAssetClassesIcon;
 
-    @Pattern(regexp = "Y|N")
-    private String isActive;
 }
