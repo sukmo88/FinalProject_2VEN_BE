@@ -411,7 +411,7 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
     @Query("SELECT d.cumulativeProfitLossRate FROM DailyStatisticsEntity d " +
             "WHERE d.strategyEntity.strategyId = :strategyId " +
             "ORDER BY d.date ASC")
-    List<Double> findCumulativeProfitLossRateByStrategyIdOrderByDate(Long strategyId);
+    List<BigDecimal> findCumulativeProfitLossRateByStrategyIdOrderByDate(Long strategyId);
 
     // strategy id로 일일통계 데이터 모두 삭제
     void deleteAllByStrategyEntity(StrategyEntity strategyEntity);

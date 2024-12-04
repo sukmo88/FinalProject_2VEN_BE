@@ -88,7 +88,7 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
             ));
 
     // 5. 누적 수익률 데이터 가져오기 (날짜 오름차순)
-    Map<Long, List<Double>> cumulativeProfitLossRateMap = strategyIds.stream()
+    Map<Long, List<BigDecimal>> cumulativeProfitLossRateMap = strategyIds.stream()
             .collect(Collectors.toMap(
                     strategyId -> strategyId, // 전략 ID를 키로 사용
                     strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
@@ -122,7 +122,7 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
                 }
 
                 // 누적 수익률 리스트 추가
-                List<Double> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
+                List<BigDecimal> cumulativeProfitLossRates = cumulativeProfitLossRateMap.get(strategyEntity.getStrategyId());
                 dto.setCumulativeProfitLossRateList(cumulativeProfitLossRates);
 
                 return dto;
