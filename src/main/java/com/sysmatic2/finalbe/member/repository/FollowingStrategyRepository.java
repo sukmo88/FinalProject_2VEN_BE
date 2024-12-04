@@ -3,6 +3,7 @@ package com.sysmatic2.finalbe.member.repository;
 import com.sysmatic2.finalbe.member.dto.FollowingStrategyListDto;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyEntity;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
+import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,9 +17,13 @@ public interface FollowingStrategyRepository extends JpaRepository<FollowingStra
     void deleteAllByStrategy(StrategyEntity strategy);
     FollowingStrategyEntity findByFollowingStrategyFolderAndStrategy(FollowingStrategyFolderEntity followingStrategyFolder, StrategyEntity strategy);
     int deleteByFollowingStrategyId(Long followingStrategyId);
+    int deleteByStrategy(StrategyEntity strategy);
     boolean existsByFollowingStrategyId(Long followingStrategyId);
 
     int countByFollowingStrategyFolder(FollowingStrategyFolderEntity followingStrategyFolder);
+
+    //해당 회원이 해당 전략을 팔로우 했는지 여부
+    boolean existsByStrategyAndMember(StrategyEntity strategy,MemberEntity member);
 
     //Page<FollowingStrategyListDto> findAllAsFollowingStrategyListDto(Pageable pageable);
 

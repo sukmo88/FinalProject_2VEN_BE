@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.exception.DefaultFolderDeleteException;
 import com.sysmatic2.finalbe.exception.DefaultFolderRenameException;
 import com.sysmatic2.finalbe.exception.FolderNotFoundException;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
+import com.sysmatic2.finalbe.member.dto.FolderNameDto;
 import com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyEntity;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
@@ -13,6 +14,8 @@ import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,18 +33,20 @@ public class FollowingStrategyFolderService {
         folderEntity.setIsActive("Y");
         folderEntity.setIsDefaultFolder("Y");
         folderEntity.setMember(member);
+        folderEntity.setCreatedBy(member.getMemberId());
+        folderEntity.setModifiedBy(member.getMemberId());
         folderEntity.setFolderCreationDate(LocalDateTime.now());
         folderRepository.save(folderEntity);
     }
 
     //관심전략폴더 생성
-    public FollowingStrategyFolderDto createFolder( FollowingStrategyFolderDto folderDto, CustomUserDetails customUserDetails) {
+    public FollowingStrategyFolderDto createFolder(FolderNameDto folderNameDto, CustomUserDetails customUserDetails) {
         //관심전략 폴더 (기본폴더=> 폴더명: 기본 폴더, 기본폴더여부)
         FollowingStrategyFolderEntity folderEntity = new FollowingStrategyFolderEntity();
         MemberEntity member = customUserDetails.getMemberEntity();
 
         //관심전략폴더ID 발급하고 멤버ID 가져와서 폴더명
-        folderEntity.setFolderName(folderDto.getFolderName());
+        folderEntity.setFolderName(folderNameDto.getFolderName());
         folderEntity.setIsActive("Y");
         folderEntity.setIsDefaultFolder("N");
         folderEntity.setFolderCreationDate(LocalDateTime.now());
@@ -107,6 +112,13 @@ public class FollowingStrategyFolderService {
         );
 
     }
+
+    // 회원탈퇴를 위한 회원의 전체 관심전략폴더 삭제
+    @Transactional
+    public void deleteFoldersByMember(MemberEntity member) {
+        folderRepository.deleteAllByMember(member);
+    }
+
     /*
     public List<FollowingStrategyFolderDto> getStrategiesInFolder(Long folderId) {
         FollowingStrategyFolder folder = folderRepository.findById(folderId)
