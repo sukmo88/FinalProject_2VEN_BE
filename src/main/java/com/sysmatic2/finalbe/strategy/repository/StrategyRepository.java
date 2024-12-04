@@ -118,4 +118,8 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
 
     // 전략 작성자 id로 전략 목록 전체 조회
     List<StrategyEntity> findAllByWriterId(String writerId);
+
+    @Query("SELECT s FROM StrategyEntity s WHERE s.strategyId IN :strategyIds ORDER BY s.smScore DESC")
+    Page<StrategyEntity> findByStrategyIdsOrderBySmScore(@Param("strategyIds") List<Long> strategyIds, Pageable pageable);
+
 }
