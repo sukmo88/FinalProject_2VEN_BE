@@ -5,6 +5,7 @@ import com.sysmatic2.finalbe.admin.dto.InvestmentAssetClassesPayloadDto;
 import com.sysmatic2.finalbe.admin.service.InvestmentAssetClassesService;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.service.FileService;
+import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
@@ -38,7 +40,6 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> getAllInvestmentAssetClasses(@RequestParam(value = "page", defaultValue = "0") @Min(value = 0, message = "Page number must be 0 or greater") int page,
                                                              @RequestParam(value = "pageSize", defaultValue = "10") @Positive(message = "Page size must be greater than zero") int pageSize) throws Exception{
-        //TODO)관리자 판별
         Map pageList = iacService.getList(page, pageSize);
 
         return ResponseEntity.status(HttpStatus.OK).body(pageList);
@@ -54,7 +55,6 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> getInvestmentAssetClasses(@PathVariable("id") @Positive Integer id) throws Exception {
-        //TODO)관리자 판별
         InvestmentAssetClassesDto iasDto = iacService.getById(id);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", iasDto);
@@ -66,15 +66,6 @@ public class InvestmentAssetClassesController {
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
 
-    //1-2. 투자자산 분류 is_active Y 리스트(테스트)
-//    @GetMapping(value="/isactive")
-//    public ResponseEntity<Map> getIACActive() throws Exception {
-//        List<InvestmentAssetClassesDto> iasResult = iacService.getActiveList();
-//        Map<String, Object> responseMap = new HashMap<>();
-//        responseMap.put("data", iasResult);
-//        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
-//    }
-
     //2. 투자자산분류 등록
     @Operation(summary = "투자자산 분류 등록")
     @PostMapping(value="", consumes = "application/json", produces="application/json")
@@ -84,7 +75,6 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> addInvestmentAssetClass(@Valid @RequestBody InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception {
-        //TODO)관리자 판별
         //데이터 저장
         iacService.register(iacPayloadDto);
 
@@ -104,11 +94,12 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="404", description = "NOT EXIST")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") @Positive Integer id) throws Exception {
-        //TODO) 접속한 사람의 토큰,권한 확인하기
-        String memberId = "71-88RZ_QQ65hMGknyWKLA";
+    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") @Positive Integer id,
+                                                          @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception {
+        //접속한 관리자의 id 토큰에서 가져오기
+        String adminId = userDetails.getMemberId();
 
-        iacService.delete(id, memberId);
+        iacService.delete(id, adminId);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
 
@@ -126,7 +117,6 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="500", description = "Other Errors")
     public ResponseEntity<Map> updateInvestmentAssetClass(@PathVariable("id") @Positive Integer id,
                                                           @Valid @RequestBody InvestmentAssetClassesPayloadDto iacPayloadDto) throws Exception {
-        //TODO) 관리자 판별
         iacService.update(id, iacPayloadDto);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "UPDATE_SUCCESS");

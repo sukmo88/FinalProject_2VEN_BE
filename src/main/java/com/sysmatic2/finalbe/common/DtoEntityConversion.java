@@ -42,7 +42,6 @@ public class DtoEntityConversion {
         iacDto.setOrder(iacEntity.getOrder());
         iacDto.setInvestmentAssetClassesName(iacEntity.getInvestmentAssetClassesName());
         iacDto.setInvestmentAssetClassesIcon(iacEntity.getInvestmentAssetClassesIcon());
-        iacDto.setIsActive(iacEntity.getIsActive());
         return iacDto;
     }
 
@@ -57,7 +56,6 @@ public class DtoEntityConversion {
         iacEntity.setOrder(iacDto.getOrder());
         iacEntity.setInvestmentAssetClassesName(iacDto.getInvestmentAssetClassesName());
         iacEntity.setInvestmentAssetClassesIcon(iacDto.getInvestmentAssetClassesIcon());
-        iacEntity.setIsActive(iacDto.getIsActive());
         return iacEntity;
     }
 
