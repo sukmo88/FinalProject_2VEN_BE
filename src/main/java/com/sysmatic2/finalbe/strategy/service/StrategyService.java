@@ -12,6 +12,7 @@ import com.sysmatic2.finalbe.attachment.service.ProposalService;
 import com.sysmatic2.finalbe.cs.repository.ConsultationRepository;
 import com.sysmatic2.finalbe.cs.service.ConsultationService;
 import com.sysmatic2.finalbe.exception.*;
+import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.FollowingStrategyRepository;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
@@ -27,6 +28,7 @@ import com.sysmatic2.finalbe.util.ParseCsvToList;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -571,7 +573,7 @@ public class StrategyService {
      *
      */
     @Transactional
-    public StrategyResponseDto getStrategyDetails(Long id, String memberId) {
+    public StrategyResponseDto getStrategyDetails(Long id, CustomUserDetails userDetails) {
         //id값으로 해당 전략 조회
         StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(() ->
                 new NoSuchElementException());
@@ -635,8 +637,8 @@ public class StrategyService {
                         }
                 );
 
-//        FollowingStrategyService.
-//        responseDto.setIsFollowed();
+        if(userDetails == null) responseDto.setIsFollowed(false);
+        else responseDto.setIsFollowed(followingStrategyService.isFollowing(id, userDetails.getMemberId()));
 
         return responseDto;
     }

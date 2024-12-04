@@ -150,7 +150,7 @@ public class StrategyController {
     @Operation(summary = "전략 상세")
     @GetMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long id, @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
-        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id, userDetails.getMemberId());
+        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id, userDetails);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", strategyResponseDto);
 
