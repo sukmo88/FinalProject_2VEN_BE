@@ -5,14 +5,17 @@ import com.sysmatic2.finalbe.admin.entity.StrategyApprovalRequestsEntity;
 import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
+import com.sysmatic2.finalbe.admin.service.StrategyApprovalRequestsService;
 import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
 import com.sysmatic2.finalbe.attachment.service.FileService;
 import com.sysmatic2.finalbe.attachment.service.ProposalService;
 import com.sysmatic2.finalbe.cs.repository.ConsultationRepository;
+import com.sysmatic2.finalbe.cs.service.ConsultationService;
 import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.FollowingStrategyRepository;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
+import com.sysmatic2.finalbe.member.service.FollowingStrategyService;
 import com.sysmatic2.finalbe.strategy.dto.*;
 import com.sysmatic2.finalbe.admin.entity.InvestmentAssetClassesEntity;
 import com.sysmatic2.finalbe.strategy.entity.*;
@@ -60,11 +63,13 @@ public class StrategyService {
     private final FileService fileService;
     private final LiveAccountDataService liveAccountDataService;
     private final LiveAccountDataRepository liveAccountDataRepository;
-    private final FollowingStrategyRepository followingStrategyRepository;
-    private final ConsultationRepository consultationRepository;
-    private final MonthlyStatisticsRepository monthlyStatisticsRepository;
+    private final ConsultationService consultationService;
     private final StrategyReviewRepository strategyReviewRepository;
     private final StrategyReviewService strategyReviewService;
+    private final FollowingStrategyService followingStrategyService;
+    private final MonthlyStatisticsService monthlyStatisticsService;
+    private final DailyStatisticsService dailyStatisticsService;
+    private final StrategyApprovalRequestsService strategyApprovalRequestsService;
 
     //1. 전략 생성
     /**
@@ -1194,26 +1199,29 @@ public class StrategyService {
      * 관련 데이터 : 전략이력, 전략제안서, 실계좌인증, 전략승인요청, 관계테이블이력, 일간통계, 월간통계, 관심전략, 상담, 리뷰
      */
     @Transactional
-    public void deleteStrategyForWithdrawal(StrategyEntity strategy) {
-        Long strategyId = strategy.getStrategyId();
+    public void deleteStrategiesByWriter(MemberEntity member) {
+        List<StrategyEntity> strategies = strategyRepo.findByWriterId(member.getMemberId());
+        for (StrategyEntity strategy : strategies) {
+            Long strategyId = strategy.getStrategyId();
 
-        // TODO) 전략 ID로 등록된 리뷰를 모두 삭제한다.
+            strategyHistoryRepo.deleteAllByStrategyId(strategyId);  // 전략이력 삭제 [X]
+            if(strategyProposalService.getProposalByStrategyId(strategy.getStrategyId()).isPresent()){  // 전략제안서 삭제
+                strategyProposalService.deleteProposal(strategy.getStrategyId(), strategy.getWriterId());
+            }
+            if(!liveAccountDataRepository.findAllByStrategy(strategy).isEmpty()){  // 실계좌인증 삭제
+                liveAccountDataService.deleteAllLiveAccountData(strategy.getStrategyId());
+            }
 
-        strategyHistoryRepo.deleteAllByStrategyId(strategyId);  // 전략이력 삭제 [X]
-        if(strategyProposalService.getProposalByStrategyId(strategy.getStrategyId()).isPresent()){  // 전략제안서 삭제
-            strategyProposalService.deleteProposal(strategy.getStrategyId(), strategy.getWriterId());
+            strategyApprovalRequestsService.deleteStrategyApprovalRequestsByStrategy(strategy);  // 전략승인요청 삭제
+            monthlyStatisticsService.deleteMonthlyStatisticsByStrategy(strategy);  // 월간통계 삭제 [X]
+            dailyStatisticsService.deleteDailyStatisticsByStrategy(strategy);  // 일간통계 삭제 [X]
+            followingStrategyService.deleteFollowingStrategiesByStrategy(strategy);  // 관심전략 삭제 [X]
+            consultationService.deleteConsultationsByStrategy(strategy);  // 상담 삭제 [X]
+            strategyIACHistoryRepository.deleteAllByStrategyId(strategyId);  // 관계테이블이력 삭제 [X]
+            strategyIACRepository.deleteAllByStrategyEntity(strategy);  // 관계테이블 삭제 [X]
+            strategyReviewService.deleteReviewsByStrategy(strategy);  // 전략리뷰 삭제
+
+            strategyRepo.delete(strategy);  // 전략 삭제 [X]
         }
-        if(!liveAccountDataRepository.findAllByStrategy(strategy).isEmpty()){  // 실계좌인증 삭제
-            liveAccountDataService.deleteAllLiveAccountData(strategy.getStrategyId());
-        }
-        strategyApprovalRequestsRepository.deleteAllByStrategy(strategy);  // 전략승인요청 삭제
-        monthlyStatisticsRepository.deleteByStrategyEntity(strategy);  // 월간통계 삭제 [X]
-        dailyStatisticsRepository.deleteAllByStrategyEntity(strategy);  // 일간통계 삭제 [X]
-        followingStrategyRepository.deleteAllByStrategy(strategy);  // 관심전략 삭제 [X]
-        consultationRepository.deleteAllByStrategy(strategy);  // 상담 삭제 [X]
-        strategyIACHistoryRepository.deleteAllByStrategyId(strategyId);  // 관계테이블이력 삭제 [X]
-        strategyIACRepository.deleteAllByStrategyEntity(strategy);  // 관계테이블 삭제 [X]
-
-        strategyRepo.delete(strategy);  // 전략 삭제 [X]
     }
 }

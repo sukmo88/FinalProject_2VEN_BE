@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class ConsultationService {
@@ -145,6 +146,27 @@ public class ConsultationService {
       throw new ConsultationNotFoundException("해당 ID의 상담을 찾을 수 없습니다: " + id);
     }
     consultationRepository.deleteById(id);
+  }
+
+  /**
+   * 전략에 해당하는 모든 상담 삭제
+   */
+  @Transactional
+  public void deleteConsultationsByStrategy(StrategyEntity strategy) {
+    consultationRepository.deleteAllByStrategy(strategy);
+  }
+
+  /**
+   * 일반투자자 회원 탈퇴 시에 investor -> null로 바꾸기
+   * investor로 상담 찾아서 investor -> null로 바꾸는 메소드
+   */
+  @Transactional
+  public void setInvestorToNull(MemberEntity member) {
+    List<ConsultationEntity> consultationsByInvestor = consultationRepository.findAllByInvestor(member);
+    for (ConsultationEntity consultation : consultationsByInvestor) {
+      consultation.setInvestor(null);
+      consultationRepository.save(consultation);
+    }
   }
 
   /**
