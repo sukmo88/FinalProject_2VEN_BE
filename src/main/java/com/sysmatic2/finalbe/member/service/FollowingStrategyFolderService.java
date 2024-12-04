@@ -30,6 +30,8 @@ public class FollowingStrategyFolderService {
         folderEntity.setIsActive("Y");
         folderEntity.setIsDefaultFolder("Y");
         folderEntity.setMember(member);
+        folderEntity.setCreatedBy(member.getMemberId());
+        folderEntity.setModifiedBy(member.getMemberId());
         folderEntity.setFolderCreationDate(LocalDateTime.now());
         folderRepository.save(folderEntity);
     }
