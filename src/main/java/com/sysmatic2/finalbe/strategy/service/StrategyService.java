@@ -64,6 +64,7 @@ public class StrategyService {
     private final MonthlyStatisticsService monthlyStatisticsService;
     private final DailyStatisticsService dailyStatisticsService;
     private final StrategyApprovalRequestsService strategyApprovalRequestsService;
+    private final MonthlyStatisticsRepository monthlyStatisticsRepository;
 
     //1. 전략 생성
     /**
@@ -662,7 +663,7 @@ public class StrategyService {
         }
 
         //TODO) 메서드로 빼기
-        //2. 해당 전략의 정보를 전략 이력엔티티에 담는다.
+        //4. 해당 전략의 정보를 전략 이력엔티티에 담는다.
         strategyHistoryEntity.setStrategyId(strategyEntity.getStrategyId());
         strategyHistoryEntity.setTradingTypeId(strategyEntity.getTradingTypeEntity().getTradingTypeId());
         strategyHistoryEntity.setTradingCycle(strategyEntity.getTradingCycleEntity().getTradingCycleId());
@@ -679,7 +680,7 @@ public class StrategyService {
         strategyHistoryEntity.setUpdatedAt(LocalDateTime.now());
         strategyHistoryEntity.setExitDate(strategyEntity.getExitDate());
 
-        //3. 전략 관계 테이블 이력 등록
+        //5. 전략 관계 테이블 이력 등록
         List<StrategyIACEntity> strategyIACEntities = strategyEntity.getStrategyIACEntities();
         for(StrategyIACEntity strategyIACEntity : strategyIACEntities) {
             StrategyIACHistoryEntity strategyIACHistoryEntity = new StrategyIACHistoryEntity();
@@ -693,25 +694,36 @@ public class StrategyService {
             strategyIACHistoryRepository.save(strategyIACHistoryEntity);
         }
 
-        //4. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
+        //6. 전략 제안서가 있는 경우, 제안서 데이터 삭제 (sbwoo)
         if(strategyProposalService.getProposalByStrategyId(strategyEntity.getStrategyId()).isPresent()){
             strategyProposalService.deleteProposal(strategyEntity.getStrategyId(), strategyEntity.getWriterId());
         }
 
-        //5. 실계좌 인증이 있는 경우, 실계좌 인증 데이터 삭제 (sbwoo)
+        //7. 실계좌 인증이 있는 경우, 실계좌 인증 데이터 삭제 (sbwoo)
         if(!liveAccountDataRepository.findAllByStrategy(strategyEntity).isEmpty()){
             liveAccountDataService.deleteAllLiveAccountData(strategyEntity.getStrategyId());
         }
 
-        //6. 전략 리뷰가 있는 경우, 전략 리뷰 삭제 (sbwoo)
+        //8. 전략 리뷰가 있는 경우, 전략 리뷰 삭제 (sbwoo)
         if(!strategyReviewRepository.findAllByStrategy(strategyEntity).isEmpty()){
             strategyReviewService.deleteAllReviewsByStrategy(strategyEntity.getStrategyId());
         }
 
-        //7. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
+        // 9. 전략 월간분석 데이터 삭제
+        // MonthlyStatisticsEntity에서 해당 전략의 데이터를 모두 삭제
+        monthlyStatisticsRepository.deleteByStrategyId(strategyEntity.getStrategyId());
+
+        // 10. 전략 일간분석 데이터 삭제
+        // DailyStatisticsEntity에서 해당 전략의 데이터를 모두 삭제
+        dailyStatisticsRepository.deleteByStrategyId(strategyEntity.getStrategyId());
+
+        // 11. 관심전략 삭제
+        followingStrategyService.deleteFollowingStrategiesByStrategy(strategyEntity);
+
+        // 12. 해당 전략을 삭제한다. - 관계 테이블도 함께 삭제됨
         strategyRepo.deleteById(strategyEntity.getStrategyId());
 
-        //8. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
+        // 13. 전략 이력엔티티의 내용을 전략 이력 테이블에 저장한다.
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
@@ -1218,7 +1230,7 @@ public class StrategyService {
         for (StrategyEntity strategy : strategies) {
             Long strategyId = strategy.getStrategyId();
 
-            strategyHistoryRepo.deleteAllByStrategyId(strategyId);  // 전략이력 삭제 [X]
+            strategyHistoryRepo.deleteAllByStrategyId(strategyId);  // 전략이력 삭제
             if(strategyProposalService.getProposalByStrategyId(strategy.getStrategyId()).isPresent()){  // 전략제안서 삭제
                 strategyProposalService.deleteProposal(strategy.getStrategyId(), strategy.getWriterId());
             }
@@ -1227,12 +1239,12 @@ public class StrategyService {
             }
 
             strategyApprovalRequestsService.deleteStrategyApprovalRequestsByStrategy(strategy);  // 전략승인요청 삭제
-            monthlyStatisticsService.deleteMonthlyStatisticsByStrategy(strategy);  // 월간통계 삭제 [X]
-            dailyStatisticsService.deleteDailyStatisticsByStrategy(strategy);  // 일간통계 삭제 [X]
-            followingStrategyService.deleteFollowingStrategiesByStrategy(strategy);  // 관심전략 삭제 [X]
-            consultationService.deleteConsultationsByStrategy(strategy);  // 상담 삭제 [X]
-            strategyIACHistoryRepository.deleteAllByStrategyId(strategyId);  // 관계테이블이력 삭제 [X]
-            strategyIACRepository.deleteAllByStrategyEntity(strategy);  // 관계테이블 삭제 [X]
+            monthlyStatisticsService.deleteMonthlyStatisticsByStrategy(strategy);  // 월간통계 삭제
+            dailyStatisticsService.deleteDailyStatisticsByStrategy(strategy);  // 일간통계 삭제
+            followingStrategyService.deleteFollowingStrategiesByStrategy(strategy);  // 관심전략 삭제
+            consultationService.deleteConsultationsByStrategy(strategy);  // 상담 삭제
+            strategyIACHistoryRepository.deleteAllByStrategyId(strategyId);  // 관계테이블이력 삭제
+            strategyIACRepository.deleteAllByStrategyEntity(strategy);  // 관계테이블 삭제
             strategyReviewService.deleteReviewsByStrategy(strategy);  // 전략리뷰 삭제
 
             strategyRepo.delete(strategy);  // 전략 삭제 [X]

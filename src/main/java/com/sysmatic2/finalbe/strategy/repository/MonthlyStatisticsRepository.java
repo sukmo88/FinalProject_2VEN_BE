@@ -11,6 +11,7 @@ import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -72,4 +73,9 @@ public interface MonthlyStatisticsRepository extends JpaRepository<MonthlyStatis
 
   // strategy id로 월간통계 데이터 모두 삭제
   void deleteByStrategyEntity(StrategyEntity strategyEntity);
+
+  // 특정 전략 ID에 해당하는 월간 통계 데이터를 모두 삭제
+  @Modifying
+  @Query("DELETE FROM MonthlyStatisticsEntity m WHERE m.strategyEntity.strategyId = :strategyId")
+  void deleteByStrategyId(@Param("strategyId") Long strategyId);
 }
