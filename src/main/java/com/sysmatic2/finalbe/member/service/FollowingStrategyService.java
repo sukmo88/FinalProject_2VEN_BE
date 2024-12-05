@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.member.service;
 
 import com.sysmatic2.finalbe.exception.DuplicateFollowingStrategyException;
+import com.sysmatic2.finalbe.exception.FollowingStrategyNotFoundException;
 import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyEntity;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
@@ -162,10 +163,13 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
         if(folllowingStrategeyEntity != null){
                throw new DuplicateFollowingStrategyException("선택한 종목이 해당 관심 전략폴더에 이미 등록되어 있습니다.");
         }
-
-       MemberEntity member = customUserDetails.getMemberEntity();
+        MemberEntity member = customUserDetails.getMemberEntity();
         if (member == null) {
             throw new IllegalStateException("회원 정보가 없습니다.");
+        }
+        boolean isFollowed = followingStrategyRepository.existsByStrategyAndMember(strategyEntity,member);
+        if (isFollowed) {
+            throw new IllegalArgumentException("이미 등록된 관심 전략입니다.");
         }
 
         LocalDateTime followedAt = LocalDateTime.now();
@@ -215,10 +219,15 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
     //관심 전략 삭제 (언팔로우 새로)
     @Transactional
     public void unFollowingStrategy(Long strategyId, CustomUserDetails customUserDetails) {
+        MemberEntity member = customUserDetails.getMemberEntity();
+        StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 전략 ID입니다: " + strategyId));
 
-        StrategyEntity strategyEntity = strategyRepository.findById(strategyId).get();
+        if(!followingStrategyRepository.existsByStrategyAndMember(strategyEntity,member)){
+            throw new FollowingStrategyNotFoundException("등록된 관심 전략이 아닙니다.");
+        }
 
-        int resultCnt = followingStrategyRepository.deleteByStrategy(strategyEntity);
+        int resultCnt = followingStrategyRepository.deleteByStrategyAndMember(strategyEntity,member);
 
         if (resultCnt == 0) {
             throw new IllegalStateException("삭제할 전략 ID가 존재하지 않습니다. 관심전략ID:");
@@ -231,35 +240,36 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
 
 
     //관심전략 폴더 이동
-    public void moveFollowingStrategy(Long followingStrategyId, Long folderId, CustomUserDetails customUserDetails) {
+    //수정 요청사항 (관심전략ID -> 전략ID, followingStrategyId -> strategyId)
+    public void moveFollowingStrategy(Long strategyId, Long folderId, CustomUserDetails customUserDetails) {
+        // 인증된 사용자 가져오기
         MemberEntity member = customUserDetails.getMemberEntity();
-        //회원에 관심폴더인지 검증
-        Optional<FollowingStrategyFolderEntity> followingStrategyFolderEntityOptional
-                = followingStrategyFolderRepository.findByfolderIdAndMember(folderId, member);
 
-        // 폴더가 없는 경우 예외 처리
-        FollowingStrategyFolderEntity followingStrategyFolderEntity = followingStrategyFolderEntityOptional
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 폴더입니다."));
+        // 폴더 유효성 검증 및 권한 확인
+        FollowingStrategyFolderEntity followingStrategyFolderEntity = followingStrategyFolderRepository
+                .findByFolderIdAndMember(folderId, member)
+                .orElseThrow(() -> new IllegalArgumentException("폴더가 존재하지 않거나 권한이 없습니다."));
 
+        // 전략 엔티티 조회
+        StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 전략 ID입니다."));
 
-        // 관심 전략 조회
-        Optional<FollowingStrategyEntity> strategyOptional =
-                followingStrategyRepository.findById(followingStrategyId);
+        // 관심 전략에 멤버,전략으로 조회해서 있는지 확인
+        FollowingStrategyEntity followingStrategyEntity = followingStrategyRepository
+                .findByStrategyAndMember(strategyEntity,member);
 
-        // 관심 전략이 없는 경우 예외 처리
-        FollowingStrategyEntity followingStrategyEntity = strategyOptional
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 관심 전략입니다."));
-
-        // 권한 확인 (optional)
-        System.out.println("member:" + member);
-        System.out.println("followingStrategyEntity member:" + followingStrategyEntity.getMember());
+        boolean isFollowed = followingStrategyRepository.existsByStrategyAndFollowingStrategyFolder(strategyEntity,followingStrategyFolderEntity);
+        if (isFollowed) {
+            throw new IllegalArgumentException("이미 해당 폴더에 등록된 관심 전략입니다.");
+        }
+        // 권한 검증
         if (!followingStrategyEntity.getMember().getMemberId().equals(member.getMemberId())) {
             throw new IllegalArgumentException("권한이 없는 전략입니다.");
         }
 
-        // 관심 전략의 폴더 ID 업데이트
+        // 폴더 변경
         followingStrategyEntity.setFollowingStrategyFolder(followingStrategyFolderEntity);
-        followingStrategyRepository.save(followingStrategyEntity); // 업데이트 후 저장
+        followingStrategyRepository.save(followingStrategyEntity); // 변경 저장
     }
 
     //해당 회원이 해당 전략을 팔로우 했는지 여부

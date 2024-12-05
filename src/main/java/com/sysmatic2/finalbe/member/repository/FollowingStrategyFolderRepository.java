@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public interface FollowingStrategyFolderRepository extends JpaRepository<FollowingStrategyFolderEntity, Long> {
 
-    Optional<FollowingStrategyFolderEntity> findByfolderIdAndMember(Long folderId, MemberEntity member);
+    Optional<FollowingStrategyFolderEntity> findByFolderIdAndMember(Long folderId, MemberEntity member);
 
     @Query("SELECT new com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto(f.folderId, f.folderName, f.modifiedAt, f.isDefaultFolder, COUNT(fs)) " +
             "FROM FollowingStrategyFolderEntity f " +
