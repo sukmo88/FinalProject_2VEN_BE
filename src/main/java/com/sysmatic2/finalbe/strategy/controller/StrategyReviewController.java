@@ -86,8 +86,18 @@ public class StrategyReviewController {
      * 5-1. 리뷰 삭제
      */
     @DeleteMapping("/{reviewId}")
-    public ResponseEntity<Map<String, String>> deleteReview(@PathVariable Long strategyId, @PathVariable Long reviewId) {
-        strategyReviewService.deleteReview(reviewId);
+    public ResponseEntity<Map<String, String>> deleteReview(@PathVariable Long strategyId, @PathVariable Long reviewId,
+                                                            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        //접속자 정보
+        //관리자와 전략 작성자, 리뷰 작성자는 해당 리뷰를 삭제할 수 있다.
+        String memberId = userDetails.getMemberId();
+        Boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
+
+        strategyReviewService.deleteReview(strategyId, reviewId, memberId, isAdmin, isTrader);
+
         return ResponseEntity.ok(Map.of("msg", "Review successfully deleted"));
     }
 

@@ -244,7 +244,7 @@ public class GlobalExceptionHandler {
         return ResponseUtils.buildErrorResponse(
                 "FORBIDDEN",
                 e.getClass().getSimpleName(),
-                "권한이 없습니다.",
+                e.getMessage(),
                 HttpStatus.FORBIDDEN
         );
     }
