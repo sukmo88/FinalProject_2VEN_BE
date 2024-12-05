@@ -511,6 +511,7 @@ public class StrategyController {
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate EndDate,
             @RequestParam(required = false) String returnRateList,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") @Min(0) Integer page,
             @RequestParam(defaultValue = "30") @Min(1) Integer pageSize)
     {
@@ -531,6 +532,7 @@ public class StrategyController {
         optionsPayload.setStartDate(startDate);
         optionsPayload.setEndDate(EndDate);
         optionsPayload.setReturnRateList(returnRateList);
+        optionsPayload.setKeyword(keyword);
 
         Map<String, Object> responseData = strategyService.advancedSearch(optionsPayload, page, pageSize);
 

@@ -335,6 +335,7 @@ public class StrategyService {
         searchOptionsDto.setStartDate(searchOptionsPayload.getStartDate());
         searchOptionsDto.setEndDate(searchOptionsPayload.getEndDate());
         searchOptionsDto.setReturnRateList(returnRates);
+        searchOptionsDto.setKeyword(searchOptionsPayload.getKeyword());
 
         // 4. Repository 호출로 필터링된 전략 페이지 가져오기
         //2)필터객체, 페이지 객체넣고 db에서 데이터 가져오기
