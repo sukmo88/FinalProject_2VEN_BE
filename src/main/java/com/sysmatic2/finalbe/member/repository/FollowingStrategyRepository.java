@@ -16,14 +16,21 @@ import java.util.List;
 public interface FollowingStrategyRepository extends JpaRepository<FollowingStrategyEntity, Long> {
     void deleteAllByStrategy(StrategyEntity strategy);
     FollowingStrategyEntity findByFollowingStrategyFolderAndStrategy(FollowingStrategyFolderEntity followingStrategyFolder, StrategyEntity strategy);
+    FollowingStrategyEntity findByStrategyAndMember(StrategyEntity strategy, MemberEntity member);
+    //FollowingStrategyEntity findByStrategyAndMemberAndFollowingStrategyFolder(StrategyEntity strategy, MemberEntity member, Long folderId);
     int deleteByFollowingStrategyId(Long followingStrategyId);
+
     int deleteByStrategy(StrategyEntity strategy);
+    int deleteByStrategyAndMember(StrategyEntity strategy, MemberEntity member);
     boolean existsByFollowingStrategyId(Long followingStrategyId);
 
     int countByFollowingStrategyFolder(FollowingStrategyFolderEntity followingStrategyFolder);
 
     //해당 회원이 해당 전략을 팔로우 했는지 여부
     boolean existsByStrategyAndMember(StrategyEntity strategy,MemberEntity member);
+    //해당 폴더에 해당 전략이 등록되어있는지 여부
+    boolean existsByStrategyAndFollowingStrategyFolder(StrategyEntity strategy,FollowingStrategyFolderEntity followingStrategyFolder);
+
 
     //Page<FollowingStrategyListDto> findAllAsFollowingStrategyListDto(Pageable pageable);
 
