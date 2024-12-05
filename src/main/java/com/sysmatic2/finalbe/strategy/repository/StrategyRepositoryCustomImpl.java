@@ -317,6 +317,8 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
+
+
         return new PageImpl<>(strategyEntities, pageable, resultCnt);
     }
 

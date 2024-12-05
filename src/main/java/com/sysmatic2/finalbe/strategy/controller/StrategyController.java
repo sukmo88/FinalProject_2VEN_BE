@@ -534,7 +534,12 @@ public class StrategyController {
         optionsPayload.setReturnRateList(returnRateList);
         optionsPayload.setKeyword(keyword);
 
-        Map<String, Object> responseData = strategyService.advancedSearch(optionsPayload, page, pageSize);
+        //상세 검색 실행
+        Map<String, Object> resultData = strategyService.advancedSearch(optionsPayload, page, pageSize);
+
+        //가변맵으로 변경
+        Map<String, Object> responseData = new HashMap<>(resultData);
+        responseData.put("keyword", keyword);
 
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
