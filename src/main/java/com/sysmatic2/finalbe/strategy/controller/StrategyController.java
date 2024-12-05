@@ -142,10 +142,13 @@ public class StrategyController {
     // 4. 전략 상세 - 전략 기본정보
     @Operation(summary = "전략 상세")
     @GetMapping(value = "/{id}", produces = "application/json")
-    public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long id,
+    public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long strategyId,
                                                @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
+        //팔로워 조회용
+        String memberId = userDetails.getMemberId();
+
         //전략 기본정보 데이터를 가져온다.
-        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id);
+        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(strategyId, memberId);
 
         //isPosted=N인 경우 관리자와 작성트레이더만 볼 수 있다.
         if(strategyResponseDto.getIsPosted().equals("N")){

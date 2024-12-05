@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.strategy.common.MonthlyStatisticsCalculator;
 import com.sysmatic2.finalbe.strategy.dto.MonthlyAnalysisResponseDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.MonthlyStatisticsEntity;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.MonthlyStatisticsRepository;
 import com.sysmatic2.finalbe.util.CreatePageResponse;
@@ -104,5 +105,15 @@ public class MonthlyStatisticsService {
 
         // 4. 페이지 응답 생성 유틸리티 활용
         return CreatePageResponse.createPageResponse(responsePage);
+    }
+
+    /**
+     * 전략의 월간통계 데이터 모두 삭제하는 메서드 (트레이더 탈퇴로 인한 전략 삭제 시)
+     *
+     * @param strategy
+     * @return void
+     */
+    public void deleteMonthlyStatisticsByStrategy(StrategyEntity strategy) {
+        monthlyStatisticsRepository.deleteByStrategyEntity(strategy);
     }
 }

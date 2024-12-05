@@ -35,4 +35,6 @@ public class StrategyResponseDto {
 
     private String strategyProposalFileTitle;            // 제안서 파일명
     private String strategyProposalLink; // 제안서 url
+
+    private Boolean isFollowed; // 팔로우했는지 여부
 }

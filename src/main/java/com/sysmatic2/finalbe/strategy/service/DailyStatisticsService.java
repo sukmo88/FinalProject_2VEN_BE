@@ -865,4 +865,13 @@ public class DailyStatisticsService {
             page++;
         } while (!pageData.isLast()); // 마지막 페이지가 아니면 반복
     }
+
+    /**
+     * 전략에 해당하는 일간통계를 삭제하는 메서드 (트레이더 탈퇴로 인한 전략 삭제 시)
+     *
+     * @param strategy
+     */
+    public void deleteDailyStatisticsByStrategy(StrategyEntity strategy) {
+        dsp.deleteAllByStrategyEntity(strategy);
+    }
 }

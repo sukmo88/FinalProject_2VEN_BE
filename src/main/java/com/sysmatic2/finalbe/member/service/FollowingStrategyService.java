@@ -7,6 +7,7 @@ import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.FollowingStrategyFolderRepository;
 import com.sysmatic2.finalbe.member.repository.FollowingStrategyRepository;
+import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.AdvancedSearchResultDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
@@ -33,6 +34,8 @@ public class FollowingStrategyService {
     private final StrategyRepository strategyRepository;
     private final FollowingStrategyFolderRepository followingStrategyFolderRepository;
     private final DailyStatisticsRepository dailyStatisticsRepository;
+    private final MemberRepository memberRepository;
+
 
     //폴더별 관심전략 목록 조회 서비스
     public List<FollowingStrategyListDto> getListFollowingStrategy1(Long folderId){
@@ -209,4 +212,76 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
         strategyRepository.save(strategyEntity);
     }
 
+    //관심 전략 삭제 (언팔로우 새로)
+    @Transactional
+    public void unFollowingStrategy(Long strategyId, CustomUserDetails customUserDetails) {
+
+        StrategyEntity strategyEntity = strategyRepository.findById(strategyId).get();
+
+        int resultCnt = followingStrategyRepository.deleteByStrategy(strategyEntity);
+
+        if (resultCnt == 0) {
+            throw new IllegalStateException("삭제할 전략 ID가 존재하지 않습니다. 관심전략ID:");
+        }
+
+        //관심전략 삭제하면 전략의 follower_count 수 감소시켜줘야함
+        strategyEntity.decrementFollowersCount();
+        strategyRepository.save(strategyEntity);
+    }
+
+
+    //관심전략 폴더 이동
+    public void moveFollowingStrategy(Long followingStrategyId, Long folderId, CustomUserDetails customUserDetails) {
+        MemberEntity member = customUserDetails.getMemberEntity();
+        //회원에 관심폴더인지 검증
+        Optional<FollowingStrategyFolderEntity> followingStrategyFolderEntityOptional
+                = followingStrategyFolderRepository.findByfolderIdAndMember(folderId, member);
+
+        // 폴더가 없는 경우 예외 처리
+        FollowingStrategyFolderEntity followingStrategyFolderEntity = followingStrategyFolderEntityOptional
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 폴더입니다."));
+
+
+        // 관심 전략 조회
+        Optional<FollowingStrategyEntity> strategyOptional =
+                followingStrategyRepository.findById(followingStrategyId);
+
+        // 관심 전략이 없는 경우 예외 처리
+        FollowingStrategyEntity followingStrategyEntity = strategyOptional
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 관심 전략입니다."));
+
+        // 권한 확인 (optional)
+        System.out.println("member:" + member);
+        System.out.println("followingStrategyEntity member:" + followingStrategyEntity.getMember());
+        if (!followingStrategyEntity.getMember().getMemberId().equals(member.getMemberId())) {
+            throw new IllegalArgumentException("권한이 없는 전략입니다.");
+        }
+
+        // 관심 전략의 폴더 ID 업데이트
+        followingStrategyEntity.setFollowingStrategyFolder(followingStrategyFolderEntity);
+        followingStrategyRepository.save(followingStrategyEntity); // 업데이트 후 저장
+    }
+
+    //해당 회원이 해당 전략을 팔로우 했는지 여부
+    @Transactional
+    public boolean isFollowing(Long strategyId, String memberId) {
+
+        StrategyEntity strategy = strategyRepository.findById(strategyId)
+                .orElseThrow(() -> new IllegalArgumentException("전략이 존재하지 않습니다. ID: " + strategyId));
+        MemberEntity member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다. ID: " + memberId));
+
+        return followingStrategyRepository.existsByStrategyAndMember(strategy, member);
+    }
+    // 전략에 해당하는 관심전략 삭제 (트레이더 회원 탈퇴 시)
+    @Transactional
+    public void deleteFollowingStrategiesByStrategy(StrategyEntity strategy){
+        try {
+            followingStrategyRepository.deleteAllByStrategy(strategy);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to delete following strategies by strategy: " + strategy.getStrategyTitle(), e);
+        }
+    }
 }
+
+
