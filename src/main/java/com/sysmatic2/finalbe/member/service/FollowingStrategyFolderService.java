@@ -4,6 +4,7 @@ import com.sysmatic2.finalbe.exception.DefaultFolderDeleteException;
 import com.sysmatic2.finalbe.exception.DefaultFolderRenameException;
 import com.sysmatic2.finalbe.exception.FolderNotFoundException;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
+import com.sysmatic2.finalbe.member.dto.FolderNameDto;
 import com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyEntity;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
@@ -39,13 +40,13 @@ public class FollowingStrategyFolderService {
     }
 
     //관심전략폴더 생성
-    public FollowingStrategyFolderDto createFolder( FollowingStrategyFolderDto folderDto, CustomUserDetails customUserDetails) {
+    public FollowingStrategyFolderDto createFolder(FolderNameDto folderNameDto, CustomUserDetails customUserDetails) {
         //관심전략 폴더 (기본폴더=> 폴더명: 기본 폴더, 기본폴더여부)
         FollowingStrategyFolderEntity folderEntity = new FollowingStrategyFolderEntity();
         MemberEntity member = customUserDetails.getMemberEntity();
 
         //관심전략폴더ID 발급하고 멤버ID 가져와서 폴더명
-        folderEntity.setFolderName(folderDto.getFolderName());
+        folderEntity.setFolderName(folderNameDto.getFolderName());
         folderEntity.setIsActive("Y");
         folderEntity.setIsDefaultFolder("N");
         folderEntity.setFolderCreationDate(LocalDateTime.now());
@@ -91,7 +92,7 @@ public class FollowingStrategyFolderService {
     public FollowingStrategyFolderDto updateFolderName(Long folderId, FollowingStrategyFolderDto folderDto, CustomUserDetails customUserDetails) {
 
         MemberEntity member = customUserDetails.getMemberEntity();
-        FollowingStrategyFolderEntity folderEntity = folderRepository.findByfolderIdAndMember(folderId, member)
+        FollowingStrategyFolderEntity folderEntity = folderRepository.findByFolderIdAndMember(folderId, member)
                 .orElseThrow(() -> new FolderNotFoundException("해당 폴더를 찾을 수 없습니다."));
 
         if("Y".equals(folderEntity.getIsDefaultFolder())){
@@ -118,45 +119,4 @@ public class FollowingStrategyFolderService {
         folderRepository.deleteAllByMember(member);
     }
 
-    /*
-    public List<FollowingStrategyFolderDto> getStrategiesInFolder(Long folderId) {
-        FollowingStrategyFolder folder = folderRepository.findById(folderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Folder not found with id " + folderId));
-        return folder.getStrategies().stream()
-                .map(strategy -> new StrategyDto(strategy.getId(), strategy.getName(), strategy.getDescription(), strategy.getCreatedAt()))
-                .collect(Collectors.toList());
-    }
-    */
-
-    //투자자가 저장한 모든 폴더 조회(필요없겠지)
-    /*
-    public List<FollowingStrategyFolderDto> getAllFolders() {
-    }
-     */
-    /*
-
-
-
-
-
-
-    //
-    public void addStrategyToFolder(Long folderId, Long strategyId) {
-    }
-
-    public void removeStrategyFromFolder(Long folderId, Long strategyId) {
-        FollowingStrategyFolder folder = folderRepository.findById(folderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Folder not found with id " + folderId));
-        Strategy strategy = strategyRepository.findById(strategyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Strategy not found with id " + strategyId));
-        folder.getStrategies().remove(strategy);
-        folderRepository.save(folder);
-    }
-
-
-    public FollowingStrategyFolderDto getFolder(Long folderId) {
-
-    }
-
-    */
 }

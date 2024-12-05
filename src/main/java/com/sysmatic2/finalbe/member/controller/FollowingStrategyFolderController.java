@@ -1,6 +1,7 @@
 package com.sysmatic2.finalbe.member.controller;
 
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
+import com.sysmatic2.finalbe.member.dto.FolderNameDto;
 import com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
@@ -29,11 +30,11 @@ public class FollowingStrategyFolderController {
 
     //신규 관심 전략 폴더 생성.
     @PostMapping("/following-strategy-folders")
-    public ResponseEntity<Map<String,Object>> createFolder(@RequestBody FollowingStrategyFolderDto folderDto,
+    public ResponseEntity<Map<String,Object>> createFolder(@RequestBody FolderNameDto folderName,
                                                            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         FollowingStrategyFolderDto dd = new FollowingStrategyFolderDto();
         String memberId = customUserDetails.getMemberId(); // 예: Member ID 추출
-        FollowingStrategyFolderDto createdFolderDto = folderService.createFolder(folderDto,customUserDetails);
+        FollowingStrategyFolderDto createdFolderDto = folderService.createFolder(folderName,customUserDetails);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "message", "폴더가 정상적으로 생성되었습니다.",
                 "data", createdFolderDto
@@ -73,33 +74,4 @@ public class FollowingStrategyFolderController {
         ));
     }
 
-    /*
-    //특정 관심 전략 폴더의 상세 정보 조회.
-    @GetMapping("/following-strategy-folders/{folderId}")
-    public ResponseEntity<FollowingStrategyFolderDto> getFolder(@PathVariable Long folderId) {
-        FollowingStrategyFolderDto folder = folderService.getFolder(folderId);
-        return ResponseEntity.ok(folder);
-    }*/
-
-    /*
-    //특정 관심 폴더에 포함된 전략 조회.
-    @GetMapping("/following-strategy-folders/{folderId}/strategies")
-    public ResponseEntity<List<FollowingStrategyFolderDto>> getStrategiesInFolder(@PathVariable Long folderId) {
-        List<FollowingStrategyFolderDto> strategies = folderService.getStrategiesInFolder(folderId);
-        return ResponseEntity.ok(strategies);
-    }
-    //특정 전략을 관심 전략 폴더에 추가.
-    @PostMapping("/following-strategy-folders/{folderId}/strategies/{strategyId}")
-    public ResponseEntity<Void> addStrategyToFolder(@PathVariable Long folderId, @PathVariable Long strategyId) {
-        folderService.addStrategyToFolder(folderId, strategyId);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
-    //특정 관심 전략 폴더에서 전략 삭제.
-    @DeleteMapping("/following-strategy-folders/{folderId}/strategies/{strategyId}")
-    public ResponseEntity<Void> removeStrategyFromFolder(@PathVariable Long folderId, @PathVariable Long strategyId) {
-        folderService.removeStrategyFromFolder(folderId, strategyId);
-        return ResponseEntity.noContent().build();
-    }
-    */
 }
