@@ -6,6 +6,7 @@ import com.sysmatic2.finalbe.admin.service.InvestmentAssetClassesService;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.service.FileService;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
+import com.sysmatic2.finalbe.util.ParseCsvToList;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -94,12 +95,18 @@ public class InvestmentAssetClassesController {
     @ApiResponse(responseCode="404", description = "NOT EXIST")
     @ApiResponse(responseCode="405", description = "Wrong Request Method")
     @ApiResponse(responseCode="500", description = "Other Errors")
-    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") @Positive Integer id,
+    public ResponseEntity<Map> deleteInvestmentAssetClass(@PathVariable("id") String iacIds,
                                                           @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception {
         //접속한 관리자의 id 토큰에서 가져오기
         String adminId = userDetails.getMemberId();
 
-        iacService.delete(id, adminId);
+        //받아온 csv를 id 리스트로 변경
+        List<Integer> iacIdList = ParseCsvToList.parseCsvToIntegerList(iacIds);
+
+        for(Integer iacId : iacIdList) {
+            iacService.delete(iacId, adminId);
+        }
+
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
 

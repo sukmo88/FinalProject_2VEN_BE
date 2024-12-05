@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,7 +47,8 @@ public class LiveAccountDataService {
      * @return 해당 전략에 속한 실계좌 이미지 정보를 포함한 LiveAccountDataResponseDto
      */
     @Transactional
-    public LiveAccountDataResponseDto uploadLiveAccountData(MultipartFile file, String uploaderId, Long strategyId) {
+    public LiveAccountDataResponseDto uploadLiveAccountData(MultipartFile file, Long strategyId, String uploaderId, Boolean isTrader) {
+        //데이터의 카테고리 설정
         String category = "liveaccount";
 
         // 1. Validation
@@ -57,6 +59,11 @@ public class LiveAccountDataService {
         validateStrategy(strategyId);
         StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
                 .orElseThrow(() -> new StrategyNotFoundException("Strategy not found with ID: " + strategyId + "in live account data uploading."));
+
+        // 등록자 권한 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(uploaderId)){
+            throw new AccessDeniedException("이미지 등록 권한이 없습니다.");
+        }
 
         // 2. s3에 이미지 파일 업로드 및 FileMetadata 데이터
         FileMetadataDto fileMetadataDto = fileService.uploadFile(file, uploaderId, category, strategyId.toString());
@@ -91,7 +98,7 @@ public class LiveAccountDataService {
      *
      * @return 해당 전략에 속한 실계좌 이미지 정보와 페이지 정보를 포함한 LiveAccountDataPageResponseDto
      */
-    public LiveAccountDataPageResponseDto getLiveAccountDataList(int page, int pageSize, Long strategyId){
+    public LiveAccountDataPageResponseDto getLiveAccountDataList(int page, int pageSize, Long strategyId, String memberId, Boolean isTrader){
 
         // 1. 페이지네이션 요청 값 검증 및 페이지 객체 생성
         if (page < 0) {
@@ -108,6 +115,18 @@ public class LiveAccountDataService {
         validateStrategy(strategyId);
         StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
                 .orElseThrow(() -> new StrategyNotFoundException("Strategy not found with ID: " + strategyId + "in live account data uploading."));
+
+        // 권한 판별
+        if(strategyEntity.getIsApproved().equals("N") || strategyEntity.getIsPosted().equals("N")) {
+            //비로그인
+            if (memberId == null && isTrader == false)
+                throw new AccessDeniedException("조회 권한이 없습니다.");
+
+            //트레이더인 경우 작성자인지 판별
+            if (isTrader && !strategyEntity.getWriterId().equals(memberId)) {
+                throw new AccessDeniedException("작성자와 관리자만 확인할 수 있습니다.");
+            }
+        }
 
         // 3. 전략에 등록된 실계좌 인증 리스트 조회
         Page<LiveAccountDataEntity> liveAccountDataList = liveAccountDataRepository.findAllByStrategy(strategyEntity, pageable);
@@ -171,7 +190,7 @@ public class LiveAccountDataService {
      * @param strategyId 전략 Id
      */
     @Transactional
-    public void deleteLiveAccountDataList(Long strategyId, List<Long> liveAccountIds) {
+    public void deleteLiveAccountDataList(Long strategyId, List<Long> liveAccountIds, String memberId, Boolean isTrader) {
         String category = "liveaccount";
 
         // 1. validation
@@ -180,6 +199,10 @@ public class LiveAccountDataService {
         StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
                 .orElseThrow(() -> new StrategyNotFoundException("Strategy not found with ID: " + strategyId + "in live account data uploading."));
 
+        // 삭제 권한 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(memberId)) {
+            throw new AccessDeniedException("삭제 권한이 없습니다.");
+        }
 
         // 2. 실계좌 인증 리스트 조회
         List<LiveAccountDataEntity> liveAccountDataEntities = liveAccountDataRepository.findAllByLiveAccountIdInAndStrategy(liveAccountIds, strategyEntity);

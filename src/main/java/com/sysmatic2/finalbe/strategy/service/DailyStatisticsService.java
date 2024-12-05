@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -137,6 +138,7 @@ public class DailyStatisticsService {
         StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Strategy with ID " + strategyId + " does not exist."));
 
+
         // 1. 요청 날짜가 이미 존재하는지 확인
         if (dsp.existsByStrategyIdAndDate(strategyId, reqDto.getDate())) {
             throw new DuplicateDateException("이미 등록된 날짜입니다: " + reqDto.getDate());
@@ -184,10 +186,15 @@ public class DailyStatisticsService {
      * @param reqDto       수정 요청 데이터
      */
     @Transactional
-    public void updateDailyData(Long strategyId, Long dailyDataId, DailyStatisticsReqDto reqDto) {
+    public void updateDailyData(Long strategyId, Long dailyDataId, String memberId, Boolean isTrader, DailyStatisticsReqDto reqDto) {
         // 1. 수정 대상 데이터 조회
         DailyStatisticsEntity targetData = dsp.findById(dailyDataId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Daily data not found"));
+
+        // 트레이더면 작성자 판별
+        if(isTrader && !targetData.getStrategyEntity().getWriterId().equals(memberId)) {
+            throw new AccessDeniedException("일간 데이터 수정 권한이 없습니다.");
+        }
 
         // 2. 수정 날짜 중복 확인
         if (dsp.existsByStrategyIdAndDate(strategyId, reqDto.getDate()) && !targetData.getDate().equals(reqDto.getDate())) {
@@ -255,7 +262,7 @@ public class DailyStatisticsService {
      * @return 재계산된 데이터 개수
      */
     @Transactional
-    public void deleteAndRecalculate(Long strategyId, List<Long> dailyStatisticsIds) {
+    public void deleteAndRecalculate(Long strategyId, String memberId, Boolean isTrader, List<Long> dailyStatisticsIds) {
         // 1. 삭제할 ID 리스트가 비어있는지 확인
         if (dailyStatisticsIds.isEmpty()) {
             throw new IllegalArgumentException("삭제할 ID 리스트가 비어 있습니다.");
@@ -266,6 +273,15 @@ public class DailyStatisticsService {
 
         if (entitiesToDelete.size() != dailyStatisticsIds.size()) {
             throw new IllegalArgumentException("삭제 대상 중 일부 데이터가 존재하지 않습니다.");
+        }
+
+        // 트레이더면 작성자 판별
+        if(isTrader) {
+            Boolean isWriter = entitiesToDelete.stream()
+                    .allMatch(entity -> entity.getStrategyEntity().getWriterId().equals(memberId));
+
+            if(!isWriter)
+                throw new AccessDeniedException("일간 데이터 수정 권한이 없습니다.");
         }
 
         // 3. 삭제 대상(dailyStatisticsIds) 중 가장 오래된 날짜 찾기

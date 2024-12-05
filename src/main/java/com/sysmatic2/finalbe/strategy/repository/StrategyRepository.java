@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
+import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.strategy.dto.StrategyKpDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategySmScoreDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
@@ -33,7 +34,10 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     List<StrategyEntity> findByOrderByWritedAtDesc();
 
     // 전략 작성자 id로 전략 목록 조회(페이지네이션)
+    // 트레이더 본인, 관리자
     Page<StrategyEntity> findByWriterId(String writerId, Pageable pageable);
+    // 타인
+    Page<StrategyEntity> findByWriterIdAndIsApprovedAndIsPosted(String writerId, String isApproved, String isPosted, Pageable pageable);
 
     // 전략명 기준으로 전략 목록 조회(페이지네이션)
     @Query("SELECT s FROM StrategyEntity s " +
@@ -122,4 +126,22 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     @Query("SELECT s FROM StrategyEntity s WHERE s.strategyId IN :strategyIds ORDER BY s.smScore DESC")
     Page<StrategyEntity> findByStrategyIdsOrderBySmScore(@Param("strategyIds") List<Long> strategyIds, Pageable pageable);
 
+    /**
+     * 조건에 따라 승인된(isApproved) 및 게시된(isPosted) 전략을 페이징 처리하여 조회합니다.
+     *
+     * @param isApproved 승인 여부 (예: "Y" 또는 "N")
+     * @param isPosted   게시 여부 (예: "Y" 또는 "N")
+     * @param pageable   페이징 정보 (페이지 번호, 페이지 크기, 정렬 정보)
+     * @return 조건을 만족하는 전략의 페이지(Page<StrategyEntity>)
+     */
+    Page<StrategyEntity> findByIsApprovedAndIsPosted(String isApproved, String isPosted, Pageable pageable);
+
+    /**
+     * 특정 매매유형 ID(TradingTypeEntity.tradingTypeId)에 연결된 모든 전략(StrategyEntity)을 조회합니다.
+     *
+     * @param tradingTypeId 조회할 매매유형의 ID
+     * @return 주어진 매매유형 ID에 연결된 전략 엔티티 리스트
+     */
+    @Query("SELECT s FROM StrategyEntity s WHERE s.tradingTypeEntity.tradingTypeId = :tradingTypeId")
+    List<StrategyEntity> findByTradingType(@Param("tradingTypeId") Integer tradingTypeId);
 }

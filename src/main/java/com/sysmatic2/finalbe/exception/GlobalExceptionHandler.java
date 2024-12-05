@@ -244,7 +244,7 @@ public class GlobalExceptionHandler {
         return ResponseUtils.buildErrorResponse(
                 "FORBIDDEN",
                 e.getClass().getSimpleName(),
-                "권한이 없습니다.",
+                e.getMessage(),
                 HttpStatus.FORBIDDEN
         );
     }
@@ -279,12 +279,15 @@ public class GlobalExceptionHandler {
     }
 
     // 409: 데이터 충돌
-    @ExceptionHandler({DataIntegrityViolationException.class, DuplicateTradingTypeOrderException.class, DuplicateTradingCycleOrderException.class, MemberAlreadyExistsException.class})
+    @ExceptionHandler({DataIntegrityViolationException.class, DuplicateTradingTypeOrderException.class,
+            DuplicateTradingCycleOrderException.class, MemberAlreadyExistsException.class,
+            DeleteTradingTypeStrategyExistException.class})
     public ResponseEntity<Object> handleConflictExceptions(Exception ex) {
         logger.error("Data conflict: {}", ex.getMessage());
 
         String message;
-        if (ex instanceof DuplicateTradingTypeOrderException || ex instanceof DuplicateTradingCycleOrderException || ex instanceof MemberAlreadyExistsException) {
+        if (ex instanceof DuplicateTradingTypeOrderException || ex instanceof DuplicateTradingCycleOrderException
+                || ex instanceof MemberAlreadyExistsException || ex instanceof DeleteTradingTypeStrategyExistException) {
             message = ex.getMessage();
         } else {
             message = "데이터베이스 제약 조건을 위반했습니다.";
@@ -362,5 +365,22 @@ public class GlobalExceptionHandler {
                 "알 수 없는 오류가 발생했습니다.",
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
+    }
+
+    // 404: 등록된 관심전략이 아닐 때
+    @ExceptionHandler(FollowingStrategyNotFoundException.class)
+    public ResponseEntity<Object> handleFollowingStrategyNotFoundException(FollowingStrategyNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "error", "NOT_FOUND",
+                "message", ex.getMessage()
+        ));
+    }
+    // 409: 이미 등록된 관심전략을 등록하려고 할 때
+    @ExceptionHandler(DuplicateFollowingStrategyException.class)
+    public ResponseEntity<Object> handleDuplicateFollowingStrategyException(DuplicateFollowingStrategyException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", "DUPLICATE_FOLLOWING_STRATEGY",
+                "message", ex.getMessage()
+        ));
     }
 }

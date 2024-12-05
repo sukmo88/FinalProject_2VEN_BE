@@ -415,4 +415,9 @@ public interface DailyStatisticsRepository extends JpaRepository<DailyStatistics
 
     // strategy id로 일일통계 데이터 모두 삭제
     void deleteAllByStrategyEntity(StrategyEntity strategyEntity);
+
+    // 특정 전략 ID에 해당하는 일간 통계 데이터를 모두 삭제
+    @Modifying
+    @Query("DELETE FROM DailyStatisticsEntity d WHERE d.strategyEntity.strategyId = :strategyId")
+    void deleteByStrategyId(@Param("strategyId") Long strategyId);
 }

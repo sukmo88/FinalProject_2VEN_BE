@@ -35,4 +35,6 @@ public class SearchOptionsDto {
     private LocalDate startDate;                 //기간 시작일
     private LocalDate endDate;                   //기간 종료일
     private List<Integer> returnRateList;        //수익률 리스트
+
+    private String keyword;                      //검색 키워드
 }

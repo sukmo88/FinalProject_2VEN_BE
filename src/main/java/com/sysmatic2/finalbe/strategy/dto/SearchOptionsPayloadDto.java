@@ -55,6 +55,8 @@ public class SearchOptionsPayloadDto {
     @Pattern(regexp = "^\\d+(,\\d+)*$", message = "returnRate ids must contain numbers separated by commas (1,2,3...)")
     private String returnRateList;               //수익률 리스트
 
+    private String keyword; //키워드 검색
+
     //원금 최대값 >= 원금 최소값 검증
     @AssertTrue(message = "maxPrincipal must be greater or equal to minPrincipal")
     public boolean isPrincipalRangeValid(){
