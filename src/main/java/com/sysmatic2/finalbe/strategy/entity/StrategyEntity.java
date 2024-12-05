@@ -32,7 +32,7 @@ public class StrategyEntity extends Auditable {
     private Long strategyId; // 전략 ID
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trading_type_id", nullable = false)
+    @JoinColumn(name = "trading_type_id")
     private TradingTypeEntity tradingTypeEntity; // 매매유형 ID
 
     @Column(name = "strategy_status_code", nullable = false)

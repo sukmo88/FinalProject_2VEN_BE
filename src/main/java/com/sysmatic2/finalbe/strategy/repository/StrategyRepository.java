@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.repository;
 
+import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.strategy.dto.StrategyKpDto;
 import com.sysmatic2.finalbe.strategy.dto.StrategySmScoreDto;
 import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
@@ -134,4 +135,13 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
      * @return 조건을 만족하는 전략의 페이지(Page<StrategyEntity>)
      */
     Page<StrategyEntity> findByIsApprovedAndIsPosted(String isApproved, String isPosted, Pageable pageable);
+
+    /**
+     * 특정 매매유형 ID(TradingTypeEntity.tradingTypeId)에 연결된 모든 전략(StrategyEntity)을 조회합니다.
+     *
+     * @param tradingTypeId 조회할 매매유형의 ID
+     * @return 주어진 매매유형 ID에 연결된 전략 엔티티 리스트
+     */
+    @Query("SELECT s FROM StrategyEntity s WHERE s.tradingTypeEntity.tradingTypeId = :tradingTypeId")
+    List<StrategyEntity> findByTradingType(@Param("tradingTypeId") Integer tradingTypeId);
 }
