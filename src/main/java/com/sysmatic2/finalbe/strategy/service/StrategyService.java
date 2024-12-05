@@ -1243,7 +1243,9 @@ public class StrategyService {
     @Transactional(readOnly = true)
     public Map<String, Object> getSmScoreTop5Strategies() {
         Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "smScore"));
-        Page<StrategyEntity> strategyPage = strategyRepo.findAll(pageable);
+
+        // 조건: isApproved = "Y" AND isPosted = "Y"
+        Page<StrategyEntity> strategyPage = strategyRepo.findByIsApprovedAndIsPosted("Y", "Y", pageable);
 
         List<SmScoreRankingResponseDto> dtoList = strategyPage.stream().map(strategy -> {
             // MemberEntity에서 프로필 이미지 정보 가져오기
