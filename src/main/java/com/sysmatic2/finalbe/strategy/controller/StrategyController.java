@@ -5,6 +5,7 @@ import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import com.sysmatic2.finalbe.strategy.service.DailyStatisticsService;
 import com.sysmatic2.finalbe.strategy.service.MonthlyStatisticsService;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/strategies")
@@ -46,11 +49,11 @@ public class StrategyController {
     private final StrategyRepository strategyRepository;
 
     // 1. 전략 생성페이지(GET)
+    // 관리자와 트레이더만 전략을 생성할 수 있다.
     @Operation(summary = "전략 생성페이지 필요 정보")
     @GetMapping("/registration-form")
     @ApiResponse(responseCode = "200", description = "Get Strategy Registration Form")
     public ResponseEntity<Map<String, Object>> getStrategyRegistrationForm() {
-        //TODO) 관리자와 트레이더만 전략 생성할 수 있다.
 
         //서비스 메서드를 호출하여 StrategyRegistrationDto 생성
         StrategyRegistrationDto strategyRegistrationDto = strategyService.getStrategyRegistrationForm();
@@ -66,18 +69,14 @@ public class StrategyController {
     }
 
     // 2. 전략 생성(POST)
+    // 관리자와 트레이더만 전략을 생성할 수 있다.
     @Operation(summary = "전략 생성")
     @PostMapping(produces="application/json")
     public ResponseEntity<Map> createStrategy(@Valid @RequestBody StrategyPayloadDto strategyPayloadDto,
                                               @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
 
-        //TODO) 관리자와 트레이더만 생성할 수 있다.
         //Authentication에서 JWT토큰을 가져와 회원id를 가져옴
         String memberId = userDetails.getMemberId();
-        //회원이 존재하는지 판별
-        if(!memberRepository.existsById(memberId)){
-            throw new MemberNotFoundException("회원 정보가 존재하지 않습니다.");
-        }
 
         //데이터 저장
         Map<String, Long> responseData = strategyService.register(strategyPayloadDto, memberId);
@@ -104,11 +103,6 @@ public class StrategyController {
     @Operation(summary = "필터 조건으로 전략 목록 조회 - 전략 랭킹",
             description = "투자주기와 투자자산 분류로 전략을 필터링하여 조회합니다. 페이징을 지원합니다. " +
                     "각 전략에 대해 누적 손익률, 최근 1년 손익률, 최대 자본 인하율(MDD)을 포함한 상세 정보를 제공합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "전략 목록 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 입력 값"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
     public ResponseEntity<Map<String, Object>> getStrategies(
             @RequestParam(required = false) @Positive(message = "tradingCycleId는 양수여야 합니다.") Integer tradingCycleId,
             @RequestParam(required = false) @Positive(message = "investmentAssetClassesId는 양수여야 합니다.") Integer investmentAssetClassesId,
@@ -145,12 +139,45 @@ public class StrategyController {
         return ResponseEntity.status(HttpStatus.OK).body(responseMap);
     }
 
-    // 4. 전략 상세
-    //TODO) isPosted=N인 경우 관리자와 작성트레이더만 볼 수 있다.
+    // 4. 전략 상세 - 전략 기본정보
     @Operation(summary = "전략 상세")
     @GetMapping(value = "/{id}", produces = "application/json")
-    public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long id, @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
-        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(id, userDetails);
+    public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long strategyId,
+                                               @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
+        //팔로워 조회용
+        String memberId = userDetails.getMemberId();
+
+        //전략 기본정보 데이터를 가져온다.
+        StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(strategyId, memberId);
+
+        //isPosted=N인 경우 관리자와 작성트레이더만 볼 수 있다.
+        if(strategyResponseDto.getIsPosted().equals("N")){
+            //비로그인 상태인 경우
+            if (userDetails == null) {
+                throw new AccessDeniedException("조회 권한이 없습니다.");
+            }
+
+            //관리자인 경우 검증없이 if문 종료
+            Boolean isAdmin = userDetails.getAuthorities().stream()
+                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+
+            if(isAdmin) {
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("data", strategyResponseDto);
+                return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+            }
+
+            //트레이더면 작성자 검증
+            Boolean isTrader = userDetails.getAuthorities().stream()
+                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
+
+            if(!isTrader)
+                throw new AccessDeniedException("비공개 전략은 작성자와 관리자만 조회할 수 있습니다.");
+
+            if(!userDetails.getMemberId().equals(strategyResponseDto.getMemberId()))
+                throw new AccessDeniedException("전략 조회 권한이 없습니다.");
+        }
+
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("data", strategyResponseDto);
 
@@ -158,20 +185,18 @@ public class StrategyController {
     }
 
     // 5. 전략 삭제
+    // 관리자와 작성 트레이더만 삭제할 수 있다.
     @Operation(summary = "전략 삭제")
     @DeleteMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> deleteStrategy(@PathVariable("id") Long strategyId,
                                               @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
-        //TODO) 관리자와 작성 트레이더만 삭제할 수 있다.
-        //Authentication에서 JWT토큰을 가져와 회원id를 가져옴
-        System.out.println("userDetails = " + userDetails);
-        String memberId = userDetails.getMemberId();
-        //회원이 존재하는지 판별
-        if(!memberRepository.existsById(memberId)){
-            throw new MemberNotFoundException("회원 정보가 존재하지 않습니다.");
-        }
 
-        strategyService.deleteStrategy(strategyId, memberId);
+        //접속자 정보
+        String memberId = userDetails.getMemberId();
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
+
+        strategyService.deleteStrategy(strategyId, memberId, isTrader);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("msg", "DELETE_SUCCESS");
 
@@ -179,30 +204,35 @@ public class StrategyController {
     }
 
     //6. 전략 수정 페이지(GET)
-    //TODO) 관리자와 작성 트레이더만 수정할 수 있다.
+    // 관리자와 작성 트레이더만 수정할 수 있다.
     @Operation(summary = "전략 수정페이지에 필요한 정보 반환")
     @GetMapping(value = "/{id}/update-form", produces = "application/json")
-    public ResponseEntity<Map> updateStrategyForm(@PathVariable("id") Long id) throws Exception{
-        Map<String, Object> dataMap = strategyService.getStrategyUpdateForm(id);
+    public ResponseEntity<Map> updateStrategyForm(@PathVariable("id") Long strategyId,
+                                                  @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
+
+        //접속자 정보
+        String memberId = userDetails.getMemberId();
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
+
+        Map<String, Object> dataMap = strategyService.getStrategyUpdateForm(strategyId, memberId, isTrader);
 
         return ResponseEntity.status(HttpStatus.OK).body(dataMap);
     }
 
     //7. 전략 수정(PUT)
+    // 관리자와 작성 트레이더만 수정할 수 있다.
     @Operation(summary = "전략 수정")
     @PutMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> updateStrategy(@PathVariable("id") Long strategyId, @RequestBody StrategyPayloadDto strategyPayloadDto,
                                               @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
 
-        //TODO) 관리자와 작성 트레이더만 수정할 수 있다.
-        //Authentication에서 JWT토큰을 가져와 회원id를 가져옴
+        //접속자 정보
         String memberId = userDetails.getMemberId();
-        //회원이 존재하는지 판별
-        if(!memberRepository.existsById(memberId)){
-            throw new MemberNotFoundException("회원 정보가 존재하지 않습니다.");
-        }
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
 
-        Map<String, Long> dataMap = strategyService.updateStrategy(memberId, strategyId, strategyPayloadDto);
+        Map<String, Long> dataMap = strategyService.updateStrategy(strategyId, memberId, isTrader, strategyPayloadDto);
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "UPDATE_SUCCESS");
@@ -211,19 +241,17 @@ public class StrategyController {
     }
 
     //8. 전략 승인 요청(POST)
+    // 관리자와 작성 트레이더만 요청할 수 있다.
     @Operation(summary = "전략 승인 요청")
     @PostMapping(value = "/{id}/approval-request", produces = "application/json")
-    public ResponseEntity<Map> requestStrategyApproval(@PathVariable("id") Long id,
+    public ResponseEntity<Map> requestStrategyApproval(@PathVariable("id") Long strategyId,
                                                        @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
-        //TODO) 관리자와 작성 트레이더만 요청할 수 있다.
-        //Authentication에서 JWT토큰을 가져와 회원id를 가져옴
+        //접속자 정보
         String memberId = userDetails.getMemberId();
-        //회원이 존재하는지 판별
-        if(!memberRepository.existsById(memberId)){
-            throw new MemberNotFoundException("회원 정보가 존재하지 않습니다.");
-        }
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
 
-        Map<String, Long> dataMap = strategyService.approvalRequest(id, memberId);
+        Map<String, Long> dataMap = strategyService.approvalRequest(strategyId, memberId, isTrader);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "CREATE_SUCCESS");
         responseMap.put("data", dataMap);
@@ -231,30 +259,33 @@ public class StrategyController {
     }
 
     //8-1. 전략 승인 요청 거절 정보(GET)
+    // 해당 전략 작성자와 관리자만 볼 수 있다.
     @Operation(summary = "해당 전략의 거절 정보를 반환")
     @GetMapping(value = "/{id}/rejection-info", produces = "application/json")
-    public ResponseEntity<Map> rejectionInfo(@PathVariable("id") Long strategyId) throws Exception{
-        //TODO) 해당 전략 작성자와 관리자만 볼 수 있다.
+    public ResponseEntity<Map> rejectionInfo(@PathVariable("id") Long strategyId,
+                                             @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
+        //접속자 정보
+        String memberId = userDetails.getMemberId();
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
 
-        Map<String, Object> dataMap = strategyService.findRequestByStrategyId(strategyId);
+        Map<String, Object> dataMap = strategyService.findRejectionByStrategyId(strategyId, memberId, isTrader);
         return ResponseEntity.status(HttpStatus.OK).body(dataMap);
     }
 
     //9. 전략 운용 종료(PATCH)
+    //관리자와 작성 트레이더만 운용종료할 수 있다.
     @Operation(summary = "전략 운용 종료")
     @PatchMapping(value="/{id}/termination", produces = "application/json")
-    public ResponseEntity<Map> terminateStrategy(@PathVariable("id") Long id,
+    public ResponseEntity<Map> terminateStrategy(@PathVariable("id") Long strategyId,
                                                  @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
 
-        //TODO) 관리자와 작성 트레이더만 운용종료할 수 있다.
-        //Authentication에서 JWT토큰을 가져와 회원id를 가져옴
+        //접속자 정보
         String memberId = userDetails.getMemberId();
-        //회원이 존재하는지 판별
-        if(!memberRepository.existsById(memberId)){
-            throw new MemberNotFoundException("회원 정보가 존재하지 않습니다.");
-        }
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
 
-        Map<String, Long> dataMap = strategyService.terminateStrategy(id, memberId);
+        Map<String, Long> dataMap = strategyService.terminateStrategy(strategyId, memberId, isTrader);
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("msg", "TERMINATE_SUCCESS");
         responseMap.put("data", dataMap);
@@ -266,7 +297,21 @@ public class StrategyController {
     @PostMapping(value = "/{id}/daily-data", produces = "application/json")
     public ResponseEntity<Map<String, Object>> registerManualDailyData(
             @PathVariable("id") Long strategyId,
-            @RequestBody @Valid DailyDataPayloadDto payload) {
+            @RequestBody @Valid DailyDataPayloadDto payload,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        //접속자 정보
+        String memberId = userDetails.getMemberId();
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
+
+        StrategyEntity strategyEntity = strategyRepository.findById(strategyId).orElseThrow(
+                () -> new NoSuchElementException("Strategy not found"));
+
+        // 트레이더면 작성자 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(memberId)) {
+            throw new AccessDeniedException("수기 데이터 등록 권한이 없습니다.");
+        }
 
         // 1. 데이터 유효성 검사
         // 수기 데이터가 비어있는지 확인
@@ -317,10 +362,16 @@ public class StrategyController {
     public ResponseEntity<Map<String, String>> updateDailyData(
             @PathVariable Long strategyId,
             @PathVariable Long dailyDataId,
-            @RequestBody DailyStatisticsReqDto reqDto) {
+            @RequestBody DailyStatisticsReqDto reqDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        //접속자 정보
+        String memberId = userDetails.getMemberId();
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
 
         // 서비스 호출하여 수정 로직 수행
-        dailyStatisticsService.updateDailyData(strategyId, dailyDataId, reqDto);
+        dailyStatisticsService.updateDailyData(strategyId, dailyDataId, memberId, isTrader, reqDto);
 
         // 성공 응답
         Map<String, String> response = Map.of("msg", "UPDATE_SUCCESS");
@@ -343,13 +394,19 @@ public class StrategyController {
     @PostMapping("/{strategyId}/daily-analyses/delete")
     public ResponseEntity<?> deleteDailyAnalyses(
             @PathVariable Long strategyId,
-            @RequestBody DeleteDailyStatisticsRequestDto requestDto
-    ) {
+            @RequestBody DeleteDailyStatisticsRequestDto requestDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails)
+    {
+        //접속자 정보
+        String memberId = userDetails.getMemberId();
+        Boolean isTrader = userDetails.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
+
         // 요청 데이터에서 ID 리스트 추출
         List<Long> dailyStatisticsIds = requestDto.getDailyStatisticsId();
 
         // 서비스 호출: 삭제 및 재계산
-        dailyStatisticsService.deleteAndRecalculate(strategyId, dailyStatisticsIds);
+        dailyStatisticsService.deleteAndRecalculate(strategyId, memberId, isTrader, dailyStatisticsIds);
 
         // 성공 응답 반환
         return ResponseEntity.ok(Map.of(

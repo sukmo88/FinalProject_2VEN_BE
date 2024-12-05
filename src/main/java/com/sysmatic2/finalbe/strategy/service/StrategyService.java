@@ -6,15 +6,10 @@ import com.sysmatic2.finalbe.admin.entity.TradingCycleEntity;
 import com.sysmatic2.finalbe.admin.repository.StrategyApprovalRequestsRepository;
 import com.sysmatic2.finalbe.admin.repository.TradingCycleRepository;
 import com.sysmatic2.finalbe.admin.service.StrategyApprovalRequestsService;
-import com.sysmatic2.finalbe.attachment.repository.FileMetadataRepository;
 import com.sysmatic2.finalbe.attachment.service.FileService;
-import com.sysmatic2.finalbe.attachment.service.ProposalService;
-import com.sysmatic2.finalbe.cs.repository.ConsultationRepository;
 import com.sysmatic2.finalbe.cs.service.ConsultationService;
 import com.sysmatic2.finalbe.exception.*;
-import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
-import com.sysmatic2.finalbe.member.repository.FollowingStrategyRepository;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.member.service.FollowingStrategyService;
 import com.sysmatic2.finalbe.strategy.dto.*;
@@ -28,7 +23,7 @@ import com.sysmatic2.finalbe.util.ParseCsvToList;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -498,9 +493,8 @@ public class StrategyService {
         // 1. 페이지 요청 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        //TODO)isApproved = Y 설정
         //2. 키워드 검색으로 전략 페이지 가져오기 - isPosted = Y, isApproved = Y
-        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "N", pageable);
+        Page<StrategyEntity> findStrategyPage = strategyRepo.searchByKeyword(keyword, "Y", "Y", pageable);
 
         //전략 페이지로 일간 데이터들 중 제일 최신값 가져오기
         // 3. 전략 ID 리스트 생성
@@ -573,7 +567,7 @@ public class StrategyService {
      *
      */
     @Transactional
-    public StrategyResponseDto getStrategyDetails(Long id, CustomUserDetails userDetails) {
+    public StrategyResponseDto getStrategyDetails(Long id, String memberId) {
         //id값으로 해당 전략 조회
         StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(() ->
                 new NoSuchElementException());
@@ -637,8 +631,8 @@ public class StrategyService {
                         }
                 );
 
-        if(userDetails == null) responseDto.setIsFollowed(false);
-        else responseDto.setIsFollowed(followingStrategyService.isFollowing(id, userDetails.getMemberId()));
+        if(memberId == null || memberId.isEmpty()) responseDto.setIsFollowed(false);
+        else responseDto.setIsFollowed(followingStrategyService.isFollowing(id, memberId));
 
         return responseDto;
     }
@@ -652,19 +646,20 @@ public class StrategyService {
      * 전략 이력 등록시작 -> 전략 관계 테이블 이력 등록 -> 전략 관계 테이블 삭제 -> 전략 삭제 -> 전략 이력 등록끝
      */
     @Transactional
-    public void deleteStrategy(Long id, String adminId) {
-        //작성자 있는지 확인
-        MemberEntity memberEntity = memberRepository.findById(adminId)
-                .orElseThrow(() -> new MemberNotFoundException("해당 회원이 존재하지 않습니다."));
-
+    public void deleteStrategy(Long id, String memberId, Boolean isTrader) {
         //1. 전략 이력 등록 시작
         //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
 
-        //1. 전략의 id를 검색해서 유무 판별
+        //2. 전략의 id를 검색해서 유무 판별
         StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(
                 () -> new NoSuchElementException());
+
+        //3. 트레이더면 작성자 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(memberId)) {
+            throw new AccessDeniedException("전략을 삭제할 권한이 없습니다.");
+        }
 
         //TODO) 메서드로 빼기
         //2. 해당 전략의 정보를 전략 이력엔티티에 담는다.
@@ -680,7 +675,7 @@ public class StrategyService {
         strategyHistoryEntity.setIsApproved(strategyEntity.getIsApproved());
         strategyHistoryEntity.setWritedAt(strategyEntity.getWritedAt());
         strategyHistoryEntity.setStrategyOverview(strategyEntity.getStrategyOverview());
-        strategyHistoryEntity.setUpdaterId(adminId);
+        strategyHistoryEntity.setUpdaterId(memberId);
         strategyHistoryEntity.setUpdatedAt(LocalDateTime.now());
         strategyHistoryEntity.setExitDate(strategyEntity.getExitDate());
 
@@ -731,14 +726,19 @@ public class StrategyService {
      *
      */
     @Transactional
-    public Map<String, Object> getStrategyUpdateForm(Long id){
+    public Map<String, Object> getStrategyUpdateForm(Long strategyId, String memberId, Boolean isTrader){
         //전략 정보 가져오기
-        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(() ->
+        StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(() ->
                 new NoSuchElementException());
 
         //운용상태 판별
         if (strategyEntity.getStrategyStatusCode().equals("STRATEGY_OPERATION_TERMINATED")){
             throw new StrategyTerminatedException("운용종료된 전략은 수정할 수 없습니다.");
+        }
+
+        //트레이더면 작성자 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(memberId)) {
+            throw new AccessDeniedException("전략을 수정할 권한이 없습니다.");
         }
 
         //TradingType, InvestmentAssetClass 및 TradingCycle 데이터를 각각 DTO 리스트로 변환
@@ -824,26 +824,27 @@ public class StrategyService {
      * 생성자는 안바뀌고 수정자는 현재 수정자로 바뀐다.
      */
     @Transactional
-    public Map<String, Long> updateStrategy(String updaterId, Long strategyId, StrategyPayloadDto strategyPayloadDto) {
-        //수정자 정보 확인
-        MemberEntity memberEntity = memberRepository.findById(updaterId)
-                .orElseThrow(() -> new MemberNotFoundException("존재하지 않는 회원입니다."));
-
-        //1. 전략 수정 이력 등록 시작
+    public Map<String, Long> updateStrategy(Long strategyId, String updaterId, Boolean isTrader, StrategyPayloadDto strategyPayloadDto) {
+        //1) 전략 수정 이력 등록 시작
         //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
 
-        //2. 전략의 id를 검색해서 유무 판별
+        //2) 전략의 id를 검색해서 유무 판별
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
 
-        //2-1. 운용 종료된 전략은 수정불가
+        //2-1) 운용 종료된 전략은 수정불가
         if (strategyEntity.getStrategyStatusCode().equals("STRATEGY_OPERATION_TERMINATED")){
             throw new StrategyTerminatedException("운용종료된 전략은 수정할 수 없습니다.");
         }
 
-        //3. payload의 id값으로 필요한 객체들을 찾아온다.
+        //3) 트레이더면 작성자 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(updaterId)) {
+            throw new AccessDeniedException("전략을 수정할 권한이 없습니다.");
+        }
+
+        //4) payload의 id값으로 필요한 객체들을 찾아온다.
         //페이로드에서 가져온 매매유형 id로 해당 매매유형 엔티티가져오기
         TradingTypeEntity tradingTypeEntity = tradingTypeRepository.findById(strategyPayloadDto.getTradingTypeId())
                 .orElseThrow(() -> new TradingTypeNotFoundException(strategyPayloadDto.getTradingTypeId()));
@@ -851,7 +852,7 @@ public class StrategyService {
         TradingCycleEntity tradingCycleEntity = tradingCycleRepository.findById(strategyPayloadDto.getTradingCycleId())
                 .orElseThrow(() -> new TradingCycleNotFoundException(strategyPayloadDto.getTradingCycleId()));
 
-        //4. 전략테이블의 데이터를 수정한다.(전략엔티티에 payload를 넣고 save)
+        //5) 전략테이블의 데이터를 수정한다.(전략엔티티에 payload를 넣고 save)
         strategyEntity.setStrategyTitle(strategyPayloadDto.getStrategyTitle());
         strategyEntity.setTradingTypeEntity(tradingTypeEntity);
         strategyEntity.setTradingCycleEntity(tradingCycleEntity);
@@ -861,10 +862,10 @@ public class StrategyService {
         strategyEntity.setUpdaterId(updaterId);
         strategyEntity.setUpdatedAt(LocalDateTime.now());
 
-        //변경된 값으로 전략 저장
+        //5-1) 변경된 값으로 전략 저장
         strategyRepo.save(strategyEntity);
 
-        //5. 전략 - IAC 테이블 이력등록, 삭제
+        //6) 전략 - IAC 테이블 이력등록, 삭제
         //관계테이블 엔티티 리스트 가져오기
         List<StrategyIACEntity> relationList = strategyEntity.getStrategyIACEntities();
 
@@ -884,10 +885,10 @@ public class StrategyService {
         }
         strategyIACHistoryRepository.saveAll(relationHistoryEntities);
 
-        //6. 관계테이블 clear()
+        //7) 관계테이블 clear()
         relationList.clear();
 
-        //7. 변경된 투자자산 분류 관계테이블 데이터 입력
+        //8) 변경된 투자자산 분류 관계테이블 데이터 입력
         //페이로드에서 투자자산 분류 id 가져오기
         List<Integer> newIacIdList = strategyPayloadDto.getInvestmentAssetClassesIdList();
         //해당되는 투자자산 분류 엔티티들 가져오기
@@ -927,7 +928,7 @@ public class StrategyService {
 
         strategyIACRepository.saveAll(strategyIACEntityList);
 
-        //8. 투자자산 분류 관계테이블 생성 이력 추가
+        //9) 투자자산 분류 관계테이블 생성 이력 추가
         //관계테이블 엔티티 리스트를 관계이력테이블에 저장한다.
         List<StrategyIACHistoryEntity> newRelationHistoryEntities = strategyIACEntityList.stream().map(newRelation -> {
             StrategyIACHistoryEntity newRelationHistoryEntity = new StrategyIACHistoryEntity();
@@ -943,7 +944,7 @@ public class StrategyService {
 
         strategyIACHistoryRepository.saveAll(newRelationHistoryEntities);
 
-        //9. 관계 이력 테이블에 데이터 추가
+        //10) 관계 이력 테이블에 데이터 추가
         strategyHistoryEntity.setStrategyId(strategyEntity.getStrategyId());
         strategyHistoryEntity.setTradingTypeId(strategyEntity.getTradingTypeEntity().getTradingTypeId());
         strategyHistoryEntity.setTradingCycle(strategyEntity.getTradingCycleEntity().getTradingCycleId());
@@ -963,7 +964,7 @@ public class StrategyService {
         strategyHistoryEntity.setChangeEndDate(LocalDateTime.now());
         strategyHistoryRepo.save(strategyHistoryEntity);
 
-        // 10. 제안서 수정 (sbwoo)
+        //11) 제안서 수정 (sbwoo)
         // strategyPayloadDto.ProposalLink(이하 link)이 null이 아니고, 링크의 변화가 있다면 제안서 등록
         if (strategyPayloadDto.getStrategyProposalLink() != null) {
 
@@ -996,7 +997,7 @@ public class StrategyService {
             // 기존 strategyProposal도 없으면 아무일 없음
         }
 
-        // 11. 응답
+        //12) 응답
         Map<String, Long> responseMap = new HashMap<>();
         responseMap.put("Strategy_Id", strategyEntity.getStrategyId());
         return responseMap;
@@ -1011,10 +1012,7 @@ public class StrategyService {
      * 2) 전략 내역에 운용 종료 로그를 기록한다.
      *
      */
-    public Map<String, Long> terminateStrategy(Long strategyId, String adminId) {
-        MemberEntity admin = memberRepository.findById(adminId)
-                .orElseThrow(() -> new NoSuchElementException("해당 id의 관리자가 존재하지 않습니다."));
-
+    public Map<String, Long> terminateStrategy(Long strategyId, String memberId, Boolean isTrader) {
         //1.전략 수정
         //id 값으로 해당 전략엔티티를 가져온다.
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(() ->
@@ -1025,6 +1023,11 @@ public class StrategyService {
             throw new StrategyAlreadyTerminatedException("전략이 이미 운용종료된 상태입니다.");
         }
 
+        //트레이더면 작성자 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(memberId)) {
+            throw new AccessDeniedException("운용종료할 권한이 없습니다.");
+        }
+
         //수정시작일시 설정
         LocalDateTime changeStartDatetime = LocalDateTime.now();
 
@@ -1032,7 +1035,7 @@ public class StrategyService {
         strategyEntity.setStrategyStatusCode("STRATEGY_OPERATION_TERMINATED");
         strategyEntity.setExitDate(LocalDateTime.now());
         //수정자, 수정일시 설정
-        strategyEntity.setUpdaterId(admin.getMemberId());
+        strategyEntity.setUpdaterId(memberId);
         strategyEntity.setUpdatedAt(LocalDateTime.now());
         //저장
         strategyRepo.save(strategyEntity);
@@ -1056,15 +1059,19 @@ public class StrategyService {
      * 이후 전략 승인 요청 목록에 엔티티 생성해서 등록, 전략 엔티티의 is_Approved = P로 변경
      */
     @Transactional
-    public Map<String, Long> approvalRequest(Long strategyId, String applicantId){
-        //승인 요청자 정보 가져오기
-        MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow(
-                () -> new NoSuchElementException("해당 트레이더를 찾을 수 없습니다.")
-        );
-
+    public Map<String, Long> approvalRequest(Long strategyId, String applicantId, Boolean isTrader){
         //승인 요청할 전략 정보 가져오기
         StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException("해당 전략을 찾을 수 없습니다."));
+
+        // 트레이더면 작성자 판별
+        if(isTrader && !strategyEntity.getWriterId().equals(applicantId)) {
+            throw new AccessDeniedException("승인 요청할 권한이 없습니다.");
+        }
+
+        MemberEntity applicantEntity = memberRepository.findById(applicantId).orElseThrow(
+                () -> new MemberNotFoundException("해당 회원정보가 존재하지 않습니다.")
+        );
 
         //전략 등록일을 가져와서 이후 일일 거래 데이터 3개 이상이면 진행
         //3개 미만이면 예외를 던진다.
@@ -1116,16 +1123,21 @@ public class StrategyService {
     }
 
     /**
-     * 7-1. 해당 전략의 승인 요청 데이터를 가져오는 메서드
+     * 7-1. 해당 전략의 승인 요청 거절 데이터를 가져오는 메서드
      *
      * @Param strategyId 해당 전략 id
      * 전략 승인 요청 목록에서 해당 전략 id의 데이터를 가져와 보여줌.(is_Approved = N 인 것만)
      */
     @Transactional
-    public Map<String, Object> findRequestByStrategyId(Long strategyId){
+    public Map<String, Object> findRejectionByStrategyId(Long strategyId, String memberId, Boolean isTrader){
         //전략 id로 해당되는 요청 가져오기 - isApproved = N인것중 제일 최신것만 가져옴
         StrategyApprovalRequestsEntity approvalRequest = strategyApprovalRequestsRepository.findLatestRejectedRequestByStrategyId(strategyId)
                 .orElseThrow(() -> new NoSuchElementException());
+
+        // 트레이더면 작성자 판별
+        if(isTrader && !approvalRequest.getApplicant().getMemberId().equals(memberId)) {
+            throw new AccessDeniedException("조회 권한이 없습니다.");
+        }
 
         RejectionRequestResponseDto rejectionDto = new RejectionRequestResponseDto();
         rejectionDto.setStrategyApprovalRequestId(approvalRequest.getStrategyApprovalRequestsId());
@@ -1231,7 +1243,9 @@ public class StrategyService {
     @Transactional(readOnly = true)
     public Map<String, Object> getSmScoreTop5Strategies() {
         Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "smScore"));
-        Page<StrategyEntity> strategyPage = strategyRepo.findAll(pageable);
+
+        // 조건: isApproved = "Y" AND isPosted = "Y"
+        Page<StrategyEntity> strategyPage = strategyRepo.findByIsApprovedAndIsPosted("Y", "Y", pageable);
 
         List<SmScoreRankingResponseDto> dtoList = strategyPage.stream().map(strategy -> {
             // MemberEntity에서 프로필 이미지 정보 가져오기

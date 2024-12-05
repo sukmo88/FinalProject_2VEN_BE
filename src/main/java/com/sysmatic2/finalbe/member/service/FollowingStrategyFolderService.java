@@ -92,7 +92,7 @@ public class FollowingStrategyFolderService {
     public FollowingStrategyFolderDto updateFolderName(Long folderId, FollowingStrategyFolderDto folderDto, CustomUserDetails customUserDetails) {
 
         MemberEntity member = customUserDetails.getMemberEntity();
-        FollowingStrategyFolderEntity folderEntity = folderRepository.findByfolderIdAndMember(folderId, member)
+        FollowingStrategyFolderEntity folderEntity = folderRepository.findByFolderIdAndMember(folderId, member)
                 .orElseThrow(() -> new FolderNotFoundException("해당 폴더를 찾을 수 없습니다."));
 
         if("Y".equals(folderEntity.getIsDefaultFolder())){
@@ -119,45 +119,4 @@ public class FollowingStrategyFolderService {
         folderRepository.deleteAllByMember(member);
     }
 
-    /*
-    public List<FollowingStrategyFolderDto> getStrategiesInFolder(Long folderId) {
-        FollowingStrategyFolder folder = folderRepository.findById(folderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Folder not found with id " + folderId));
-        return folder.getStrategies().stream()
-                .map(strategy -> new StrategyDto(strategy.getId(), strategy.getName(), strategy.getDescription(), strategy.getCreatedAt()))
-                .collect(Collectors.toList());
-    }
-    */
-
-    //투자자가 저장한 모든 폴더 조회(필요없겠지)
-    /*
-    public List<FollowingStrategyFolderDto> getAllFolders() {
-    }
-     */
-    /*
-
-
-
-
-
-
-    //
-    public void addStrategyToFolder(Long folderId, Long strategyId) {
-    }
-
-    public void removeStrategyFromFolder(Long folderId, Long strategyId) {
-        FollowingStrategyFolder folder = folderRepository.findById(folderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Folder not found with id " + folderId));
-        Strategy strategy = strategyRepository.findById(strategyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Strategy not found with id " + strategyId));
-        folder.getStrategies().remove(strategy);
-        folderRepository.save(folder);
-    }
-
-
-    public FollowingStrategyFolderDto getFolder(Long folderId) {
-
-    }
-
-    */
 }
