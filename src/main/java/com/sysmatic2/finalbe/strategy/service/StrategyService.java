@@ -403,6 +403,8 @@ public class StrategyService {
 
     /**
      * 2-3. 작성자 ID로 필터링한 전략 목록을 반환(페이지네이션) - 나의 전략
+     * 관리자, 트레이더 본인 - 비공개, 미승인 모두 보이게
+     * 이외(일반 유저, 다른 트레이더) - 비공개, 미승인 안보이게
      *
      * @param traderId 작성자(트레이더) ID
      * @param page     현재 페이지 번호
@@ -410,20 +412,30 @@ public class StrategyService {
      * @return 작성자가 등록한 전략 목록과 페이징 정보를 포함한 Map 객체
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> getStrategyListbyTraderId(String traderId, Integer page, Integer pageSize) {
-        // 1. 페이지 요청 객체 생성
+    public Map<String, Object> getStrategyListbyTraderId(String traderId, String memberId, Boolean isAdmin,
+                                                         Integer page, Integer pageSize) {
+        //1) 페이지 요청 객체 생성
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        // 2. 트레이더 ID로 전략 페이지 가져오기
-        Page<StrategyEntity> traderStrategyPage = strategyRepo.findByWriterId(traderId, pageable);
+        //2) StrategyEntity 페이지 리스트 객체 생성
+        Page<StrategyEntity> traderStrategyPage;
+
+        //3) 현재 접속자 권한 판별
+        //관리자 or 트레이더 본인
+        if(isAdmin || traderId.equals(memberId)){
+            //트레이더 ID로 전략 페이지 가져오기
+            traderStrategyPage = strategyRepo.findByWriterId(traderId, pageable);
+        } else {
+            traderStrategyPage = strategyRepo.findByWriterIdAndIsApprovedAndIsPosted(traderId, "Y", "Y", pageable);
+        }
 
         //전략 페이지로 일간 데이터들 중 제일 최신값으로 가져오기
-        // 3. 전략 ID 리스트 생성
+        //4) 전략 ID 리스트 생성
         List<Long> strategyIds = traderStrategyPage.stream()
                 .map(StrategyEntity::getStrategyId)
                 .collect(Collectors.toList());
 
-        // 4. 각 전략의 최신 일간 통계 데이터 가져오기
+        //5) 각 전략의 최신 일간 통계 데이터 가져오기
         List<DailyStatisticsEntity> latestStatisticsList = dailyStatisticsRepository.findLatestStatisticsByStrategyIds(strategyIds);
         Map<Long, DailyStatisticsEntity> latestStatisticsMap = latestStatisticsList.stream()
                 .collect(Collectors.toMap(
@@ -431,14 +443,14 @@ public class StrategyService {
                         stat -> stat
                 ));
 
-        // 5. 누적 수익률 데이터 가져오기 (날짜 오름차순)
+        //6) 누적 수익률 데이터 가져오기 (날짜 오름차순)
         Map<Long, List<BigDecimal>> cumulativeProfitLossRateMap = strategyIds.stream()
                 .collect(Collectors.toMap(
                         strategyId -> strategyId, // 전략 ID를 키로 사용
                         strategyId -> dailyStatisticsRepository.findCumulativeProfitLossRateByStrategyIdOrderByDate(strategyId) // 누적 수익률 리스트
                 ));
 
-        // 6. DTO 생성
+        //7) DTO 생성
         List<AdvancedSearchResultDto> dtoList = traderStrategyPage.stream()
                 .map(strategyEntity -> {
                     AdvancedSearchResultDto dto = new AdvancedSearchResultDto(
@@ -473,10 +485,10 @@ public class StrategyService {
                 }).collect(Collectors.toList());
 
 
-        // 7. DTO 리스트를 페이지 객체로 변환
+        //8) DTO 리스트를 페이지 객체로 변환
         Page<AdvancedSearchResultDto> dtoPage = new PageImpl<>(dtoList, pageable, traderStrategyPage.getTotalElements());
 
-        // 8. 페이지 응답 생성 및 반환
+        //9) 페이지 응답 생성 및 반환
         return createPageResponse(dtoPage);
     }
 
@@ -646,14 +658,14 @@ public class StrategyService {
      * 전략 이력 등록시작 -> 전략 관계 테이블 이력 등록 -> 전략 관계 테이블 삭제 -> 전략 삭제 -> 전략 이력 등록끝
      */
     @Transactional
-    public void deleteStrategy(Long id, String memberId, Boolean isTrader) {
+    public void deleteStrategy(Long strategyId, String memberId, Boolean isTrader) {
         //1. 전략 이력 등록 시작
         //전략 이력 엔티티 생성
         StrategyHistoryEntity strategyHistoryEntity = new StrategyHistoryEntity();
         strategyHistoryEntity.setChangeStartDate(LocalDateTime.now());
 
         //2. 전략의 id를 검색해서 유무 판별
-        StrategyEntity strategyEntity = strategyRepo.findById(id).orElseThrow(
+        StrategyEntity strategyEntity = strategyRepo.findById(strategyId).orElseThrow(
                 () -> new NoSuchElementException());
 
         //3. 트레이더면 작성자 판별
@@ -1165,7 +1177,7 @@ public class StrategyService {
      * @throws IllegalArgumentException 주어진 전략 ID가 존재하지 않을 경우 예외 발생
      */
     @Transactional
-    public void updateFollowersCount(Long strategyId, boolean increment) {
+    public void updateFollowersCount(Long strategyId, Boolean increment) {
         // 1. 전략 엔티티를 ID로 조회
         StrategyEntity strategy = strategyRepo.findById(strategyId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 ID를 가진 전략이 존재하지 않습니다: " + strategyId));

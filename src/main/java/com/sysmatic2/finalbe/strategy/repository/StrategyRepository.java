@@ -33,7 +33,10 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     List<StrategyEntity> findByOrderByWritedAtDesc();
 
     // 전략 작성자 id로 전략 목록 조회(페이지네이션)
+    // 트레이더 본인, 관리자
     Page<StrategyEntity> findByWriterId(String writerId, Pageable pageable);
+    // 타인
+    Page<StrategyEntity> findByWriterIdAndIsApprovedAndIsPosted(String writerId, String isApproved, String isPosted, Pageable pageable);
 
     // 전략명 기준으로 전략 목록 조회(페이지네이션)
     @Query("SELECT s FROM StrategyEntity s " +
