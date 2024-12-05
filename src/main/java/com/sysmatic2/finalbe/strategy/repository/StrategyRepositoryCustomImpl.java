@@ -115,7 +115,6 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         QStrategyIACEntity strategyIACQ = QStrategyIACEntity.strategyIACEntity; //전략-투자자산분류 관계엔티티
         QDailyStatisticsEntity dailyStatisticsQ = QDailyStatisticsEntity.dailyStatisticsEntity; //일간데이터
 
-        System.out.println("searchOptions = " + searchOptions);
         //전략관련 필터 생성
         BooleanBuilder strategyBuilder = new BooleanBuilder();
         //일간데이터 관련 필터 생성
@@ -130,6 +129,11 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         // 3. 최소 운용 가능 금액 필터 - ex) 1000만원 ~ 2000만원
         if (searchOptions.getMinInvestmentAmount() != null) {
             strategyBuilder.and(strategyQ.minInvestmentAmount.eq(searchOptions.getMinInvestmentAmount()));
+        }
+
+        // 4. 키워드 검색 필터
+        if (searchOptions.getKeyword() != null && !searchOptions.getKeyword().isEmpty()) {
+            strategyBuilder.and(strategyQ.strategyTitle.containsIgnoreCase(searchOptions.getKeyword()));
         }
 
         // 4. 매매 유형 ID 필터 - 자동/반자동/수동(중첩가능)
@@ -312,6 +316,8 @@ public class StrategyRepositoryCustomImpl implements StrategyRepositoryCustom {
         if(strategyEntities == null && strategyEntities.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, 0);
         }
+
+
 
         return new PageImpl<>(strategyEntities, pageable, resultCnt);
     }
