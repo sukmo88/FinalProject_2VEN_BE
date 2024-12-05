@@ -7,6 +7,8 @@ import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.admin.entity.TradingTypeEntity;
 import com.sysmatic2.finalbe.admin.repository.TradingTypeRepository;
 import com.sysmatic2.finalbe.common.DtoEntityConversion;
+import com.sysmatic2.finalbe.strategy.entity.StrategyEntity;
+import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 
 import static com.sysmatic2.finalbe.util.CreatePageResponse.createPageResponse;
@@ -26,6 +29,7 @@ import static com.sysmatic2.finalbe.common.DtoEntityConversion.toEntity;
 @RequiredArgsConstructor
 public class TradingTypeService {
     private final TradingTypeRepository tradingTypeRepository;
+    private final StrategyRepository strategyRepository;
 
     @Transactional(readOnly = true)
     // 1. 매매유형 전체 목록을 가져오는 메서드
@@ -91,6 +95,15 @@ public class TradingTypeService {
         // id 값으로 TradingType 조회
         TradingTypeEntity tradingTypeEntity = tradingTypeRepository.findById(id)
                 .orElseThrow(() -> new TradingTypeNotFoundException(id));
+
+        // 2. 매매유형에 연결된 모든 전략 조회
+        List<StrategyEntity> strategies = strategyRepository.findByTradingType(id);
+
+        // 3. 조회된 전략의 매매유형을 NULL로 설정
+        for (StrategyEntity strategy : strategies) {
+            strategy.setTradingTypeEntity(null);
+            strategyRepository.save(strategy); // 외래 키 변경 사항 저장
+        }
 
         // 해당 매매유형 삭제
         tradingTypeRepository.delete(tradingTypeEntity);
