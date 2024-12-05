@@ -1,7 +1,9 @@
 package com.sysmatic2.finalbe.member.service;
 
 import com.sysmatic2.finalbe.exception.DuplicateFollowingStrategyException;
+import com.sysmatic2.finalbe.exception.FolderPermissionException;
 import com.sysmatic2.finalbe.exception.FollowingStrategyNotFoundException;
+import com.sysmatic2.finalbe.exception.StrategyNotFoundException;
 import com.sysmatic2.finalbe.member.dto.*;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyEntity;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
@@ -155,6 +157,17 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
                 .orElseThrow(() -> new IllegalArgumentException("해당 ID의 전략이 존재하지 않습니다."));
         FollowingStrategyFolderEntity followingStrategyFolderEntity = followingStrategyFolderRepository.findById(requestDto.getFolderId())
                 .orElseThrow(()-> new IllegalArgumentException("해당 ID의 폴더가 존재하지 않습니다."));
+        //폴더id에 대해서 사용자의 폴더인지 확인하는 로직 추가해야함
+        // 조회된 폴더가 해당 멤버 소유인지 확인
+        MemberEntity member = customUserDetails.getMemberEntity();
+        if (member == null) {
+            throw new IllegalStateException("회원 정보가 없습니다.");
+        }
+        if (!followingStrategyFolderEntity.getMember().getMemberId().equals(member.getMemberId())) {
+            //폴더등록 권한이 없다고 안내야해야함
+            throw new FolderPermissionException("해당 폴더 권한이 없습니다.");
+        }
+
         //이미 등록된 관심전략 체크하는 로직 추가 필요
         //선택한 종목이 해당 관심 전략에 이미 등록되어 있습니다.
         //폴더에 해당 전략id가 있는지 체크
@@ -163,10 +176,7 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
         if(folllowingStrategeyEntity != null){
                throw new DuplicateFollowingStrategyException("선택한 종목이 해당 관심 전략폴더에 이미 등록되어 있습니다.");
         }
-        MemberEntity member = customUserDetails.getMemberEntity();
-        if (member == null) {
-            throw new IllegalStateException("회원 정보가 없습니다.");
-        }
+
         boolean isFollowed = followingStrategyRepository.existsByStrategyAndMember(strategyEntity,member);
         if (isFollowed) {
             throw new IllegalArgumentException("이미 등록된 관심 전략입니다.");
@@ -191,51 +201,55 @@ public Map<String, Object> getStrategiesByFolder(List<Long> strategyIds, Integer
     }
 
     //관심 전략 삭제
-    @Transactional
-    public void deleteFollowingStrategy(FollowingStrategyRequestDto requestDto, CustomUserDetails customUserDetails){
-        //삭제할 관심전략 조회
-        Optional<FollowingStrategyEntity> followingStrategyEntityOptional = followingStrategyRepository.findById(requestDto.getFollowingStrategyId());
-
-        if(followingStrategyEntityOptional.isEmpty()){
-            throw new IllegalStateException("삭제할 관심전략이 존재하지 않습니다. 관심전략ID:" + requestDto.getFollowingStrategyId());
-        }
-        FollowingStrategyEntity followingStrategyEntity = followingStrategyEntityOptional.get();
-        StrategyEntity strategyEntity = followingStrategyEntity.getStrategy();
-        if(!followingStrategyEntity.getCreatedBy().equals(customUserDetails.getMemberId())){
-            throw new IllegalStateException("해당 관심전략을 삭제 권한이 없습니다. 관심전략ID:" + requestDto.getFollowingStrategyId());
-        }
-
-        int resultCnt = followingStrategyRepository.deleteByFollowingStrategyId(requestDto.getFollowingStrategyId());
-
-        if(resultCnt == 0){
-            throw new IllegalStateException("삭제할 전략 ID가 존재하지 않습니다. 관심전략ID:" + requestDto.getFollowingStrategyId());
-        }
-
-        //관심전략 삭제하면 전략의 follower_count 수 감소시켜줘야함
-        strategyEntity.decrementFollowersCount();
-        strategyRepository.save(strategyEntity);
-    }
+//  @Transactional
+//    public void deleteFollowingStrategy(FollowingStrategyRequestDto requestDto, CustomUserDetails customUserDetails){
+//        //삭제할 관심전략 조회
+//        Optional<FollowingStrategyEntity> followingStrategyEntityOptional = followingStrategyRepository.findById(requestDto.getFollowingStrategyId());
+//
+//        if(followingStrategyEntityOptional.isEmpty()){
+//            throw new IllegalStateException("삭제할 관심전략이 존재하지 않습니다. 관심전략ID:" + requestDto.getFollowingStrategyId());
+//        }
+//        FollowingStrategyEntity followingStrategyEntity = followingStrategyEntityOptional.get();
+//        StrategyEntity strategyEntity = followingStrategyEntity.getStrategy();
+//        if(!followingStrategyEntity.getCreatedBy().equals(customUserDetails.getMemberId())){
+//            throw new IllegalStateException("해당 관심전략을 삭제 권한이 없습니다. 관심전략ID:" + requestDto.getFollowingStrategyId());
+//        }
+//
+//        int resultCnt = followingStrategyRepository.deleteByFollowingStrategyId(requestDto.getFollowingStrategyId());
+//
+//        if(resultCnt == 0){
+//            throw new IllegalStateException("삭제할 전략 ID가 존재하지 않습니다. 관심전략ID:" + requestDto.getFollowingStrategyId());
+//        }
+//
+//        //관심전략 삭제하면 전략의 follower_count 수 감소시켜줘야함
+//        strategyEntity.decrementFollowersCount();
+//        strategyRepository.save(strategyEntity);
+//    }
 
     //관심 전략 삭제 (언팔로우 새로)
     @Transactional
     public void unFollowingStrategy(Long strategyId, CustomUserDetails customUserDetails) {
         MemberEntity member = customUserDetails.getMemberEntity();
+
+        // 전략 조회
         StrategyEntity strategyEntity = strategyRepository.findById(strategyId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 전략 ID입니다: " + strategyId));
+                .orElseThrow(() -> new StrategyNotFoundException("존재하지 않는 전략 ID입니다: " + strategyId));
 
-        if(!followingStrategyRepository.existsByStrategyAndMember(strategyEntity,member)){
-            throw new FollowingStrategyNotFoundException("등록된 관심 전략이 아닙니다.");
+        FollowingStrategyEntity followingStrategyEntity = followingStrategyRepository
+                .findByStrategyAndMember(strategyEntity, member);
+
+        if (followingStrategyEntity == null) {
+            throw new FollowingStrategyNotFoundException("등록된 관심 전략이 아닙니다. 전략 ID: " + strategyId);
         }
 
-        int resultCnt = followingStrategyRepository.deleteByStrategyAndMember(strategyEntity,member);
-
-        if (resultCnt == 0) {
-            throw new IllegalStateException("삭제할 전략 ID가 존재하지 않습니다. 관심전략ID:");
+        if (!followingStrategyEntity.getMember().getMemberId().equals(member.getMemberId())) {
+            throw new FolderPermissionException("해당 폴더 권한이 없습니다.");
         }
+        //관심 전략 삭제
+        followingStrategyRepository.deleteByStrategyAndMember(strategyEntity,member);
 
         //관심전략 삭제하면 전략의 follower_count 수 감소시켜줘야함
         strategyEntity.decrementFollowersCount();
-        strategyRepository.save(strategyEntity);
     }
 
 
