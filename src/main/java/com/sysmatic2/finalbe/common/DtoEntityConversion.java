@@ -201,7 +201,7 @@ public class DtoEntityConversion {
     /**
      * SignupDTO를 MemberEntity로 변환하는 메서드.
      *
-     * @param SignupDTO
+     * @param signupDTO, passwordEncoder
      * @return 변환된 MemberEntity
      */
     public static MemberEntity convertToMemberEntity(SignupDTO signupDTO, PasswordEncoder passwordEncoder) {
@@ -211,7 +211,7 @@ public class DtoEntityConversion {
 
         member.setMemberId(memberId);
         member.setMemberGradeCode("MEMBER_ROLE_" + signupDTO.getMemberType());
-        member.setMemberStatusCode("MEMBER_STATUS_ACTIVE");
+        member.setMemberStatusCode("ACTIVE");
         member.setEmail(signupDTO.getEmail());
         member.setPassword(passwordEncoder.encode(signupDTO.getPassword()));
         member.setNickname(signupDTO.getNickname());
