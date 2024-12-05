@@ -383,4 +383,22 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         ));
     }
+
+    // 403: 폴더 삭제 권한이 없을 때
+    @ExceptionHandler(FolderDeletePermissionException.class)
+    public ResponseEntity<Object> handleFolderDeletePermissionException(FolderDeletePermissionException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "error", "FOLDER_DELETE_FORBIDDEN",
+                "message", ex.getMessage()
+        ));
+    }
+
+    // 403: 폴더 권한이 없을 때
+    @ExceptionHandler(FolderPermissionException.class)
+    public ResponseEntity<Object> handleFolderPermissionException(FolderPermissionException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "error", "FOLDER_FORBIDDEN",
+                "message", ex.getMessage()
+        ));
+    }
 }

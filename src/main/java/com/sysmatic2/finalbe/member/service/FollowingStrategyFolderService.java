@@ -1,11 +1,10 @@
 package com.sysmatic2.finalbe.member.service;
 
-import com.sysmatic2.finalbe.exception.DefaultFolderDeleteException;
-import com.sysmatic2.finalbe.exception.DefaultFolderRenameException;
-import com.sysmatic2.finalbe.exception.FolderNotFoundException;
+import com.sysmatic2.finalbe.exception.*;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.dto.FolderNameDto;
 import com.sysmatic2.finalbe.member.dto.FollowingStrategyFolderDto;
+import com.sysmatic2.finalbe.member.dto.FollowingStrategyListDto;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyEntity;
 import com.sysmatic2.finalbe.member.entity.FollowingStrategyFolderEntity;
 import com.sysmatic2.finalbe.member.entity.MemberEntity;
@@ -13,6 +12,8 @@ import com.sysmatic2.finalbe.member.repository.FollowingStrategyFolderRepository
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,10 +65,17 @@ public class FollowingStrategyFolderService {
 
 
     //관심전략폴더 삭제
-    public void deleteFolder(Long folderId) {
-      Optional <FollowingStrategyFolderEntity> folderOptional = folderRepository.findById((folderId));
+    public void deleteFolder(Long folderId,CustomUserDetails customUserDetails) {
+        MemberEntity member = customUserDetails.getMemberEntity();
+        //해당 유저가 폴더삭제 권한이 있는지 확인해야함
+        // folderId만으로 폴더 조회
+        FollowingStrategyFolderEntity folderEntity = folderRepository.findById(folderId)
+                .orElseThrow(() -> new FolderNotFoundException("해당 folderId에 해당하는 폴더를 찾을 수 없습니다."));
 
-        FollowingStrategyFolderEntity folderEntity = folderOptional.get();
+        // 조회된 폴더가 해당 멤버 소유인지 확인
+        if (!folderEntity.getMember().getMemberId().equals(member.getMemberId())) {
+            throw new FolderDeletePermissionException("해당 멤버는 이 폴더를 삭제할 권한이 없습니다.");
+        }
 
         if("Y".equals(folderEntity.getIsDefaultFolder())){
             throw new DefaultFolderDeleteException("기본 폴더는 삭제할 수 없습니다.");
@@ -85,6 +93,14 @@ public class FollowingStrategyFolderService {
         //dto
         //폴더명등 필요한 정보만 넘기자
         return folderList;
+    }
+
+    //폴더 목록 조회 페이징처리
+    public Page<FollowingStrategyFolderDto> getFolderListPage(MemberEntity member,Pageable pageable){
+        if (member == null) {
+            throw new IllegalArgumentException("멤버 정보가 유효하지 않습니다.");
+        }
+        return folderRepository.getFolderListPage(member,pageable);
     }
 
 

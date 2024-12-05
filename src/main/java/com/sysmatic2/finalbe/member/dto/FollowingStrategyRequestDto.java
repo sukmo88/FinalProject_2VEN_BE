@@ -8,5 +8,4 @@ import lombok.Setter;
 public class FollowingStrategyRequestDto {
     private Long folderId;
     private Long strategyId;
-    private Long followingStrategyId;
 }
