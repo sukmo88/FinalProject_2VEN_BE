@@ -75,12 +75,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN") //관리자 관련
                         .requestMatchers("/api/strategies/registration-form","/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
                                 "/api/strategies/{id}/rejection-info", "/api/strategies/{id}/termination", "/api/strategies/{id}/daily-data",
-                                "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete",
-                                "/api/strategies/{strategyId}/upload", "/api/live-account-data/", "/api/strategies/{strategyId}/reviews/{reviewId}"
+                                "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete"
                                 ).hasAnyRole("ADMIN", "TRADER") //전략 관련
                         .requestMatchers(HttpMethod.POST, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 등록
                         .requestMatchers(HttpMethod.DELETE, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 삭제
                         .requestMatchers(HttpMethod.PUT, "/api/strategies/{id}").hasAnyRole("ADMIN", "TRADER") //전략 수정
+                        .requestMatchers(HttpMethod.POST, "/api/live-account-data/{strategyId}").hasAnyRole("ADMIN", "TRADER") //실계좌 등록
+                        .requestMatchers(HttpMethod.DELETE, "/api/live-account-data/{strategyId}").hasAnyRole("ADMIN", "TRADER") //실계좌 삭제
                         .requestMatchers("/**").permitAll()
                 )
                 .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화
@@ -115,11 +116,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/strategies/registration-form","/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
                                 "/api/strategies/{id}/rejection-info", "/api/strategies/{id}/termination", "/api/strategies/{id}/daily-data",
                                 "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete",
-                                "/api/strategies/{strategyId}/upload", "/api/live-account-data/", "/api/strategies/{strategyId}/reviews/{reviewId}"
+                                "/api/strategies/{strategyId}/upload", "/api/strategies/{strategyId}/reviews/{reviewId}"
                         ).hasAnyRole("ADMIN", "TRADER") //전략 관련
                         .requestMatchers(HttpMethod.POST, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 등록
                         .requestMatchers(HttpMethod.DELETE, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 삭제
                         .requestMatchers(HttpMethod.PUT, "/api/strategies/{id}").hasAnyRole("ADMIN", "TRADER") //전략 수정
+                        .requestMatchers(HttpMethod.POST, "/api/live-account-data/{strategyId}").hasAnyRole("ADMIN", "TRADER") //실계좌 등록
+                        .requestMatchers(HttpMethod.DELETE, "/api/live-account-data/{strategyId}").hasAnyRole("ADMIN", "TRADER") //실계좌 삭제
                         .requestMatchers("/swagger-ui/**", "/api/**").permitAll()
                         .requestMatchers("/**").permitAll()
 

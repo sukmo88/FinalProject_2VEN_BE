@@ -1,7 +1,6 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
 import com.sysmatic2.finalbe.config.AuditorAwareImpl;
-import com.sysmatic2.finalbe.exception.MemberNotFoundException;
 import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.member.repository.MemberRepository;
 import com.sysmatic2.finalbe.strategy.dto.*;
@@ -13,7 +12,6 @@ import com.sysmatic2.finalbe.strategy.service.StrategyService;
 import com.sysmatic2.finalbe.util.CreatePageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -144,14 +142,14 @@ public class StrategyController {
     @GetMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Map> getStrategyById(@PathVariable("id") Long strategyId,
                                                @AuthenticationPrincipal CustomUserDetails userDetails) throws Exception{
-        //팔로워 조회용
-        String memberId = userDetails.getMemberId();
+        //팔로워 조회용 - 미로그인시 null
+        String memberId = userDetails != null ? userDetails.getMemberId() : null;
 
         //전략 기본정보 데이터를 가져온다.
         StrategyResponseDto strategyResponseDto = strategyService.getStrategyDetails(strategyId, memberId);
 
-        //isPosted=N인 경우 관리자와 작성트레이더만 볼 수 있다.
-        if(strategyResponseDto.getIsPosted().equals("N")){
+        //isPosted=N or isApproved=N인 경우 관리자와 작성트레이더만 볼 수 있다.
+        if(strategyResponseDto.getIsPosted().equals("N") || strategyResponseDto.getIsApproved().equals("N")){
             //비로그인 상태인 경우
             if (userDetails == null) {
                 throw new AccessDeniedException("조회 권한이 없습니다.");
@@ -171,9 +169,11 @@ public class StrategyController {
             Boolean isTrader = userDetails.getAuthorities().stream()
                     .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
 
+            //로그인한 일반 회원인 경우
             if(!isTrader)
                 throw new AccessDeniedException("비공개 전략은 작성자와 관리자만 조회할 수 있습니다.");
 
+            //트레이더면서 작성자가 아닌 경우
             if(!userDetails.getMemberId().equals(strategyResponseDto.getMemberId()))
                 throw new AccessDeniedException("전략 조회 권한이 없습니다.");
         }
@@ -416,6 +416,7 @@ public class StrategyController {
     }
 
     //14. 일간 분석 데이터 목록 조회
+    // TODO) isPosted = N or isApproved = N인 경우 작성자와 관리자만 조회할 수 있다.
     /**
      * 특정 전략의 일간 분석 데이터를 최신일자순으로 페이징하여 반환합니다.
      *
