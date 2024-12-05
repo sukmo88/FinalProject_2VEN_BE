@@ -73,7 +73,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
                         .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN") //관리자 관련
-                        .requestMatchers("/api/strategies/registration-form","/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
+                        .requestMatchers("/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
                                 "/api/strategies/{id}/rejection-info", "/api/strategies/{id}/termination", "/api/strategies/{id}/daily-data",
                                 "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete"
                                 ).hasAnyRole("ADMIN", "TRADER") //전략 관련
@@ -113,7 +113,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
                         .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN") //관리자 관련
-                        .requestMatchers("/api/strategies/registration-form","/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
+                        .requestMatchers("/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
                                 "/api/strategies/{id}/rejection-info", "/api/strategies/{id}/termination", "/api/strategies/{id}/daily-data",
                                 "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete",
                                 "/api/strategies/{strategyId}/upload", "/api/strategies/{strategyId}/reviews/{reviewId}"

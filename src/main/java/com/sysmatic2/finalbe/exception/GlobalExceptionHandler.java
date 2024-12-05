@@ -279,12 +279,15 @@ public class GlobalExceptionHandler {
     }
 
     // 409: 데이터 충돌
-    @ExceptionHandler({DataIntegrityViolationException.class, DuplicateTradingTypeOrderException.class, DuplicateTradingCycleOrderException.class, MemberAlreadyExistsException.class})
+    @ExceptionHandler({DataIntegrityViolationException.class, DuplicateTradingTypeOrderException.class,
+            DuplicateTradingCycleOrderException.class, MemberAlreadyExistsException.class,
+            DeleteTradingTypeStrategyExistException.class})
     public ResponseEntity<Object> handleConflictExceptions(Exception ex) {
         logger.error("Data conflict: {}", ex.getMessage());
 
         String message;
-        if (ex instanceof DuplicateTradingTypeOrderException || ex instanceof DuplicateTradingCycleOrderException || ex instanceof MemberAlreadyExistsException) {
+        if (ex instanceof DuplicateTradingTypeOrderException || ex instanceof DuplicateTradingCycleOrderException
+                || ex instanceof MemberAlreadyExistsException || ex instanceof DeleteTradingTypeStrategyExistException) {
             message = ex.getMessage();
         } else {
             message = "데이터베이스 제약 조건을 위반했습니다.";

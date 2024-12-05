@@ -5,17 +5,21 @@ import com.sysmatic2.finalbe.admin.dto.TradingTypeAdminResponseDto;
 import com.sysmatic2.finalbe.admin.service.TradingTypeService;
 import com.sysmatic2.finalbe.attachment.dto.FileMetadataDto;
 import com.sysmatic2.finalbe.attachment.service.FileService;
+import com.sysmatic2.finalbe.exception.DeleteTradingTypeStrategyExistException;
+import com.sysmatic2.finalbe.util.ParseCsvToList;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -84,8 +88,17 @@ public class TradingTypeController {
     // 3. 매매유형 삭제
     @DeleteMapping("/trading-types/{id}")
     @ApiResponse(responseCode = "200", description = "Delete Trading Type")
-    public ResponseEntity<Map<String, String>> deleteTradingType(@PathVariable Integer id) {
-        tradingTypeService.deleteTradingType(id);
+    public ResponseEntity<Map<String, String>> deleteTradingType(@PathVariable("id") String tradingTypeIds) {
+
+        List<Integer> tradingTypeIdList = ParseCsvToList.parseCsvToIntegerList(tradingTypeIds);
+
+        for(Integer tradingTypeId : tradingTypeIdList) {
+            try{
+                tradingTypeService.deleteTradingType(tradingTypeId);
+            }catch(DataIntegrityViolationException ex){
+                throw new DeleteTradingTypeStrategyExistException("해당 매매유형의 전략이 존재합니다.");
+            }
+        }
 
         // 타임스탬프를 추가
         Instant timestamp = Instant.now();
@@ -96,20 +109,20 @@ public class TradingTypeController {
         ));
     }
 
-    // 3-1. 매매유형 논리적 삭제
-    @PatchMapping("/trading-types/{id}")
-    @ApiResponse(responseCode = "200", description = "Soft Delete Trading Type")
-    public ResponseEntity<Map<String, String>> softDeleteTradingType(@PathVariable Integer id) {
-        tradingTypeService.softDeleteTradingType(id);
-
-        // 타임스탬프를 추가
-        Instant timestamp = Instant.now();
-
-        return ResponseEntity.ok(Map.of(
-                "msg", "DELETE_SUCCESS",
-                "timestamp", timestamp.toString()
-        ));
-    }
+//    // 3-1. 매매유형 논리적 삭제
+//    @PatchMapping("/trading-types/{id}")
+//    @ApiResponse(responseCode = "200", description = "Soft Delete Trading Type")
+//    public ResponseEntity<Map<String, String>> softDeleteTradingType(@PathVariable Integer id) {
+//        tradingTypeService.softDeleteTradingType(id);
+//
+//        // 타임스탬프를 추가
+//        Instant timestamp = Instant.now();
+//
+//        return ResponseEntity.ok(Map.of(
+//                "msg", "DELETE_SUCCESS",
+//                "timestamp", timestamp.toString()
+//        ));
+//    }
 
     // 4. 매매유형 수정
     @PutMapping("/trading-types/{id}")
