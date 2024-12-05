@@ -11,6 +11,7 @@ import com.sysmatic2.finalbe.strategy.repository.DailyStatisticsRepository;
 import com.sysmatic2.finalbe.strategy.repository.StrategyRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,13 +43,18 @@ public class ExcelUploadService {
    * @return 저장된 DailyStatisticsEntity 리스트
    */
   @Transactional
-  public List<DailyStatisticsEntity> extractAndSaveData(MultipartFile file, Long strategyId) {
+  public List<DailyStatisticsEntity> extractAndSaveData(MultipartFile file, Long strategyId, String memberId, Boolean isTrader) {
     if (strategyId == null) {
       throw new IllegalArgumentException("Strategy ID는 null일 수 없습니다.");
     }
 
-    if (!strategyRepository.existsById(strategyId)) {
-      throw new IllegalArgumentException("유효하지 않은 전략 ID입니다: " + strategyId);
+    //전략 정보
+    StrategyEntity strategyEntity = strategyRepository.findById(strategyId).orElseThrow(
+            () -> new NoSuchElementException("해당 전략의 정보가 없습니다."));
+
+    //트레이더인 경우 작성자 판별
+    if(isTrader && !strategyEntity.getWriterId().equals(memberId)){
+      throw new AccessDeniedException("데이터 작성 권한이 없습니다.");
     }
 
     List<DailyStatisticsReqDto> dataList = extractAndValidateData(file);

@@ -1,5 +1,6 @@
 package com.sysmatic2.finalbe.strategy.controller;
 
+import com.sysmatic2.finalbe.member.dto.CustomUserDetails;
 import com.sysmatic2.finalbe.strategy.dto.DailyStatisticsReqDto;
 import com.sysmatic2.finalbe.strategy.entity.DailyStatisticsEntity;
 import com.sysmatic2.finalbe.strategy.service.ExcelUploadService;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,10 +45,18 @@ public class ExcelUploadController {
   @PostMapping(value = "/{strategyId}/upload", consumes = "multipart/form-data", produces = "application/json")
   public ResponseEntity<Map<String, Object>> uploadExcelFile(
           @PathVariable Long strategyId,
-          @RequestParam("file") MultipartFile file) {
+          @RequestParam("file") MultipartFile file,
+          @AuthenticationPrincipal CustomUserDetails userDetails) {
     try {
+      //접속자 정보
+      String memberId = userDetails.getMemberId();
+      Boolean isTrader = userDetails.getAuthorities().stream()
+              .anyMatch(authority -> authority.getAuthority().equals("ROLE_TRADER"));
+
       // 엑셀 파일에서 데이터를 추출하고 저장 (엔티티 리스트 반환)
-      List<DailyStatisticsEntity> entities = excelUploadService.extractAndSaveData(file, strategyId);
+      List<DailyStatisticsEntity> entities = excelUploadService.extractAndSaveData(file, strategyId, memberId, isTrader);
+
+
 
       // 엔티티 리스트를 DTO 리스트로 변환
       List<DailyStatisticsReqDto> dtos = entities.stream()

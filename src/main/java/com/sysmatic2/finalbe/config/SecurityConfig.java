@@ -74,7 +74,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
-                        .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN") //관리자 관련
                         .requestMatchers("/api/strategies/registration-form","/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
                                 "/api/strategies/{id}/rejection-info", "/api/strategies/{id}/termination", "/api/strategies/{id}/daily-data",
                                 "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete",
@@ -112,9 +112,19 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
-                        .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/members/details", "/api/members/change-password", "/api/members/withdrawal").authenticated()
+                        .requestMatchers("/api/auth/admin/**", "/api/admin/**").hasRole("ADMIN") //관리자 관련
+                        .requestMatchers("/api/strategies/registration-form","/api/strategies/{id}/update-form","/api/strategies/{id}/approval-request",
+                                "/api/strategies/{id}/rejection-info", "/api/strategies/{id}/termination", "/api/strategies/{id}/daily-data",
+                                "/api/strategies/{strategyId}/daily-data/{dailyDataId}", "/api/strategies/{strategyId}/daily-analyses/delete",
+                                "/api/strategies/{strategyId}/upload", "/api/live-account-data/", "/api/strategies/{strategyId}/reviews/{reviewId}"
+                        ).hasAnyRole("ADMIN", "TRADER") //전략 관련
+                        .requestMatchers(HttpMethod.POST, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 등록
+                        .requestMatchers(HttpMethod.DELETE, "/api/strategies").hasAnyRole("ADMIN", "TRADER") //전략 삭제
+                        .requestMatchers(HttpMethod.PUT, "/api/strategies/{id}").hasAnyRole("ADMIN", "TRADER") //전략 수정
                         .requestMatchers("/swagger-ui/**", "/api/**").permitAll()
                         .requestMatchers("/**").permitAll()
+
                 )
                 .requiresChannel(channel -> channel.anyRequest().requiresSecure()) // HTTPS 강제
                 .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화

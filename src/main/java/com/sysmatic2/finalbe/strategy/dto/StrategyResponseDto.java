@@ -13,7 +13,6 @@ import java.util.List;
 @AllArgsConstructor
 public class StrategyResponseDto {
     //전략 기본정보 DTO
-    //TODO) validation
     private String tradingTypeName; //매매유형명
     private String tradingTypeIcon; //매매유형아이콘링크
     private List<StrategyIACResponseDto> strategyIACEntities; //투자자산 분류 리스트
