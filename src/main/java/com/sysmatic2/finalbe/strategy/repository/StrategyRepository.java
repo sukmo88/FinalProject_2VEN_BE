@@ -125,4 +125,13 @@ public interface StrategyRepository extends JpaRepository<StrategyEntity, Long>,
     @Query("SELECT s FROM StrategyEntity s WHERE s.strategyId IN :strategyIds ORDER BY s.smScore DESC")
     Page<StrategyEntity> findByStrategyIdsOrderBySmScore(@Param("strategyIds") List<Long> strategyIds, Pageable pageable);
 
+    /**
+     * 조건에 따라 승인된(isApproved) 및 게시된(isPosted) 전략을 페이징 처리하여 조회합니다.
+     *
+     * @param isApproved 승인 여부 (예: "Y" 또는 "N")
+     * @param isPosted   게시 여부 (예: "Y" 또는 "N")
+     * @param pageable   페이징 정보 (페이지 번호, 페이지 크기, 정렬 정보)
+     * @return 조건을 만족하는 전략의 페이지(Page<StrategyEntity>)
+     */
+    Page<StrategyEntity> findByIsApprovedAndIsPosted(String isApproved, String isPosted, Pageable pageable);
 }
